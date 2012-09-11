@@ -44,6 +44,7 @@ CLIENT_OBJS= \
 	engine/dynlight.o \
 	engine/glare.o \
 	engine/grass.o \
+	engine/irc.o \
 	engine/lightmap.o \
 	engine/main.o \
 	engine/material.o \
@@ -71,6 +72,7 @@ CLIENT_OBJS= \
 	engine/world.o \
 	engine/worldio.o \
 	fpsgame/ai.o \
+	fpsgame/campaign.o \
 	fpsgame/client.o \
 	fpsgame/entities.o \
 	fpsgame/fps.o \
@@ -250,6 +252,7 @@ engine/grass.o: engine/engine.h shared/cube.h shared/tools.h shared/geom.h
 engine/grass.o: shared/ents.h shared/command.h shared/iengine.h
 engine/grass.o: shared/igame.h engine/world.h engine/octa.h engine/lightmap.h
 engine/grass.o: engine/bih.h engine/texture.h engine/model.h engine/varray.h
+engine/irc.o: engine/engine.h engine/textedit.h
 engine/lightmap.o: engine/engine.h shared/cube.h shared/tools.h shared/geom.h
 engine/lightmap.o: shared/ents.h shared/command.h shared/iengine.h
 engine/lightmap.o: shared/igame.h engine/world.h engine/octa.h
@@ -382,6 +385,9 @@ engine/worldio.o: engine/model.h engine/varray.h
 fpsgame/ai.o: fpsgame/game.h shared/cube.h shared/tools.h shared/geom.h
 fpsgame/ai.o: shared/ents.h shared/command.h shared/iengine.h shared/igame.h
 fpsgame/ai.o: fpsgame/ai.h
+fpsgame/campaign.o: fpsgame/game.h shared/cube.h shared/tools.h shared/geom.h
+fpsgame/campaign.o: shared/ents.h shared/command.h shared/iengine.h shared/igame.h
+fpsgame/campaign.o: fpsgame/ai.h fpsgame/campaign.h
 fpsgame/client.o: fpsgame/game.h shared/cube.h shared/tools.h shared/geom.h
 fpsgame/client.o: shared/ents.h shared/command.h shared/iengine.h
 fpsgame/client.o: shared/igame.h fpsgame/ai.h fpsgame/capture.h fpsgame/ctf.h
