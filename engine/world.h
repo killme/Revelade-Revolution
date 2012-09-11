@@ -5,8 +5,7 @@ enum                            // hardcoded texture numbers
     DEFAULT_GEOM
 };
 
-#define MAPVERSION 31           // bump if map format changes, see worldio.cpp
-#define MAPZVERSION 41
+#define MAPVERSION 32           // bump if map format changes, see worldio.cpp
 
 struct octaheader
 {
@@ -20,7 +19,6 @@ struct octaheader
     int blendmap;
     int numvars;
     int numvslots;
-	//int padding[2];
 };
     
 struct compatheader             // map file format header
@@ -43,54 +41,6 @@ struct compatheader             // map file format header
     uchar waterfallcolour[3];
     uchar reserved[10];
     char maptitle[128];
-};
-
-struct binary
-{
-    char head[4];
-    int version, headersize;
-};
-
-struct mapz : binary
-{
-    int worldsize, numents, numpvs, lightmaps, blendmap, numvslots;
-    int gamever, revision;
-    char gameid[4];
-};
-
-struct mapzcompat38 : binary
-{
-    int worldsize, numents, numpvs, lightmaps, blendmap;
-    int gamever, revision;
-    char gameid[4];
-};
-
-struct mapzcompat33 : binary
-{
-    int worldsize, numents, numpvs, lightmaps, blendmap;
-    int gamever, revision;
-    char maptitle[128], gameid[4];
-};
-
-struct mapzcompat32 : binary
-{
-    int worldsize, numents, numpvs, lightmaps;
-    int gamever, revision;
-    char maptitle[128], gameid[4];
-};
-
-struct mapzcompat25 : binary
-{
-    int worldsize, numents, lightmaps;
-    int gamever, revision;
-    char maptitle[128], gameid[4];
-};
-
-enum
-{
-    MAP_MAPZ = 0,
-    MAP_OCTA,
-    MAP_MAX
 };
 
 #define WATER_AMPLITUDE 0.8f

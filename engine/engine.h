@@ -137,6 +137,7 @@ struct font
 #define MINRESH 480
 
 extern font *curfont;
+extern float gtextscale;
 
 // texture
 extern int hwtexsize, hwcubetexsize, hwmaxaniso, maxtexsize;
@@ -392,20 +393,17 @@ extern bool glaring;
 
 extern void drawglaretex();
 extern void addglare();
+extern void addwaterglow();
 
 // depthfx
 extern bool depthfxing;
 
 extern void drawdepthfxtex();
 
-// masterserver
-bool setuplistenmasterserver();
-void runmasterserver();
-
 // server
 extern vector<const char *> gameargs;
 
-extern void initserver(bool listen, bool dedicated, bool masterserv);
+extern void initserver(bool listen, bool dedicated);
 extern void cleanupserver();
 extern void serverslice(bool dedicated, uint timeout);
 
@@ -452,6 +450,8 @@ const char *getkeyname(int code);
 extern const char *addreleaseaction(const char *s);
 extern void writebinds(stream *f);
 extern void writecompletions(stream *f);
+extern void conline(int type, const char *sf);
+
 
 // main
 enum

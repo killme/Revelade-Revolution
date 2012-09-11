@@ -67,7 +67,7 @@ struct gui : g3d_gui
 	bool disappearing;
 
     static vector<list> lists;
-    static float hitx, hity, textscale;
+    static float hitx, hity;
     static int curdepth, curlist, xsize, ysize, curx, cury;
     static bool shouldmergehits, shouldautotab;
 
@@ -489,16 +489,6 @@ struct gui : g3d_gui
         
     }
 	
-	float gettextscale()
-	{
-		return textscale;
-	}
-	
-	void settextscale(float tscale)
-	{
-		textscale = tscale;
-	}
-
     void text_(const char *text, int x, int y, int color, bool shadow) 
     {
         if(shadow) draw_text(text, x+SHADOW, y+SHADOW, 0x00, 0x00, 0x00, 0xC0);
@@ -737,7 +727,7 @@ struct gui : g3d_gui
                 if(!isspace(icon[0]))
                 {
                     const char *ext = strrchr(icon, '.');
-                    defformatstring(tname)("packages/icons/%s%s", icon, ext ? "" : ".png");
+                    defformatstring(tname)("data/icons/%s%s", icon, ext ? "" : ".png");
                     icon_(textureload(tname, 3), false, x, cury, ICON_SIZE, clickable && hit);
                 }
                 x += ICON_SIZE;
@@ -1115,7 +1105,7 @@ const gui::patch gui::patches[] =
 };
 
 vector<gui::list> gui::lists;
-float gui::basescale, gui::maxscale = 1, gui::hitx, gui::hity, gui::alpha, gui::textscale = 1;
+float gui::basescale, gui::maxscale = 1, gui::hitx, gui::hity, gui::alpha;
 bool gui::passthrough, gui::shouldmergehits = false, gui::shouldautotab = true;
 vec gui::light;
 int gui::curdepth, gui::curlist, gui::xsize, gui::ysize, gui::curx, gui::cury;
@@ -1389,3 +1379,71 @@ void consolebox(int x1, int y1, int x2, int y2)
     glPopMatrix();
 }
 
+ICOMMAND(textlist, "", (), // @DEBUG return list of all the editors
+    string s = "";
+    loopv(editors)
+    {   
+        if(i > 0) concatstring(s, ", ");
+        concatstring(s, editors[i]->name);
+    }
+    result(s);
+);
+TEXTCOMMAND(textshow, "", (), // @DEBUG return the start of the buffer
+    editline line;
+    line.combinelines(top->lines);
+    result(line.text);
+    line.clear();
+);
+ICOMMAND(textfocus, "si", (char *name, int *mode), // focus on a (or create a persistent) specific editor, else returns current name
+    if(*name) useeditor(name, *mode<=0 ? EDITORFOREVER : *mode, true);
+    else if(editors.length() > 0) result(editors.last()->name);
+);
+TEXTCOMMAND(textprev, "", (), editors.insert(0, top); editors.pop();); // return to the previous editor
+TEXTCOMMAND(textmode, "i", (int *m), // (1= keep while focused, 2= keep while used in gui, 3= keep forever (i.e. until mode changes)) topmost editor, return current setting if no args
+    if(*m) top->mode = *m;
+    else
+    {
+        defformatstring(s)("%d", top->mode);
+        result(s);
+    } 
+);
+TEXTCOMMAND(textsave, "s", (char *file),  // saves the topmost (filename is optional)
+    if(*file) top->setfile(path(file, true)); 
+    top->save();
+);  
+TEXTCOMMAND(textload, "s", (char *file), // loads into the topmost editor, returns filename if no args
+    if(*file)
+    {
+        top->setfile(path(file, true));
+        top->load();
+    }
+    else if(top->filename) result(top->filename);
+);
+TEXTCOMMAND(textinit, "sss", (char *name, char *file, char *initval), // loads into named editor if no file assigned and editor has been rendered
+{
+    editor *e = NULL;
+    loopv(editors) if(!strcmp(editors[i]->name, name)) { e = editors[i]; break; }
+    if(e && e->rendered && !e->filename && *file && (e->lines.empty() || (e->lines.length() == 1 && !strcmp(e->lines[0].text, initval))))
+    {
+        e->setfile(path(file, true));
+        e->load();
+    }
+});
+ 
+#define PASTEBUFFER "#pastebuffer"
+
+TEXTCOMMAND(textcopy, "", (), editor *b = useeditor(PASTEBUFFER, EDITORFOREVER, false); top->copyselectionto(b););
+TEXTCOMMAND(textpaste, "", (), editor *b = useeditor(PASTEBUFFER, EDITORFOREVER, false); top->insertallfrom(b););
+TEXTCOMMAND(textmark, "i", (int *m),  // (1=mark, 2=unmark), return current mark setting if no args
+    if(*m) top->mark(*m==1);
+    else result(top->region() ? "1" : "2");
+);
+TEXTCOMMAND(textselectall, "", (), top->selectall(););
+TEXTCOMMAND(textclear, "", (), top->clear(););
+TEXTCOMMAND(textcurrentline, "",  (), result(top->currentline().text););
+
+TEXTCOMMAND(textexec, "i", (int *selected), // execute script commands from the buffer (0=all, 1=selected region only)
+    char *script = *selected ? top->selectiontostring() : top->tostring();
+    execute(script);
+    delete[] script;
+);

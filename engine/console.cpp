@@ -22,6 +22,9 @@ void conline(int type, const char *sf)        // add a line to the console buffe
     cl.outtime = totalmillis;                       // for how long to keep line on screen
     conlines.insert(0, cl);
     copystring(cl.line, sf, CONSTRLEN);
+#ifdef IRC
+    ircoutf(5, "%s", sf);
+#endif
 }
 
 void conoutfv(int type, const char *fmt, va_list args)
@@ -31,7 +34,6 @@ void conoutfv(int type, const char *fmt, va_list args)
     conline(type, buf);
     filtertext(buf, buf);
     puts(buf);
-	logouts(buf);
 }
 
 void conoutf(const char *fmt, ...)

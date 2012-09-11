@@ -2,7 +2,7 @@ struct fpsent;
 
 #define MAXBOTS 32
 
-enum { AI_NONE = 0, AI_BOT, AI_NPC, AI_MAX };
+enum { AI_NONE = 0, AI_BOT, AI_ZOMBIE, AI_MAX };
 #define isaitype(a) (a >= 0 && a <= AI_MAX-1)
 
 namespace ai
@@ -18,6 +18,8 @@ namespace ai
     const float SIGHTMAX        = 1024.f;  // maximum line of sight
     const float VIEWMIN         = 90.f;    // minimum field of view
     const float VIEWMAX         = 180.f;   // maximum field of view
+
+	extern vector<char *> botnames;
 
     struct waypoint
     {

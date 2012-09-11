@@ -20,7 +20,7 @@ namespace game
     void setclientmode()
     {
         if(m_capture) cmode = &capturemode;
-        else if(m_ctf) cmode = &ctfmode;
+		else if(m_ctf) cmode = &ctfmode;
         else if(m_infection) cmode = &infectionmode;
         else if(m_survival) cmode = &survivalmode;
         else cmode = NULL;
@@ -438,7 +438,19 @@ namespace game
     {
         changemap(name, m_valid(nextmode) ? nextmode : (remote ? lobbymode : localmode));
     }
-    ICOMMAND(map, "s", (char *name), changemap(name));
+
+	SVARFP(sauerdir, "", fixpackagedir(sauerdir) );
+    ICOMMAND(map, "s", (char *name), {
+		if (packagedirs.length() && packagedirs[0] == sauerdir) packagedirs.remove(0);
+		changemap(name);
+	});
+	ICOMMAND(sauermap, "s", (char *name), {
+		if (packagedirs.empty() || (packagedirs.length() && packagedirs[0] != sauerdir))
+		{
+			packagedirs.insert(0, sauerdir);
+		}
+		changemap(name);
+	});
 
     void forceedit(const char *name)
     {
@@ -697,7 +709,7 @@ namespace game
     void sayteam(char *text) { conoutf(CON_TEAMCHAT, "%s:\f1 %s", colorname(player1), text); addmsg(N_SAYTEAM, "rcs", player1, text); }
     COMMAND(sayteam, "C");
 
-    static void sendposition(fpsent *d, packetbuf &q)
+    void sendposition(fpsent *d, packetbuf &q)
     {
         putint(q, N_POS);
         putuint(q, d->clientnum);

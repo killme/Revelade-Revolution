@@ -4,6 +4,7 @@ static hashtable<const char *, font> fonts;
 static font *fontdef = NULL;
 
 font *curfont = NULL;
+float gtextscale = 1.f;
 
 void newfont(char *name, char *tex, int *canbedefault, int *defaultw, int *defaulth, int *offsetx, int *offsety) //, int *offsetw, int *offseth
 {
@@ -190,7 +191,7 @@ static void text_color(char c, char *stack, int size, int &sp, bvec color, int a
         int c = str[i];\
         if(c=='\t')      { x = ((x+PIXELTAB)/PIXELTAB)*PIXELTAB*TEXTSCALE; TEXTWHITE(i) }\
         else if(c==' ')  { x += curfont->defaultw*TEXTSCALE; TEXTWHITE(i) }\
-        else if(c=='\n') { TEXTLINE(i) x = 0; y += FONTH*TEXTSCALE; }\
+        else if(c=='\n') { TEXTLINE(i) x = 0; y += FONTH*TEXTSCALE+30; }\
         else if(c=='\f') { if(str[i+1]) { i++; TEXTCOLOR(i) }}\
         else if(curfont->chars.inrange(c-curfont->charoffset))\
         {\
@@ -229,12 +230,12 @@ static void text_color(char c, char *stack, int size, int &sp, bvec color, int a
 int text_visible(const char *str, int hitx, int hity, int maxwidth)
 {
     #define TEXTINDEX(idx)
-    #define TEXTWHITE(idx) if(y+FONTH*((cgui)?cgui->gettextscale():1.0f) > hity && x >= hitx) return idx;
-    #define TEXTLINE(idx) if(y+FONTH*((cgui)?cgui->gettextscale():1.0f) > hity) return idx;
+    #define TEXTWHITE(idx) if(y+FONTH*(gtextscale) > hity && x >= hitx) return idx;
+    #define TEXTLINE(idx) if(y+FONTH*(gtextscale) > hity) return idx;
     #define TEXTCOLOR(idx)
-    #define TEXTCHAR(idx) x += curfont->chars[c-curfont->charoffset].w*((cgui)?cgui->gettextscale():1.0f)+1; TEXTWHITE(idx)
+    #define TEXTCHAR(idx) x += curfont->chars[c-curfont->charoffset].w*(gtextscale)+1; TEXTWHITE(idx)
     #define TEXTWORD TEXTWORDSKELETON
-	#define TEXTSCALE ((cgui)?cgui->gettextscale():1.0f)
+	#define TEXTSCALE (gtextscale)
     TEXTSKELETON
 	#undef TEXTSCALE
     #undef TEXTINDEX
@@ -253,9 +254,9 @@ void text_pos(const char *str, int cursor, int &cx, int &cy, int maxwidth)
     #define TEXTWHITE(idx)
     #define TEXTLINE(idx)
     #define TEXTCOLOR(idx)
-    #define TEXTCHAR(idx) x += curfont->chars[c-curfont->charoffset].w*((cgui)?cgui->gettextscale():1.0f) + 1;
+    #define TEXTCHAR(idx) x += curfont->chars[c-curfont->charoffset].w*(gtextscale) + 1;
     #define TEXTWORD TEXTWORDSKELETON if(i >= cursor) break;
-	#define TEXTSCALE ((cgui)?cgui->gettextscale():1.0f)
+	#define TEXTSCALE (gtextscale)
     cx = INT_MIN;
     cy = 0;
     TEXTSKELETON
@@ -271,7 +272,7 @@ void text_pos(const char *str, int cursor, int &cx, int &cy, int maxwidth)
 
 void text_bounds(const char *str, int &width, int &height, int maxwidth)
 {
-	#define TEXTSCALE ((cgui)?cgui->gettextscale():1.0f)
+	#define TEXTSCALE (gtextscale)
     #define TEXTINDEX(idx)
     #define TEXTWHITE(idx)
     #define TEXTLINE(idx) if(x > width) width = x;
@@ -279,7 +280,7 @@ void text_bounds(const char *str, int &width, int &height, int maxwidth)
     #define TEXTCHAR(idx) x += curfont->chars[c-curfont->charoffset].w*TEXTSCALE + 1;
     #define TEXTWORD x += w + 1;
     width = 0;
-	maxwidth /= TEXTSCALE;
+	if (maxwidth != -1) maxwidth /= TEXTSCALE;
     TEXTSKELETON
     height = y + FONTH*TEXTSCALE;
     TEXTLINE(_)
@@ -294,12 +295,11 @@ void text_bounds(const char *str, int &width, int &height, int maxwidth)
 
 void draw_text(const char *str, int left, int top, int r, int g, int b, int a, int cursor, int maxwidth) 
 {
-	float textscale = cgui? cgui->gettextscale(): 1.0f;
 	glPushMatrix();
-	glTranslatef(left, top+(1-textscale)*FONTH*textscale*0.5f, 0.0f);
-	glScalef(textscale, textscale, 1.0f);
+	glTranslatef(left, top, 0.0f);
+	glScalef(gtextscale, gtextscale, 1.0f);
 	top = left = 0;
-	maxwidth /= textscale;
+	if (maxwidth != -1) maxwidth /= gtextscale;
 
 	#define TEXTINDEX(idx) if(idx == cursor) { cx = x; cy = y; }
     #define TEXTWHITE(idx)
@@ -307,7 +307,7 @@ void draw_text(const char *str, int left, int top, int r, int g, int b, int a, i
     #define TEXTCOLOR(idx) text_color(str[idx], colorstack, sizeof(colorstack), colorpos, color, a);
     #define TEXTCHAR(idx) x += draw_char(c, left+x, top+y)+1;
     #define TEXTWORD TEXTWORDSKELETON
-	#define TEXTSCALE (1.0f)
+	#define TEXTSCALE (gtextscale)
     char colorstack[10];
     bvec color(r, g, b);
     int colorpos = 0, cx = INT_MIN, cy = 0;
@@ -325,7 +325,7 @@ void draw_text(const char *str, int left, int top, int r, int g, int b, int a, i
     {
         glColor4ub(r, g, b, a);
         if(cx == INT_MIN) { cx = x; cy = y; }
-        if(maxwidth != -1 && cx >= maxwidth) { cx = 0; cy += FONTH; }
+        if(maxwidth != -1 && cx >= maxwidth) { cx = 0; cy += FONTH*TEXTSCALE; }
         draw_char('_', left+cx, top+cy);
         xtraverts += varray::end();
     }

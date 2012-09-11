@@ -13,7 +13,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerWorkingDirectory>L:\ReveladeRevolution\ReveladeRevolution</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-d2</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>"-q$HOME\My Games\Revelade Revolution" -glog.txt</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
     <LocalDebuggerWorkingDirectory>..\..\..</LocalDebuggerWorkingDirectory>

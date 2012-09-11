@@ -23,10 +23,10 @@ namespace game
     static const monstertype monstertypes[NUMMONSTERTYPES] =
     {
         { WEAP_BITE,		18, 200, 3, 80,  100, 800, 1, 12, 100, S_PAINO, S_DIE1,   "zombie bike",	"monster/nazizombiebike",	NULL},
-        { WEAP_SLUGSHOT,	18, 200, 3, 100, 300, 400, 4, 13, 115, S_PAINE, S_DEATHE, "nazi zombie",	"monster/nazizombie",		"vwep/shotg"},
+        { WEAP_PISTOL,		18, 200, 3, 100, 300, 400, 4, 13, 115, S_PAINE, S_DEATHE, "nazi zombie",	"monster/nazizombie",		"vwep/shotg"}, // WEAP_SLUGSHOT
         { WEAP_BITE,		18, 200, 3, 100, 300, 400, 4, 12, 115, S_PAINE, S_DEATHE, "nazi zombie 2",	"monster/nazizombie2",		NULL},
         { WEAP_BITE,		20, 160, 3, 0,   100, 400, 1, 11,  90, S_PAINP, S_PIGGR2, "fast zombie",	"monster/fastzombie",		NULL},
-        { WEAP_BITE,		13, 160, 3, 0,   100, 400, 1, 12,  50, S_PAINS, S_DEATHS, "female",		"monster/female",			NULL},
+        { WEAP_BITE,		13, 160, 3, 0,   100, 400, 1, 12,  50, S_PAINS, S_DEATHS, "female",			"monster/female",			NULL},
         { WEAP_BITE,		13, 160, 3, 0,   100, 400, 1,  9,  50, S_PAINS, S_DEATHS, "female 2",		"monster/female2",			NULL},
         { WEAP_BITE,		13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 1",		"monster/zombie1",			NULL},
         { WEAP_BITE,		13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 2",		"monster/zombie2",			NULL},
@@ -37,24 +37,14 @@ namespace game
         { WEAP_BITE,		13, 180, 3, 0,   100, 400, 1, 13,  75, S_PAIND, S_DEATHD, "zombie 7",		"monster/zombie7",			NULL},
         { WEAP_BITE,		19,  40, 3, 0,   100, 400, 1,  4,  10, S_PAINR, S_DEATHR, "rat",		    "monster/rat",				NULL},
         { WEAP_ROCKETL,		13, 600, 1, 0,   100, 400, 1, 24, 200, S_PAIND, S_DEATHD, "zombie boss",	"monster/zombieboss",		"vwep/rocket"},
-        //{ WEAP_BITE,      10,  80, 3, 0,   100, 400, 1, 14,  90, S_PAINP, S_PIGGR2, "fatzombie",	"monster/fatzombie",		NULL},
-        //{ WEAP_MG,        18,  70, 2, 70,   10, 400, 2, 10,  50, S_PAINR, S_DEATHR, "a rhino",		"monster/rhino",			NULL},
-        //{ WEAP_SNIPER,    14, 200, 1, 80,  400, 300, 4, 18, 145, S_PAINS, S_DEATHS, "a slith",		"monster/slith",			"monster/slith/vwep"},
-        //{ WEAP_ROCKETL,	12, 500, 1, 0,   200, 200, 6, 24, 210, S_PAINB, S_DEATHB, "bauul",		"monster/bauul",			"monster/bauul/vwep"},
-        //{ WEAP_BITE,		24,  50, 3, 0,   100, 400, 1, 15,  75, S_PAINP, S_PIGGR2, "a hellpig",	"monster/hellpig",			NULL},
-        //{ GUN_ICEBALL,	11, 250, 1, 0,    10, 400, 6, 18, 160, S_PAINH, S_DEATHH, "a knight",	"monster/knight",			"monster/knight/vwep"},
-        //{ GUN_SLIMEBALL,	15, 100, 1, 0,   200, 400, 2, 10,  60, S_PAIND, S_DEATHD, "a goblin",	"monster/goblin",			"monster/goblin/vwep"},
-        //{ WEAP_GRENADIER,	22,  50, 1, 0,   200, 400, 1, 10,  40, S_PAIND, S_DEATHD, "a spider",	"monster/spider",			NULL },
-        //{ WEAP_BITE,		24,  50, 3, 0,   100, 400, 1, 15,  75, S_PAINP, S_PIGGR2, "a hellpig",	"monster/kugelpanzer",		NULL},
+
 		{ WEAP_SLUGSHOT,	13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper sg","ogro",					"ogro/vwep"},
 		{ WEAP_ROCKETL,		13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper rl","ogro",					"ogro/vwep"},
     };
 
-    //VAR(skill, 1, 3, 10);
-    //VAR(killsendsp, 0, 1, 1);
 	VAR(level, 1, 2, 4);
-	int skill; // = m_dmsp ? level*3 : level*5 + 10;
-	int skillinv; // = int(100*(1/skill));
+	int skill;
+	int skillinv;
     bool monsterhurt;
     vec monsterhurtpos;
 	fpsent *bestenemy = NULL;
@@ -144,7 +134,6 @@ namespace game
 				if (bestenemy && bestenemy->state == CS_ALIVE) enemy = bestenemy;
 				else
 				{
-					//fpsent *bestmon = NULL;
 					float bestdist = 9999999999, dist = 0;
 					loopv(monsters)
 					if (monsters[i]->state == CS_ALIVE && monstertypes[monsters[i]->mtype].loyalty && (dist = o.squaredist(monsters[i]->o)) < bestdist)
@@ -152,7 +141,7 @@ namespace game
 						enemy = monsters[i];
 						bestdist = dist;
 					}
-					/*if (dist < 0.01)*/ return;
+					return;
 				}
 			}
             if(enemy->state==CS_DEAD) { enemy = monstertypes[mtype].loyalty? player1: bestenemy; anger = 0; }
@@ -289,7 +278,6 @@ namespace game
 						int _anger = d->type==ENT_AI && mtype==((monster *)d)->mtype ? anger/2 : anger;
 						if(_anger>=monstertypes[mtype].loyalty) enemy = d;     // monster infight if very angry
 					}
-					// todo: add monster-monster message
 				}
 				else if(d->type==ENT_PLAYER) // player hit us
 				{
@@ -301,7 +289,6 @@ namespace game
 					}
 					monsterhurt = true;
 					monsterhurtpos = o;
-					// todo: add player-monster message
 				}
 			}
             damageeffect(damage, this);
@@ -358,10 +345,7 @@ namespace game
         int n = rnd(TOTMFREQ), type;
         for(int i = rnd(NUMMONSTERTYPES); ; i = (i+1)%NUMMONSTERTYPES)
 			if((n -= monstertypes[i].freq)<0) { type = i; break; }
-		if(m_sp)
-		{
-			monsters.add(new monster(type, rnd(360), 0, M_SEARCH, 1000, 1));
-		}
+		if(m_sp) monsters.add(new monster(type, rnd(360), 0, M_SEARCH, 1000, 1));
     }
 
 	void spawnrat(vec o)
@@ -391,8 +375,6 @@ namespace game
         {
 			nextmonster = mtimestart = lastmillis+10000 +(dmround * 1000);
 			remain = monstertotal = spawnremain = roundtotal = ((level)*3) + (((dmround-1)*(level*2)) + int(dmround*dmround*0.1));
-            //nextmonster = mtimestart = lastmillis+10000;
-            //monstertotal = spawnremain = skill*10;
         }
         else if(m_classicsp)
         {
@@ -457,8 +439,6 @@ namespace game
 		if (m_dmsp && spawnremain == 0 && remain <= 6 && roundtime == 0) roundtime = lastmillis;
 		if (roundtime && lastmillis-roundtime > 150000) nextround();
         
-        //if(killsendsp && monstertotal && !spawnremain && numkilled==monstertotal) endsp(true);
-        
         bool monsterwashurt = monsterhurt;
         
         loopv(monsters)
@@ -477,10 +457,13 @@ namespace game
             {
                 if(lastmillis-monsters[i]->lastpain<2000)
                 {
-                    //monsters[i]->move = 0;
                     monsters[i]->move = monsters[i]->strafe = 0;
                     moveplayer(monsters[i], 1, true);
                 }
+				else
+				{
+					monsters.removeunordered(i);
+				}
             }
 			if (monsters[i]->onfire && (lastmillis-monsters[i]->burnmillis > 4000 || monsters[i]->inwater))
 			{

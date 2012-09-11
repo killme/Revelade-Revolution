@@ -557,6 +557,7 @@ int texalign(void *data, int w, int bpp)
     return 8;
 }
 
+//todo
 static char *colirizables[] = { "action.png", "arrow_bw.png", "arrow_fw.png", "buy.png", "checkbox_off.png", "checkbox_on.png",
 	"cube.png", "exit.png", "font.png", "info.png", "menu.png", "radio_off.png", "radio_on.png" };
 static int colirizableslen = sizeof(colirizables)/sizeof(colirizables[0]);

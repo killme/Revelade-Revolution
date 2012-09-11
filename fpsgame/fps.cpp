@@ -69,10 +69,6 @@ namespace game
         stopfollowing();
     }
     ICOMMAND(nextfollow, "i", (int *dir), nextfollow(*dir < 0 ? -1 : 1));
-	
-	//VARP(pspeed, 0, 100, 1000);
-	//ICOMMAND(playeryaw, "", (), intret((int)player1->yaw));
-	//ICOMMAND(playerpitch, "", (), intret((int)player1->pitch));
 
 	bool inputenabled = true;
 	extentity *camnext;
@@ -97,7 +93,7 @@ namespace game
 		if (cm<0 || !eents.inrange(cm)) return;
 
 		camnext = eents[cm];
-		float dr = /*(*cps<=0)? (float)(*dur<=0? 1: *dur):*/ camera1->o.dist(camnext->o)/(*cps);
+		float dr = camera1->o.dist(camnext->o)/(*cps);
 		camstep = camera1->o.dist(camnext->o)/dr;
 		camyaws = (camnext->attr2-camera1->yaw);
 		camyaws = min(360-camyaws, camyaws)/dr;
@@ -110,21 +106,20 @@ namespace game
 	}
 	COMMAND(setnextcam, "ifs");
 
+	ICOMMAND(iszombiegame, "", (), intret(m_sp||m_survival));
+
+	SVAR(voicedir, "female");
+
 	void sayradio(char *s, fpsent *spe = NULL, bool rteam = false)
 	{
 		if (spe == player1) return;
 		if (spe == NULL) addmsg((rteam)? N_RADIOTEAM: N_RADIOALL, "rs", s);
 
-		defformatstring(path)("voice/radio/%s", s);
+		defformatstring(path)("voice/radio/%s/%s", voicedir, s);
 		playsoundname(path);
 	}
 	ICOMMAND(radioall, "s", (char *s), sayradio(s, NULL, false));
 	ICOMMAND(radioteam, "s", (char *s), sayradio(s, NULL, true));
-
-	//SVARP(startmapa, "");
-	//SVARP(curmaps, "");
-	//VARP(startmode, -2, 0, 20);
-	//VARP(curmi, -2, 0, 20);
 
 	enum buyables
 	{
@@ -155,7 +150,7 @@ namespace game
 			if (player1->guts < buyablesprices[i])
 			{
 				conoutf(CON_INFO, "\f2not enough gut points to buy item");
-				//break;
+				break;
 			}
 			player1->guts -= buyablesprices[i];
 			switch (i)
@@ -479,7 +474,6 @@ namespace game
             if(wait>0)
             {
                 lastspawnattempt = lastmillis;
-                //conoutf(CON_GAMEINFO, "\f2you must wait %d second%s before respawn!", wait, wait!=1 ? "s" : "");
                 return;
             }
             if(lastmillis < player1->lastpain + spawnwait) return;
@@ -521,9 +515,15 @@ namespace game
 
     void damaged(int damage, fpsent *d, fpsent *actor, bool local, int gun)
     {
+		if (gun == WEAP_FLAMEJET)
+		{
+			volatile int asd = 1;
+		}
         if(d->state!=CS_ALIVE || intermission) return;
 
-        if(local) damage = d->dodamage(damage);
+		if (cmode) cmode->zombiepain(damage, d, actor);
+
+		if(local) damage = d->dodamage(damage);
         else if(actor==player1) return;
 
         fpsent *h = hudplayer();
@@ -547,7 +547,7 @@ namespace game
 
         if(d->health<=0) { if(local) killed(d, actor, gun); }
         else if(d==h) playsound(S_PAIN6);
-        else playsound(S_PAIN1+rnd(5), &d->o);
+        else if (d->aitype != AI_ZOMBIE) playsound(S_PAIN1+rnd(5), &d->o);
     }
 
     VARP(deathscore, 0, 1, 1);
@@ -573,7 +573,7 @@ namespace game
             d->move = d->strafe = 0;
             d->resetinterp();
             d->smoothmillis = 0;
-            playsound(S_DIE1+rnd(2), &d->o);
+            if (d->aitype != AI_ZOMBIE) playsound(S_DIE1+rnd(2), &d->o);
         }
     }
 
@@ -597,7 +597,8 @@ namespace game
         if(actor->type==ENT_AI)
             conoutf(contype, "\f2%s were killed by %s!", dname, aname);
         else if(d==actor || actor->type==ENT_INANIMATE)
-            conoutf(contype, "\f2%s %s%s", dname, GUN_FRAG_MESSAGE(gun), d==player1 ? " yourself!" : " himself");
+			if (gun < -1) conoutf(contype, "\f2%s %s", dname, GUN_SUICIDE_MESSAGE(gun));
+			else conoutf(contype, "\f2%s %s %s", dname, GUN_FRAG_MESSAGE(gun), d==player1 ? "yourself!" : "thyself");
         else if(isteam(d->team, actor->team) && !(d->infected || actor->infected))
         {
             contype |= CON_TEAMKILL;
@@ -616,6 +617,7 @@ namespace game
 			dmspscore();
 		}
         deathstate(d);
+		if (cmode && d->aitype == AI_ZOMBIE) cmode->zombiekilled(d, actor);
 		ai::killed(d, actor);
     }
 
@@ -760,11 +762,6 @@ namespace game
             const char *best = getalias(scorename);
             if(*best) conoutf(CON_GAMEINFO, "\f2try to beat your best score so far: %s", best);
         }
-        //else
-        //{
-        //    const char *info = m_valid(gamemode) ? gamemodes[gamemode - STARTGAMEMODE].info : NULL;
-        //    if(showmodeinfo && info) conoutf(CON_GAMEINFO, "\f0%s", info);
-        //}
 
         if(player1->playermodel != playermodel) switchplayermodel(playermodel);
 
@@ -801,18 +798,12 @@ namespace game
 		static char sinfo[1000];
 		sinfo[0] = '\0';
 
-		//if (!spignore && gamemode-STARTGAMEMODE <= 1 && !sptips.empty())
-		//{
-		//	strcat(sinfo, "\fs\feTip: \fr");
-		//	strcat(sinfo,  sptips[rnd(sptips.length())]);
-		//}
-		//return showmodeinfo && m_valid(gamemode) ? gamemodes[gamemode - STARTGAMEMODE].info : NULL;
-
 		if (remote) formatstring(sinfo)("\fs\feServer: \f6%s\fr\n\n", servinfo);
 
 		int flags = gamemodes[gamemode - STARTGAMEMODE].flags;
 
 		if (flags&M_PROTECT) strcat(sinfo, modesdesc[MN_PROTECT]);
+		else if (flags&M_HOLD) strcat(sinfo, modesdesc[MN_HOLD]);
 		else if (flags&M_CTF) strcat(sinfo, modesdesc[MN_CTF]);
 		else if (flags&M_INFECTION) strcat(sinfo, modesdesc[MN_INFECTION]);
 		else if (flags&M_SURVIVAL) strcat(sinfo, modesdesc[MN_SURVIVAL]);
@@ -824,13 +815,11 @@ namespace game
 		if (flags&M_INSTA) strcat(sinfo, modesdesc[MN_INSTA]);
 		else if (flags&M_EFFICIENCY) strcat(sinfo, modesdesc[MN_EFFICIENCY]);
 		if (flags&M_TEAM) strcat(sinfo, modesdesc[MN_TEAM]);
+		else if (flags&M_ONETEAM) strcat(sinfo, modesdesc[MN_ONETEAM]);
 
 		if (flags&M_NOITEMS) strcat(sinfo, modesdesc[MN_NOITEMS]);
 		else if (flags&M_NOAMMO) strcat(sinfo, modesdesc[MN_NOAMMO]);
 		else if (flags&M_NOAMMO) strcat(sinfo, modesdesc[MN_NOAMMO]);
-
-		//if (showmodeinfo && m_valid(gamemode) && gamemodes[gamemode - STARTGAMEMODE].info)
-		//	strcat(sinfo, gamemodes[gamemode - STARTGAMEMODE].info);
 
 		if (!sptips.empty())
 		{
@@ -876,7 +865,7 @@ namespace game
         }
     }
 
-    int numdynents() { return players.length()+monsters.length()+movables.length(); }
+    int numdynents() { return players.length()+monsters.length()+movables.length()+(cmode? cmode->getdynents().length(): 0); }
 
     dynent *iterdynents(int i)
     {
@@ -885,6 +874,9 @@ namespace game
         if(i<monsters.length()) return (dynent *)monsters[i];
         i -= monsters.length();
         if(i<movables.length()) return (dynent *)movables[i];
+		if (!cmode) return NULL;
+		i -= movables.length();
+        if(i<cmode->getdynents().length()) return cmode->getdynents()[i];
         return NULL;
     }
 
@@ -902,20 +894,21 @@ namespace game
         static string cname[3];
         static int cidx = 0;
         cidx = (cidx+1)%3;
-        formatstring(cname[cidx])(d->aitype == AI_NONE ? "%s%s \fs\f5(%d)\fr" : "%s%s \fs\f5[%d]\fr", prefix, name, d->clientnum);
+		if (d->aitype == AI_NONE) formatstring(cname[cidx])("%s%s \fs\f5(%d)\fr", prefix, name, d->clientnum);
+		else formatstring(cname[cidx])("%s%s \fs\f5[%s]\fr", prefix, name, d->aitype==AI_ZOMBIE? "zombie": "bot");
         return cname[cidx];
     }
 
-    void suicide(physent *d)
+    void suicide(physent *d, int type)
     {
-        if(d==player1 || (d->type==ENT_PLAYER && ((fpsent *)d)->ai))
+        if(d==player1 || (d->type==ENT_PLAYER && ((fpsent *)d)->ai) || ((fpsent *)d)->aitype == AI_ZOMBIE)
         {
             if(d->state!=CS_ALIVE) return;
             fpsent *pl = (fpsent *)d;
-            if(!m_mp(gamemode)) killed(pl, pl);
+            if(!m_mp(gamemode)) killed(pl, pl, -1-type);
             else if(pl->suicided!=pl->lifesequence)
             {
-                addmsg(N_SUICIDE, "rc", pl);
+                addmsg(N_SUICIDE, "rci", pl, type);
                 pl->suicided = pl->lifesequence;
             }
         }
@@ -924,8 +917,9 @@ namespace game
     }
     ICOMMAND(kill, "", (), suicide(player1));
 
+	/*
 	int isbuying = 0, sprice = 0, cantbuymillis;
-	bool /*dopickups = true,*/ trybuy = false, isnear = false;
+	bool trybuy = false, isnear = false;
 	string type = "Door";
 
 	ICOMMAND(buyitem, "D", (int *down), { trybuy = (*down!=0); trybuy = (lastmillis>=cantbuymillis); } );
@@ -948,11 +942,14 @@ namespace game
 		return trybuy;
 	}
 
+	bool getround() {if (dopickups){dopickups = false; return true;} return false; }
+	*/
+
     bool needminimap() { return m_ctf || m_protect || m_hold || m_capture; }
 
     void drawicon(int icon, float x, float y, float sz)
     {
-        settexture("packages/hud/items.png");
+        settexture("data/hud/items.png");
         glBegin(GL_TRIANGLE_STRIP);
         float tsz = 0.125f, tx = tsz*(icon%8), ty = tsz*(icon/8);
         glTexCoord2f(tx,     ty);     glVertex2f(x,    y);
@@ -974,8 +971,6 @@ namespace game
         }
     }
 
-	//bool getround() {if (dopickups){dopickups = false; return true;} return false; }
-
 	void drawometer(float progress, float size, vec pos, vec color)
 	{
 		glPushMatrix();
@@ -987,7 +982,7 @@ namespace game
 		int loops = angle/45;
 		angle %= 45;
 		float x = 0, y = -.5;
-		settexture("packages/hud/meter.png");
+		settexture("data/hud/meter.png");
 
 		glBegin(GL_TRIANGLE_FAN);
 		glTexCoord2f(.5, .5);	glVertex2f(0, 0);
@@ -1009,16 +1004,10 @@ namespace game
 
 		glPopMatrix();
 	}
-	FVAR(dom, 0, 1, 1);
-	FVAR(ldom, 0, 0, 1);
-	//if (ldom != dom) ldom = clamp(ldom+(dom>ldom?0.01f:-0.01f), min(dom, ldom), max(dom, ldom));
-	//drawometer(ldom, 200, vec(w*900/h, 900, 0), vec(1, .5, .5));
-
-	//ICOMMAND(cround, "i", (int *i), dmround = *i );
 
 	vector<hudevent> hudevents;
 
-	void drawhudevents(fpsent *d, int w, int h)
+	void drawhudevents(fpsent *d, int w, int h) // not fully implemented yet
 	{
 		if (d != player1) return;
 		if (d->state != CS_ALIVE)
@@ -1046,10 +1035,10 @@ namespace game
 			switch (hudevents[i].type)
 			{
 				case HET_HEADSHOT:
-					i_special = textureload("packages/hud/.png", 0, true, false);
+					i_special = textureload("data/hud/.png", 0, true, false);
 					break;
 				case HET_DIRECTHIT:
-					i_special = textureload("packages/hud/.png", 0, true, false);
+					i_special = textureload("data/hud/.png", 0, true, false);
 					break;
 			}
 			float sw = i_special->xs/2,
@@ -1073,9 +1062,9 @@ namespace game
 	void drawroundicon(int w,int h)
 	{
 		static Texture *i_round = NULL;
-		if (!i_round) i_round = textureload("packages/hud/round.png", 0, true, false);
+		if (!i_round) i_round = textureload("data/hud/round.png", 0, true, false);
 		static Texture *i_roundnum = NULL;
-		if (!i_roundnum) i_roundnum = textureload("packages/hud/roundnum.png", 0, true, false);
+		if (!i_roundnum) i_roundnum = textureload("data/hud/roundnum.png", 0, true, false);
 
 		glPushMatrix();
 		glScalef(a_scale, a_scale, 1);
@@ -1148,7 +1137,7 @@ namespace game
 		// draw ammo bar
 
 		static Texture *ammo_bar = NULL;
-		if (!ammo_bar) ammo_bar = textureload("packages/hud/ammo_bar.png", 0, true, false);
+		if (!ammo_bar) ammo_bar = textureload("data/hud/ammo_bar.png", 0, true, false);
 		glBindTexture(GL_TEXTURE_2D, ammo_bar->id);
 
 		float aw = ammo_bar->xs * 1.9, ah = ammo_bar->ys * 1.9;
@@ -1175,7 +1164,7 @@ namespace game
 		// draw bullets
 
 		static Texture *ammo_bullet = NULL;
-		if (!ammo_bullet) ammo_bullet = textureload("packages/hud/ammo_bullet.png", 0, true, false);
+		if (!ammo_bullet) ammo_bullet = textureload("data/hud/ammo_bullet.png", 0, true, false);
 		glBindTexture(GL_TEXTURE_2D, ammo_bullet->id);
 
 
@@ -1208,7 +1197,7 @@ namespace game
 		loopi(NUMWEAPS)
 		{
 			int gun = (i+1)%NUMWEAPS;
-			if (!WEAP_USABLE(gun)) continue; //int gun = (WEAP_FIST+i+1)%(WEAP_PISTOL+1);
+			if (!WEAP_USABLE(gun)) continue;
 			if (gun == d->gunselect)
 			{
 				drawicon(weapons[gun].icon, xup - 30, yup - 60, 180);
@@ -1243,9 +1232,9 @@ namespace game
 		mwait = clamp(mwait, 0.f, 1.f);
 
 		//static Texture *gunwaitt = NULL;
-		//if (!gunwaitt) gunwaitt = textureload("packages/hud/gunwait.png", 0, true, false);
+		//if (!gunwaitt) gunwaitt = textureload("data/hud/gunwait.png", 0, true, false);
 		static Texture *gunwaitft = NULL;
-		if (!gunwaitft) gunwaitft = textureload("packages/hud/gunwait_filled.png", 0, true, false);
+		if (!gunwaitft) gunwaitft = textureload("data/hud/gunwait_filled.png", 0, true, false);
 
 		float rw = ((float)w / ((float)h/1800.f)), rh = 1800;
 		float scale = a_scale * 1.6;
@@ -1264,9 +1253,61 @@ namespace game
 		glPopMatrix();
 	}
 
+	VARP(hudplayers, 0, 1, 1);
+
+	void drawhudplayers(fpsent *d, int w, int h)
+	{
+		#define loopscoregroup(o, b) \
+		loopv(sg->players) \
+		{ \
+			fpsent *o = sg->players[i]; \
+			b; \
+		}
+
+		int numgroups = groupplayers();
+		if (numgroups <= 1) return;
+
+		if (!hudplayers) return;
+
+		scoregroup *sg = NULL;
+		loopv(groups) if (!strcmp(groups[i]->team, d->team)) sg = groups[0];
+		if (!sg) return;
+
+		int numplayers = min(sg->players.length(), 9);
+		int x = 1800*w/h - 600, y = 540, step = FONTH + 10;
+		int iy = y + step*numplayers - 10;
+
+		defaultshader->set();
+		glBindTexture(GL_TEXTURE_2D, 0);
+		
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glColor4f(.2f, .2f, .6f, .6f);
+		glBegin(GL_POLYGON);
+
+		glVertex2f(x-10,  y-10);
+		glVertex2f(x+600, y-10);
+		glVertex2f(x+600, iy);
+		glVertex2f(x-10,  iy);
+
+		glEnd();
+
+		string cname;
+		stringformatter cfmt = stringformatter(cname);
+		settextscale(.8f);
+		
+		loopi(numplayers)
+		{
+			fpsent *o = sg->players[i];
+			cfmt("%s: \fb%s", playerclasses[o->playerclass].name, colorname(o));
+			draw_text(cname, x, y);
+			y += step;
+		}
+		settextscale(1.f);
+	}
+
     void drawhudicons(fpsent *d, int w, int h)
 	{
-		// todo: this function needs some cleaning up
+		//todo: this function needs some cleaning up
         if(d->state!=CS_DEAD)
         {
 			// draw guts
@@ -1276,6 +1317,7 @@ namespace game
 				defformatstring(guts)("\f1Guts: \f3%d", hudplayer()->guts);
 				text_bounds(guts, tw, th);
 				draw_text(guts, w*1800/h - 420, 1350);
+				/*
 				if(isbuying > 0 && isnear)
 				{
 					int tw, th;
@@ -1292,6 +1334,7 @@ namespace game
 					else isbuying = 0;
 					isnear = false;
 				}
+				*/
 			}
 
 			// draw ammo
@@ -1303,11 +1346,11 @@ namespace game
 			if (!m_insta)
 			{
 				static Texture *h_body_fire = NULL;
-				if (!h_body_fire) h_body_fire = textureload("packages/hud/body_fire.png", 0, true, false);
+				if (!h_body_fire) h_body_fire = textureload("data/hud/body_fire.png", 0, true, false);
 				static Texture *h_body = NULL;
-				if (!h_body) h_body = textureload("packages/hud/body.png", 0, true, false);
+				if (!h_body) h_body = textureload("data/hud/body.png", 0, true, false);
 				static Texture *h_body_white = NULL;
-				if (!h_body_white) h_body_white = textureload("packages/hud/body_white.png", 0, true, false);
+				if (!h_body_white) h_body_white = textureload("data/hud/body_white.png", 0, true, false);
 
 				glPushMatrix();
 				glScalef(a_scale, a_scale, 1);
@@ -1347,7 +1390,7 @@ namespace game
 
 				// draw armour
 				static Texture *h_body_armour = NULL;
-				if (!h_body_armour) h_body_armour = textureload("packages/hud/body_armour.png", 0, true, false);
+				if (!h_body_armour) h_body_armour = textureload("data/hud/body_armour.png", 0, true, false);
 				glBindTexture(GL_TEXTURE_2D, h_body_armour->id);
 
 				float a_alpha = .8f;
@@ -1388,7 +1431,8 @@ namespace game
 				text_bounds(tst, tw, th);
 				draw_text(tst, bx + (h_body->xs*a_scale)/2 - tw/2, by*a_scale + h_body->ys*a_scale + 6);
 			}
-			drawhudevents(d, w, h);
+			drawhudplayers(d, w, h);
+			//drawhudevents(d, w, h);
        }
     }
 
@@ -1482,9 +1526,6 @@ namespace game
         {
 			float p = float(float(d->health)/float(d->maxhealth));
 			r = 1.0f; g = p; b = p - ((d->maxhealth - d->health)*0.01);
-
-            //if(d->health<=25) { r = 1.0f; g = b = 0; }
-            //else if(d->health<=50) { r = 1.0f; g = 0.5f; b = 0; }
         }
         if(d->gunwait) { r *= 0.5f; g *= 0.5f; b *= 0.5f; }
 

@@ -85,6 +85,21 @@ namespace aiman
         return least;
 	}
 
+	const char *getbotname()
+	{
+		const char *name = ai::botnames[rnd(ai::botnames.length())];
+		if (bots.length() > ai::botnames.length()) return name;
+		loopv(bots)
+		{
+			if (bots[i] && !strcmp(bots[i]->name, name))
+			{
+				name = ai::botnames[rnd(ai::botnames.length())];
+				i = -1;
+			}
+		}
+		return name;
+	}
+
 	bool addai(int skill, int limit)
 	{
 		int numai = 0, cn = -1, maxai = limit >= 0 ? min(limit, MAXBOTS) : MAXBOTS;
@@ -109,7 +124,7 @@ namespace aiman
             }
         }
         else { cn = bots.length(); bots.add(NULL); }
-        const char *team = m_teammode ? chooseteam() : "";
+        const char *team = m_oneteam? "survivors": (m_teammode ? chooseteam() : "");
         if(!bots[cn]) bots[cn] = new clientinfo;
         clientinfo *ci = bots[cn];
 		ci->clientnum = MAXCLIENTS + cn;
@@ -120,7 +135,7 @@ namespace aiman
         ci->state.skill = skill <= 0 ? rnd(50) + 51 : clamp(skill, 1, 101);
 	    clients.add(ci);
 		ci->state.lasttimeplayed = lastmillis;
-		copystring(ci->name, "bot", MAXNAMELEN+1);
+		copystring(ci->name, getbotname(), MAXNAMELEN+1);
 		ci->state.state = CS_DEAD;
         copystring(ci->team, team, MAXTEAMLEN+1);
         ci->playermodel = rnd(128);

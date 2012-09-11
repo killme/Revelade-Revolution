@@ -18,6 +18,10 @@ namespace ai
     ICOMMAND(botlimit, "i", (int *n), addmsg(N_BOTLIMIT, "ri", *n));
     ICOMMAND(botbalance, "i", (int *n), addmsg(N_BOTBALANCE, "ri", *n));
 
+	vector<char *> botnames;
+
+	ICOMMAND(registerbot, "s", (const char *s), botnames.add(copystring(new string, s)));
+
     float viewdist(int x)
     {
         return x <= 100 ? clamp((SIGHTMIN+(SIGHTMAX-SIGHTMIN))/100.f*float(x), float(SIGHTMIN), float(fog)) : float(fog);
@@ -988,6 +992,11 @@ namespace ai
                         result = 3;
                     }
                     else result = 2;
+					if (d->attacking != d->wasattacking)
+					{
+						d->altfire = d->ammo[d->gunselect] > 10 && rnd(2);
+						d->wasattacking = d->attacking;
+					}
                 }
                 else result = 1;
             }

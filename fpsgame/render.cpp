@@ -48,12 +48,28 @@ namespace game
 
     static const playermodelinfo playermodels[3] =
     {
-        //{ "mrfixit", "mrfixit/blue", "mrfixit/red", "mrfixit/hudguns", NULL, "mrfixit/horns", { "mrfixit/armor/blue", "mrfixit/armor/green", "mrfixit/armor/yellow" }, "mrfixit", "mrfixit_blue", "mrfixit_red", true, true},
         { "snoutx10k", "snoutx10k/blue", "snoutx10k/red", "snoutx10k/hudguns", NULL, "snoutx10k/wings", { "snoutx10k/armor/blue", "snoutx10k/armor/green", "snoutx10k/armor/yellow" }, "snoutx10k", "snoutx10k_blue", "snoutx10k_red", true, true },
-        //{ "ogro/green", "ogro/blue", "ogro/red", "mrfixit/hudguns", "ogro/vwep", NULL, { NULL, NULL, NULL }, "ogro", "ogro_blue", "ogro_red", false, false },
-        { "inky", "inky/blue", "inky/red", "inky/hudguns", NULL, "inky/quad", { "inky/armor/blue", "inky/armor/green", "inky/armor/yellow" }, "inky", "inky_blue", "inky_red", true, true },
+		{ "inky", "inky/blue", "inky/red", "inky/hudguns", NULL, "inky/quad", { "inky/armor/blue", "inky/armor/green", "inky/armor/yellow" }, "inky", "inky_blue", "inky_red", true, true },
         { "captaincannon", "captaincannon/blue", "captaincannon/red", "captaincannon/hudguns", NULL, "captaincannon/quad", { "captaincannon/armor/blue", "captaincannon/armor/green", "captaincannon/armor/yellow" }, "captaincannon", "captaincannon_blue", "captaincannon_red", true, true }
     };
+
+    static const playermodelinfo zombiemodels[] =
+    {
+        { "monster/nazizombiebike", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "polder", NULL, NULL, false, true },
+        { "monster/nazizombie", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "nazi_64", NULL, NULL, false, true },
+        { "monster/nazizombie2", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "nazishot_64", NULL, NULL, false, true },
+        { "monster/fastzombie", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "fast1_64", NULL, NULL, false, true },
+        { "monster/female", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "femalez1_64", NULL, NULL, false, true },
+        { "monster/female2", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "femalez2", NULL, NULL, false, true },
+
+        { "monster/zombie1", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "classicb_64", NULL, NULL, false, true },
+        { "monster/zombie2", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "zclassic", NULL, NULL, false, true },
+        { "monster/zombie3", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "classicd_64", NULL, NULL, false, true },
+        { "monster/zombie4", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "zjhon", NULL, NULL, false, true },
+        { "monster/zombie5", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "classicc", NULL, NULL, false, true },
+        { "monster/zombie6", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "skeleton_64", NULL, NULL, false, true },
+        { "monster/zombie7", NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL }, "heavy_64", NULL, NULL, false, true },
+	};
 
     int chooserandomplayermodel(int seed)
     {
@@ -70,9 +86,15 @@ namespace game
         return &playermodels[n];
     }
 
+    const playermodelinfo *getzombiemodelinfo(int n)
+    {
+		int sz = (int)(sizeof(zombiemodels)/sizeof(zombiemodels[0]));
+        return &zombiemodels[n % sz];
+    }
+
     const playermodelinfo &getplayermodelinfo(fpsent *d)
     {
-        const playermodelinfo *mdl = getplayermodelinfo(d==player1 || forceplayermodels ? playermodel : d->playermodel);
+        const playermodelinfo *mdl = d->infected? getzombiemodelinfo(d->infectmillis): getplayermodelinfo(d==player1 || forceplayermodels ? playermodel : d->playermodel);
         if(!mdl || (!mdl->selectable && !allplayermodels)) mdl = getplayermodelinfo(playermodel);
         return *mdl;
     }
@@ -107,7 +129,8 @@ namespace game
 
     void preloadplayermodel()
     {
-        loopi(5)
+		int nummodels = sizeof(playermodels)/sizeof(playermodels[0]);
+        loopi(nummodels)
         {
             const playermodelinfo *mdl = getplayermodelinfo(i);
             if(!mdl) break;
@@ -121,6 +144,12 @@ namespace game
             if(mdl->vwep) preloadmodel(mdl->vwep);
             if(mdl->quad) preloadmodel(mdl->quad);
             loopj(3) if(mdl->armour[j]) preloadmodel(mdl->armour[j]);
+        }
+		nummodels = sizeof(zombiemodels)/sizeof(zombiemodels[0]);
+        loopi(nummodels)
+        {
+            const playermodelinfo *mdl = getzombiemodelinfo(i);
+            if(mdl) preloadmodel(mdl->ffa);
         }
     }
     
@@ -147,9 +176,9 @@ namespace game
             delay = 1000;
         }
         modelattach a[5];
-        static const char *vweps[] = {"vwep/fist", "vwep/shotg", "vwep/chaing", "vwep/rocket", "vwep/rifle", "vwep/gl", "vwep/flameg", "vwep/healer", "vwep/cbow", "vwep/pistol"};
+        static const char *vweps[] = {"vwep/fist", "vwep/shotg", "vwep/chaing", "vwep/rocket", "vwep/rifle", "vwep/gl", "vwep/mortar", "vwep/flameg", "vwep/healer", "vwep/cbow", "vwep/pistol"};
         int ai = 0;
-        if((!mdl.vwep || d->gunselect!=WEAP_FIST) && d->gunselect<=WEAP_PISTOL)
+        if((!mdl.vwep || d->gunselect!=WEAP_FIST) && d->gunselect<=WEAP_PISTOL && !d->infected)
         {
             int vanim = ANIM_VWEP_IDLE|ANIM_LOOP, vtime = 0;
             if(lastaction && d->lastattackgun==d->gunselect && lastmillis < lastaction + delay)
@@ -213,18 +242,17 @@ namespace game
             fpsent *d = players[i];
             if(d == player1 || d->state==CS_SPECTATOR || d->state==CS_SPAWNING || d->lifesequence < 0 || d == exclude) continue;
             int team = 0;
-            if(teamskins || m_teammode) team = d->infected? 0: isteam(player1->team, d->team) ? 1 : 2; // player1->team experimental
-            renderplayer(d, getplayermodelinfo(d), team, /*(d==hudplayer()&&isthirdperson())? 0.3:*/ 1, mainpass);
+            if((teamskins || m_teammode) && !(m_infection && d->infected)) team = isteam(player1->team, d->team) ? 1 : 2; // player1->team experimental
+            renderplayer(d, getplayermodelinfo(d), team, 1, mainpass);
             copystring(d->info, colorname(d));
 			if (d->infected) concatstring(d->info, "  infected");
-            //if(d->maxhealth>100) { defformatstring(sn)(" +%d", d->maxhealth-100); concatstring(d->info, sn); }
             if(d->state!=CS_DEAD) particle_text(d->abovehead(), d->info, PART_TEXT, 1, team ? (team==1 ? 0x6496FF : 0xFF4B19) : 0x1EC850, 2.0f);
         }
         loopv(ragdolls)
         {
             fpsent *d = ragdolls[i];
             int team = 0;
-            if(teamskins || m_teammode) team = d->infected? 0: isteam(hudplayer()->team, d->team) ? 1 : 2; // player1->team experimental
+            if(teamskins || m_teammode) team = d->infected? 0: isteam(hudplayer()->team, d->team) ? 1 : 2;
             float fade = 1.0f;
             if(ragdollmillis && ragdollfade) 
                 fade -= clamp(float(lastmillis - (d->lastupdate + max(ragdollmillis - ragdollfade, 0)))/min(ragdollmillis, ragdollfade), 0.0f, 1.0f);
@@ -311,10 +339,9 @@ namespace game
         }
 #endif
 		int fmillis = lastmillis-hudgunfm;
-		///*if (::gamemodes[(gamemode)-STARTGAMEMODE].flags&::M_DEMO)*/ d->hudgun = d->gunselect;
 		if (d->gunselect != d->hudgun)
 		{
-			// todo: fix fps related bug where hudgun doesn't change
+			//todo: fix fps related bug where hudgun doesn't change
 			if (fmillis>hudgunfade) { hudgunfm = lastmillis; fmillis = 0; }
 			if (fmillis>=(hudgunfade/2.f)) d->hudgun = d->gunselect;
 		}
@@ -349,7 +376,7 @@ namespace game
             return;
         }
 
-        int rtime = weapons[d->gunselect].attackdelay;
+        int rtime = d->altfire? weapons[d->gunselect].attackdelay2: weapons[d->gunselect].attackdelay;
         if(d->lastaction && d->lastattackgun==d->gunselect && lastmillis-d->lastaction<rtime)
         {
             drawhudmodel(d, ANIM_GUN_SHOOT|ANIM_SETSPEED, rtime/17.0f, d->lastaction);

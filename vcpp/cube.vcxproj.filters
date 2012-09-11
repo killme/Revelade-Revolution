@@ -344,11 +344,11 @@
     <ClCompile Include="..\fpsgame\campaign.cpp">
       <Filter>FPS</Filter>
     </ClCompile>
-    <ClCompile Include="..\engine\masterserver.cpp">
-      <Filter>Engine\cs</Filter>
-    </ClCompile>
     <ClCompile Include="..\fpsgame\scoreboard.cpp">
       <Filter>FPS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\engine\irc.cpp">
+      <Filter>Engine\cs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

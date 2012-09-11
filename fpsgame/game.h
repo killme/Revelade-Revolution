@@ -47,7 +47,7 @@ enum                            // static entity types
     ELEVATOR,                   // attr1 = angle, attr2 = idx, attr3 = tag, attr4 = speed
     FLAG,                       // attr1 = angle, attr2 = team
 	CAMERA,
-	WEAPON,						// attr2 = weapon
+	I_WEAPON,					// attr1 = weapon
     MAXENTTYPES
 };
 
@@ -94,7 +94,8 @@ enum
     M_INFECTION  = 1<<19,
 	M_CLASSES    = 1<<20,
 	M_WEAPONS    = 1<<21,
-	M_SURVIVAL    = 1<<22
+	M_SURVIVAL   = 1<<22,
+	M_ONETEAM    = 1<<23
 };
 
 enum
@@ -122,6 +123,7 @@ enum
 	MN_CLASSES,
 	MN_WEAPONS,
 	MN_SURVIVAL,
+	MN_ONETEAM,
 	NUMMODES
 };
 
@@ -137,7 +139,7 @@ static const char *modesdesc[NUMMODES] =
 	"\fs\fbRegen:\fr .\n",
 	"\fs\fbCTF:\fr Bring the enemies' flag to your base to score points.\n",
 	"\fs\fbProtect:\fr Touch the enemies' flag to score points.\n",
-	"\fs\fbHold:\fr .\n",
+	"\fs\fbHold:\fr Hold the flag for 10 seconds to score for your team.\n",
 	NULL,
 	"\fs\fbCoop-edit:\fr Edit maps with other players.\n",
 	NULL,
@@ -149,7 +151,8 @@ static const char *modesdesc[NUMMODES] =
 	"\fs\fbInfection:\fr Players kill infectees to score points. Infectees tag players to transfer infection.\n",
 	NULL,
 	NULL,
-	"\fs\fbSurvival:\fr Kill as many zombies as you can.\n"
+	"\fs\fbSurvival:\fr Kill as many zombies as you can.\n",
+	"\fs\fbOne team:\fr Everyone is on the same side.\n"
 };
 
 static struct gamemodeinfo
@@ -186,18 +189,16 @@ static struct gamemodeinfo
     { "protect",			M_CTF | M_PROTECT | M_TEAM | M_CLASSES },
     { "insta protect",		M_NOITEMS | M_INSTA | M_CTF | M_PROTECT | M_TEAM },
 
-	/*
     { "hold",				M_CTF | M_HOLD | M_TEAM | M_CLASSES },
     { "insta hold",			M_NOITEMS | M_INSTA | M_CTF | M_HOLD | M_TEAM },
-	*/
 
     { "efficiency ctf",		M_NOITEMS | M_EFFICIENCY | M_CTF | M_TEAM },
     { "efficiency protect",	M_NOITEMS | M_EFFICIENCY | M_CTF | M_PROTECT | M_TEAM },
-    //{ "efficiency hold",	M_NOITEMS | M_EFFICIENCY | M_CTF | M_HOLD | M_TEAM },
+    { "efficiency hold",	M_NOITEMS | M_EFFICIENCY | M_CTF | M_HOLD | M_TEAM },
 
     { "infection",			M_TEAM | M_INFECTION | M_CLASSES },
 
-    { "survival",			M_SURVIVAL | M_CLASSES },
+    { "survival",			M_SURVIVAL | M_CLASSES | M_ONETEAM },
 };
 
 #define STARTGAMEMODE (-3)
@@ -223,8 +224,9 @@ static struct gamemodeinfo
 #define m_infection    (m_check(gamemode, M_INFECTION))
 #define m_survival     (m_check(gamemode, M_SURVIVAL))
 #define m_teammode     (m_check(gamemode, M_TEAM))
+#define m_oneteam      (m_check(gamemode, M_ONETEAM))
 #define m_overtime     (m_check(gamemode, M_OVERTIME))
-#define isteam(a,b)    (m_teammode && strcmp(a, b)==0)
+#define isteam(a,b)    ((m_oneteam || m_teammode) && strcmp(a, b)==0)
 
 #define m_demo         (m_check(gamemode, M_DEMO))
 #define m_edit         (m_check(gamemode, M_EDIT))
@@ -237,11 +239,10 @@ static struct gamemodeinfo
 #define m_dmsp         (m_check(gamemode, M_DMSP))
 #define m_classicsp    (m_check(gamemode, M_CLASSICSP))
 
-// todo: obvious
+//todo: fix following
 //#define m_classes      (m_check(gamemode, M_CLASSES)) (!m_insta)
 #define m_classes      (!m_insta)
 //#define m_weapons      (!m_insta)
-#define m_zombie       (false)
 #define m_weapons      (false)
 
 enum { MM_AUTH = -1, MM_OPEN = 0, MM_VETO, MM_LOCKED, MM_PRIVATE, MM_PASSWORD, MM_START = MM_AUTH };
@@ -347,16 +348,16 @@ enum
     N_ADDBOT, N_DELBOT, N_INITAI, N_FROMAI, N_BOTLIMIT, N_BOTBALANCE,
     N_MAPCRC, N_CHECKMAPS,
     N_SWITCHNAME, N_SWITCHMODEL, N_SWITCHTEAM, N_SWITCHCLASS, N_SETCLASS,
-	N_ONFIRE, N_BURNDAMAGE, N_SETONFIRE, N_REGENAMMO, // fix these
+	N_ONFIRE, N_BURNDAMAGE, N_SETONFIRE, N_REGENAMMO, //todo fix these
 	N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
-	N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE,
+	N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURFINITZOMBIE,
 	NUMSV
 };
 
 static const int msgsizes[] =               // size inclusive message token, 0 for variable or not-checked sizes
 {
     N_CONNECT, 0, N_SERVINFO, 0, N_WELCOME, 2, N_INITCLIENT, 0, N_POS, 0, N_TEXT, 0, N_SOUND, 2, N_CDIS, 2,
-    N_SHOOT, 0, N_EXPLODE, 0, N_SUICIDE, 1,
+    N_SHOOT, 0, N_EXPLODE, 0, N_SUICIDE, 2,
     N_DIED, 6, N_DAMAGE, 7, N_HITPUSH, 7, N_SHOTFX, 0, N_EXPLODEFX, 4,
     N_TRYSPAWN, 1, N_SPAWNSTATE, 14, N_SPAWN, 3, N_FORCEDEATH, 2,
     N_GUNSELECT, 2, N_TAUNT, 1,
@@ -379,7 +380,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_SWITCHNAME, 0, N_SWITCHMODEL, 2, N_SWITCHTEAM, 0, N_SWITCHCLASS, 2, N_SETCLASS, 3,
 	N_ONFIRE, 4, N_BURNDAMAGE, 4, N_SETONFIRE, 4, N_REGENAMMO, 4,
 	N_INFECT, 3, N_INITINF, 0, N_RADIOTEAM, 0, N_RADIOALL, 0,
-	N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0,
+	N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURFINITZOMBIE, 0,
     -1
 };
 
@@ -387,7 +388,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
 #define RR_SERVER_PORT 28785
 #define RR_SERVINFO_PORT 28786
 #define RR_MASTER_PORT 28787
-#define PROTOCOL_VERSION 259            // bump when protocol changes
+#define PROTOCOL_VERSION 261            // bump when protocol changes
 #define DEMO_VERSION 1                  // bump when demo format changes
 #define DEMO_MAGIC "REVREV_DEMO"
 
@@ -418,8 +419,6 @@ enum
     HICON_HEAL,
     HICON_CB,
     HICON_PISTOL,
-
-	//HICON_MORTAR,
 
     HICON_QUAD,
 
@@ -486,20 +485,14 @@ struct fpsstate
 
 	bool hasmaxammo()
 	{
-		/*int type*/
-		//int gun = type-I_AMMO+WEAP_SLUGSHOT;
-		//return ammo[gun]>=AMMOMAX(gun);
-		//return ammo[pci.weap[0]]<GUN_AMMO_MAX(pci.weap[0])
-		//	|| ammo[pci.weap[1]]<GUN_AMMO_MAX(pci.weap[1])
-		//	|| ammo[pci.weap[2]]<GUN_AMMO_MAX(pci.weap[2]);
 		const playerclassinfo &pci = playerclasses[playerclass];
 		loopi(WEAPONS_PER_CLASS) if (ammo[pci.weap[i]]<GUN_AMMO_MAX(pci.weap[i])) return true;
 		return false;
 	}
 
-    bool canpickup(int type)
+    bool canpickup(int type, int attr = 0)
     {
-        if(type<I_AMMO || type>I_QUAD) return false;
+        if((type<I_AMMO || type>I_QUAD) && type!=I_WEAPON) return false;
         itemstat &is = itemstats[type-I_AMMO];
         switch(type)
         {
@@ -512,12 +505,12 @@ struct fpsstate
             default:
 			{
 				if (infected) return false;
-				return hasmaxammo();
+				return type==I_WEAPON? ammo[attr]<GUN_AMMO_MAX(attr): hasmaxammo();
 			}
         }
     }
 
-    void pickup(int type)
+    void pickup(int type, int attr = 0)
     {
         if(type<I_AMMO || type>I_QUAD) return;
         itemstat &is = itemstats[type-I_AMMO];
@@ -534,6 +527,9 @@ struct fpsstate
             case I_QUAD:
                 quadmillis = min(quadmillis+is.add, is.max);
                 break;
+			case I_WEAPON:
+				ammo[attr] += 2;
+				break;
             default:
 			{
 				const playerclassinfo &pci = playerclasses[playerclass];
@@ -549,11 +545,7 @@ struct fpsstate
         armour = 0;
         armourtype = A_BLUE;
         quadmillis = 0;
-		gunselect = WEAP_PISTOL; // ffffxx
-		//if (infected) gunselect = WEAP_FIST;
-		//else gunselect = WEAP_PISTOL;
-		//else loopi(NUMWEAPS) if (ammo[i] > 0) gunselect = i;
-        //: m_classes? playerclasses[playerclass].weap[0]: WEAP_PISTOL;
+		gunselect = WEAP_PISTOL;
         gunwait = 0;
         loopi(NUMWEAPS) ammo[i] = 0;
         ammo[WEAP_FIST] = (infected)? 0: 1;
@@ -563,7 +555,6 @@ struct fpsstate
 
     void spawnstate(int gamemode)
     {
-		// todo: display server info on loading screen
 		if (!m_infection) infected = false;
 		if(m_demo)
         {
@@ -589,28 +580,21 @@ struct fpsstate
         {
             armour = 0;
             health = 1;
+            gunselect = WEAP_CROSSBOW;
+            ammo[WEAP_CROSSBOW] = 100;
             //gunselect = WEAP_SNIPER;
             //ammo[WEAP_SNIPER] = 100;
-            //gunselect = WEAP_CROSSBOW;
-            //ammo[WEAP_CROSSBOW] = 100;
-			//extern int instaweapon;
-            gunselect = instaweapon;
-            ammo[instaweapon] = 999;
+            //gunselect = instaweapon;
+            //ammo[instaweapon] = 999;
         }
         else if(m_efficiency)
         {
 			const playerclassinfo &pci = infected? zombiepci: playerclasses[playerclass];
 			loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = 999;
-			//ammo[instaweapon] = 999;
 			health = maxhealth = pci.maxhealth;
 			armourtype = pci.armourtype;
 			armour = pci.armour;
 			gunselect = infected? WEAP_FIST: playerclasses[playerclass].weap[0];
-            //armourtype = A_GREEN;
-            //armour = 100;
-            //loopi(5) baseammo(i+1);
-            //gunselect = WEAP_MG;
-            //ammo[WEAP_MG] /= 2;
         }
         //else if(m_regencapture)
         //{
@@ -631,13 +615,6 @@ struct fpsstate
         //    do spawngun2 = rnd(5)+1; while(spawngun1==spawngun2);
         //    //baseammo(spawngun2, m_noitems ? 2 : 1);
         //    if(m_noitems) ammo[WEAP_GRENADIER] += 1;
-        //}
-        //else if(m_ctf)
-        //{
-        //    armourtype = A_BLUE;
-        //    armour = 50;
-        //    ammo[WEAP_PISTOL] = 40;
-        //    ammo[WEAP_GRENADIER] = 1;
         //}
         else
         {
@@ -674,7 +651,7 @@ struct fpsent : dynent, fpsstate
     int respawned, suicided;
     int lastpain;
     int lastaction, lastattackgun;
-    bool attacking, altfire;
+    bool attacking, altfire, wasattacking;
     int attacksound, attackchan, idlesound, idlechan;
     int lasttaunt;
     int lastpickup, lastpickupmillis, lastbase, lastrepammo, flagpickup;
@@ -694,7 +671,7 @@ struct fpsent : dynent, fpsstate
 		ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1),
 		attackchan(-1), idlesound(-1), idlechan(-1), frags(0), flags(0), deaths(0), totaldamage(0),
 		totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1),
-		muzzle(-1, -1, -1), altfire(false)
+		muzzle(-1, -1, -1), altfire(false), wasattacking(false)
     {
         name[0] = team[0] = info[0] = 0;
         respawn(0);
@@ -821,6 +798,10 @@ namespace game
         virtual bool aicheck(fpsent *d, ai::aistate &b) { return false; }
         virtual bool aidefend(fpsent *d, ai::aistate &b) { return false; }
         virtual bool aipursue(fpsent *d, ai::aistate &b) { return false; }
+
+		virtual const vector<dynent *> &getdynents() { static vector<dynent *> emptyvec; return emptyvec; }
+		virtual void zombiepain(int damage, fpsent *d, fpsent *actor) {} // survival specific
+		virtual void zombiekilled(fpsent *d, fpsent *actor) {} // survival specific
     };
 
     extern clientmode *cmode;
@@ -846,7 +827,7 @@ namespace game
 	{
 		HET_HEADSHOT,
 		HET_DIRECTHIT,
-		HET_KILLINGSPREE, // killing spree not implemented yet
+		HET_KILLINGSPREE,
 	};
 
     extern bool clientoption(const char *arg);
@@ -867,12 +848,16 @@ namespace game
     extern void timeupdate(int timeremain);
     extern void msgsound(int n, physent *d = NULL);
     extern void drawicon(int icon, float x, float y, float sz = 120);
+	/*
 	extern bool getround();
 	extern bool didbuy();
 	extern void canbuy(int price);
+	*/
 	extern void drawroundicon(int w, int h);
     const char *mastermodecolor(int n, const char *unknown);
     const char *mastermodeicon(int n, const char *unknown);
+
+	extern void predictplayer(fpsent *d, bool move);
 
     // client
     extern bool connected, remote, demoplayback;
@@ -889,6 +874,7 @@ namespace game
     extern void stopdemo();
     extern void changemap(const char *name, int mode);
     extern void c2sinfo(bool force = false);
+	extern void sendposition(fpsent *d, packetbuf &q);
     extern void sendposition(fpsent *d, bool reliable = false);
 
     void sendpositions();
@@ -912,7 +898,6 @@ namespace game
     extern void spsummary(int accuracy);
 	extern void dmspscore();
 	extern void spawnsupport(int num);
-	extern void checkmonstersfire(vec &pos, dynent *attacker, float dist);
 
     // movable
     struct movable;
@@ -947,9 +932,10 @@ namespace game
     extern void removeweapons(fpsent *owner);
     extern void updateweapons(int curtime);
     extern void gunselect(int gun, fpsent *d);
-    //extern void weaponswitch(fpsent *d);
     extern void avoidweapons(ai::avoidset &obstacles, float radius);
 	extern void setonfire(dynent *d, dynent *attacker, int gun, bool local = true);
+	extern int getdamageranged(int damage, int gun, bool headshot, bool quad, vec from, vec to);
+	extern int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul);
 
 	extern float damage_headshot;
 	extern float damage_torsoshot;
@@ -959,6 +945,13 @@ namespace game
 	extern vec shotrays[GUN_MAX_RAYS];
 
     // scoreboard
+    struct scoregroup : teamscore
+    {
+        vector<fpsent *> players;
+    };
+	extern vector<scoregroup *> groups;
+
+	extern int groupplayers();
     extern void showscores(bool on);
     extern void getbestplayers(vector<fpsent *> &best);
     extern void getbestteams(vector<const char *> &best);
@@ -995,6 +988,10 @@ namespace server
     extern int msgsizelookup(int msg);
     extern bool serveroption(const char *arg);
     extern bool delayspawn(int type);
+
+	struct clientinfo;
+	extern void flushevents(clientinfo *ci, int millis);
+	extern clientinfo *getinfo(int n);
 }
 
 #endif

@@ -1651,11 +1651,9 @@ void vectoyawpitch(const vec &v, float &yaw, float &pitch)
     pitch = asin(v.z/v.magnitude())/RAD;
 }
 
-VARP(maxroll, 0, 0.5, 20); // 3
+VARP(maxroll, 0, 0.5, 20);
 FVAR(straferoll, 0, 0.033f, 90);
 VARP(floatspeed, 10, 100, 1000);
-
-//FVAR(jumpspeed, 0, 125.f, 1000);
 
 void modifyvelocity(physent *pl, bool local, bool water, bool floating, int curtime)
 {
@@ -1674,7 +1672,7 @@ void modifyvelocity(physent *pl, bool local, bool water, bool floating, int curt
         {
             pl->jumping = false;
 
-            pl->vel.z = max(pl->vel.z, /*jumpspeed*/JUMPVEL); // physics impulse upwards
+            pl->vel.z = max(pl->vel.z, JUMPVEL); // physics impulse upwards
             if(water) { pl->vel.x /= 8.0f; pl->vel.y /= 8.0f; } // dampen velocity change even harder, gives correct water feel
 
             game::physicstrigger(pl, local, 1, 0);
@@ -1827,7 +1825,7 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
     else if(pl->inwater && !water) game::physicstrigger(pl, local, 0, 1, pl->inwater);
     pl->inwater = water ? material&MATF_VOLUME : MAT_AIR;
 
-    if(pl->state==CS_ALIVE && (pl->o.z < 0 || material&MAT_DEATH)) game::suicide(pl);
+    if(pl->state==CS_ALIVE && (pl->o.z < 0 || material&MAT_DEATH)) game::suicide(pl, (material&MAT_LAVA)? 2: 1);
 
     return true;
 }
@@ -1941,8 +1939,8 @@ bool reflect(physent *d, float elasticity, float waterfric)
     //else d->vel.z -= GRAVITY*secs;
     //vec old(d->o);
 	//vec dire(d->vel);
-    loopi(2)
-    {
+    //loopi(2)
+    //{
         //vec dire(d->vel);
         //dire.mul(secs);
         //d->o.add(dire);
@@ -1959,11 +1957,11 @@ bool reflect(physent *d, float elasticity, float waterfric)
         //d->o = old;
         //game::bounced(d, wall);
 		//collide(d, dire);
-        float c = wall.dot(d->vel),
-              k = 1.0f + (1.0f-elasticity)*c/d->vel.magnitude();
-        d->vel.mul(k);
-        d->vel.sub(vec(wall).mul(elasticity*2.0f*c));
-    }
+        //float c = wall.dot(d->vel),
+        //      k = 1.0f + (1.0f-elasticity)*c/d->vel.magnitude();
+        //d->vel.mul(k);
+        //d->vel.sub(vec(wall).mul(elasticity*2.0f*c));
+    //}
     //if(d->physstate!=PHYS_BOUNCE)
     //{
     //    // make sure bouncers don't start inside geometry

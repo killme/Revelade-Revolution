@@ -480,17 +480,15 @@ void guilist(char *contents)
 
 void guitextscale(float *scale, char *contents)
 {
-    if(!cgui) return;
-	float oldtscale = cgui->gettextscale();
-    cgui->settextscale(*scale);
+	float oldtscale = gtextscale;
+    gtextscale = *scale;
     execute(contents);
-    cgui->settextscale(oldtscale);
+    gtextscale = oldtscale;
 }
 
 void settextscale(float scale)
 {
-    if(!cgui) return;
-    cgui->settextscale(scale);
+	gtextscale = scale;
 }
 
 void guialign(int *align, char *contents)
@@ -693,3 +691,14 @@ void g3d_mainmenu()
 	else lastgui = lastgui2 = NULL;
 }
 
+#if defined(IRC) && !defined(STANDALONE)
+void guiirc(const char *s)
+{
+    extern bool ircgui(g3d_gui *g, const char *s);
+    if(cgui)
+    {
+        if(!ircgui(cgui, s) && shouldclearmenu) clearlater = true;
+    }
+}
+ICOMMAND(ircgui, "s", (char *s), guiirc(s));
+#endif

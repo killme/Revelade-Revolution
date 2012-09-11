@@ -107,7 +107,17 @@ enum
     PT_CULL  = 1<<17,
     PT_FEW   = 1<<18,
     PT_ICON  = 1<<19,
-    PT_FLIP  = PT_HFLIP | PT_VFLIP | PT_ROT
+    PT_FLIP  = PT_HFLIP | PT_VFLIP, // | PT_ROT
+
+	PT_SPIN				= 1<<20,
+	PT_SPIN_FAST		= 1<<21,
+    PT_EXPAND   	    = 1<<22,	// expands size as it ages
+    PT_EXPAND_FAST	    = 1<<23,	// expands size as it ages, faster
+    PT_CONTRACT   	    = 1<<24,	// shrinks size as it ages
+    PT_CONTRACT_FAST    = 1<<25,	// shrinks size as it ages, faster
+    PT_GROW             = 1<<26,    // expands from nothing as ages
+    PT_SHRINK   	    = 1<<27,	// shrinks to nothing as it ages
+    PT_PULSE            = 1<<28,    // expands and then shrinks
 };
 
 const char *partnames[] = { "part", "tape", "trail", "text", "textup", "meter", "metervs", "fireball", "lightning", "flare" };
@@ -180,7 +190,7 @@ struct partrenderer
     }
 
     //blend = 0 => remove it
-    void calc(particle *p, int &blend, int &ts, vec &o, vec &d, bool step = true)
+    void calc(particle *p, int &blend, int &ts, vec &o, vec &d, float &size, bool step = true)
     {
         o = p->o;
         d = p->d;
@@ -201,6 +211,19 @@ struct partrenderer
                 o.add(vec(d).mul(t/5000.0f));
                 o.z -= t*t/(2.0f * 5000.0f * p->gravity);
             }
+			bool expand = (type&PT_EXPAND || type&PT_EXPAND_FAST), contract = (type&PT_CONTRACT || type&PT_CONTRACT_FAST);
+            if((expand || contract || (type&PT_GROW || type&PT_SHRINK) || type&PT_PULSE) && p->fade >= 50)
+            { // size modifiers:
+                float amt = clamp(ts/float(p->fade), 0.f, 1.f), s = p->size;
+                #define sizemod(a,b) ((s*0.75f)+((a ? 1 : -1)*((s*(amt*amt))*(0.5f+(b ? .5f : .25f)))))
+                if(expand) size = sizemod(true, type&PT_EXPAND_FAST);
+                else if(contract) size = sizemod(false, type&PT_CONTRACT_FAST);
+                else if(type&PT_GROW) size = s*(amt*amt);
+                else if(type&PT_SHRINK) size = s*(1-(amt*amt));
+                else if(type&PT_PULSE) { if((amt *= 2) > 1) amt = 2-amt; amt *= amt; size = s*amt; }
+                else size = s*amt;
+            }
+			else size = p->size;
             if(collide && o.z < p->val && step)
             {
                 vec surface;
@@ -317,7 +340,7 @@ struct listrenderer : partrenderer
     
     virtual void startrender() = 0;
     virtual void endrender() = 0;
-    virtual void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, uchar *color) = 0;
+    virtual void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, float size, uchar *color) = 0;
 
     void render() 
     {
@@ -332,10 +355,11 @@ struct listrenderer : partrenderer
         {   
             vec o, d;
             int blend, ts;
-            calc(p, blend, ts, o, d, canstep);
+			float size = 1;
+            calc(p, blend, ts, o, d, size, canstep);
             if(blend > 0) 
             {
-                renderpart(p, o, d, blend, ts, p->color.v);
+                renderpart(p, o, d, blend, ts, size, p->color.v);
 
                 if(p->fade > 5 || !canstep) 
                 {
@@ -376,7 +400,7 @@ struct meterrenderer : listrenderer
          particleshader->set();
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, uchar *color)
+    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, float size, uchar *color)
     {
         int basetype = type&0xFF;
 
@@ -385,7 +409,7 @@ struct meterrenderer : listrenderer
         glRotatef(camera1->yaw, 0, 0, 1);
         glRotatef(camera1->pitch-90, 1, 0, 0);
 
-        float scale = p->size/80.0f;
+        float scale = size/80.0f;
         glScalef(-scale, scale, -scale);
 
         float right = 8*FONTH, left = p->progress/100.0f*right;
@@ -462,7 +486,7 @@ struct textrenderer : listrenderer
         if(p->text && p->flags&1) delete[] p->text;
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, uchar *color)
+    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, float size, uchar *color)
     {
         glPushMatrix();
         glTranslatef(o.x, o.y, o.z);
@@ -470,7 +494,7 @@ struct textrenderer : listrenderer
         glRotatef(camera1->yaw, 0, 0, 1);
         glRotatef(camera1->pitch-90, 1, 0, 0);
 
-        float scale = p->size/80.0f;
+        float scale = size/80.0f;
         glScalef(-scale, scale, -scale);
 
         float xoff = -text_width(p->text)/2;
@@ -530,33 +554,51 @@ inline void genpos<PT_TRAIL>(const vec &o, const vec &d, float size, int ts, int
 }
 
 template<int T>
-static inline void genrotpos(const vec &o, const vec &d, float size, int grav, int ts, partvert *vs, int rot)
+static inline void genrotpos(particle *p, int type, float size, int grav, int ts, partvert *vs, int rot)
 {
-    genpos<T>(o, d, size, grav, ts, vs);
+    genpos<T>(p->o, p->d, size, grav, ts, vs);
 }
 
-#define ROTCOEFFS(n) { \
-    vec(-1,  1, 0).rotate_around_z(n*2*M_PI/32.0f), \
-    vec( 1,  1, 0).rotate_around_z(n*2*M_PI/32.0f), \
-    vec( 1, -1, 0).rotate_around_z(n*2*M_PI/32.0f), \
-    vec(-1, -1, 0).rotate_around_z(n*2*M_PI/32.0f) \
-}
-static const vec rotcoeffs[32][4] =
-{
-    ROTCOEFFS(0),  ROTCOEFFS(1),  ROTCOEFFS(2),  ROTCOEFFS(3),  ROTCOEFFS(4),  ROTCOEFFS(5),  ROTCOEFFS(6),  ROTCOEFFS(7),
-    ROTCOEFFS(8),  ROTCOEFFS(9),  ROTCOEFFS(10), ROTCOEFFS(11), ROTCOEFFS(12), ROTCOEFFS(13), ROTCOEFFS(14), ROTCOEFFS(15),
-    ROTCOEFFS(16), ROTCOEFFS(17), ROTCOEFFS(18), ROTCOEFFS(19), ROTCOEFFS(20), ROTCOEFFS(21), ROTCOEFFS(22), ROTCOEFFS(7),
-    ROTCOEFFS(24), ROTCOEFFS(25), ROTCOEFFS(26), ROTCOEFFS(27), ROTCOEFFS(28), ROTCOEFFS(29), ROTCOEFFS(30), ROTCOEFFS(31),
-};
+//#define ROTCOEFFS(n) { \
+//    vec(-1,  1, 0).rotate_around_z(n*2*M_PI/32.0f), \
+//    vec( 1,  1, 0).rotate_around_z(n*2*M_PI/32.0f), \
+//    vec( 1, -1, 0).rotate_around_z(n*2*M_PI/32.0f), \
+//    vec(-1, -1, 0).rotate_around_z(n*2*M_PI/32.0f) \
+//}
+//static const vec rotcoeffs[32][4] =
+//{
+//    ROTCOEFFS(0),  ROTCOEFFS(1),  ROTCOEFFS(2),  ROTCOEFFS(3),  ROTCOEFFS(4),  ROTCOEFFS(5),  ROTCOEFFS(6),  ROTCOEFFS(7),
+//    ROTCOEFFS(8),  ROTCOEFFS(9),  ROTCOEFFS(10), ROTCOEFFS(11), ROTCOEFFS(12), ROTCOEFFS(13), ROTCOEFFS(14), ROTCOEFFS(15),
+//    ROTCOEFFS(16), ROTCOEFFS(17), ROTCOEFFS(18), ROTCOEFFS(19), ROTCOEFFS(20), ROTCOEFFS(21), ROTCOEFFS(22), ROTCOEFFS(7),
+//    ROTCOEFFS(24), ROTCOEFFS(25), ROTCOEFFS(26), ROTCOEFFS(27), ROTCOEFFS(28), ROTCOEFFS(29), ROTCOEFFS(30), ROTCOEFFS(31),
+//};
 
 template<>
-inline void genrotpos<PT_PART>(const vec &o, const vec &d, float size, int grav, int ts, partvert *vs, int rot)
+inline void genrotpos<PT_PART>(particle *p, int type, float size, int grav, int ts, partvert *vs, int rot)
 {
-    const vec *coeffs = rotcoeffs[rot];
-    (vs[0].pos = o).add(vec(camright).mul(coeffs[0].x*size)).add(vec(camup).mul(coeffs[0].y*size));
-    (vs[1].pos = o).add(vec(camright).mul(coeffs[1].x*size)).add(vec(camup).mul(coeffs[1].y*size));
-    (vs[2].pos = o).add(vec(camright).mul(coeffs[2].x*size)).add(vec(camup).mul(coeffs[2].y*size));
-    (vs[3].pos = o).add(vec(camright).mul(coeffs[3].x*size)).add(vec(camup).mul(coeffs[3].y*size));
+    int fade = (p->fade <= 1000 || p->fade > 2000 ? 2000 : p->fade)/(abs(grav) <= size/2 ? 2 : 1);
+    float spin = rot;
+	if (type&PT_SPIN)
+		spin = (p->millis%2 > 0 ? 360 : 0)+((lastmillis%fade/float(fade))*90)*(p->millis%2 > 0 ? -1 : 1);
+	else if (type&PT_SPIN_FAST)
+		spin = (p->millis%2 > 0 ? 360 : 0)+((lastmillis%fade/float(fade))*360)*(p->millis%2 > 0 ? -1 : 1);
+    float calcrot = clamp(spin, 0.f, 360.f)*2*M_PI/360.0f;
+    vec coeffs[4] =
+    {
+        vec(-1,  1, 0).rotate_around_z(calcrot), vec( 1,  1, 0).rotate_around_z(calcrot),
+        vec( 1, -1, 0).rotate_around_z(calcrot), vec(-1, -1, 0).rotate_around_z(calcrot)
+    };
+    (vs[0].pos = p->o).add(vec(camright).mul(coeffs[0].x*size)).add(vec(camup).mul(coeffs[0].y*size));
+    (vs[1].pos = p->o).add(vec(camright).mul(coeffs[1].x*size)).add(vec(camup).mul(coeffs[1].y*size));
+    (vs[2].pos = p->o).add(vec(camright).mul(coeffs[2].x*size)).add(vec(camup).mul(coeffs[2].y*size));
+    (vs[3].pos = p->o).add(vec(camright).mul(coeffs[3].x*size)).add(vec(camup).mul(coeffs[3].y*size));
+
+	//const vec *coeffs = rotcoeffs[rot];
+
+    //(vs[0].pos = o).add(vec(camright).mul(coeffs[0].x*size)).add(vec(camup).mul(coeffs[0].y*size));
+    //(vs[1].pos = o).add(vec(camright).mul(coeffs[1].x*size)).add(vec(camup).mul(coeffs[1].y*size));
+    //(vs[2].pos = o).add(vec(camright).mul(coeffs[2].x*size)).add(vec(camup).mul(coeffs[2].y*size));
+    //(vs[3].pos = o).add(vec(camright).mul(coeffs[3].x*size)).add(vec(camup).mul(coeffs[3].y*size));
 }
 
 template<int T>
@@ -686,8 +728,9 @@ struct varenderer : partrenderer
     {
         vec o, d;
         int blend, ts;
+		float size = 1;
 
-        calc(p, blend, ts, o, d);
+        calc(p, blend, ts, o, d, size);
         if(blend <= 1 || p->fade <= 5) p->fade = -1; //mark to remove on next pass (i.e. after render)
 
         modifyblend<T>(o, blend);
@@ -737,8 +780,8 @@ struct varenderer : partrenderer
         else if(type&PT_MOD) SETMODCOLOR;
         else loopi(4) vs[i].alpha = blend;
 
-        if(type&PT_ROT) genrotpos<T>(o, d, p->size, ts, p->gravity, vs, (p->flags>>2)&0x1F);
-        else genpos<T>(o, d, p->size, ts, p->gravity, vs);
+        if(type&PT_ROT) genrotpos<T>(p, type, size, ts, p->gravity, vs, (p->flags>>2)&0x1F);
+        else genpos<T>(o, d, size, ts, p->gravity, vs);
     }
 
     void update()
@@ -801,7 +844,8 @@ struct softquadrenderer : quadrenderer
             float radius = p.size*SQRT2;
             vec o, d;
             int blend, ts;
-            calc(&p, blend, ts, o, d, false);
+			float size = 1;
+            calc(&p, blend, ts, o, d, size, false);
             if(!isfoggedsphere(radius, p.o) && (depthfxscissor!=2 || depthfxtex.addscissorbox(p.o, radius))) 
             {
                 numsoft++;
@@ -818,34 +862,35 @@ struct softquadrenderer : quadrenderer
 
 static partrenderer *parts[] = 
 {
-    new quadrenderer("<grey>packages/particles/blood.png", PT_PART|PT_FLIP|PT_MOD|PT_RND4, DECAL_BLOOD), // blood spats (note: rgb is inverted) 
-    new trailrenderer("packages/particles/base.png", PT_TRAIL|PT_LERP),                            // water, entity
-    new quadrenderer("<grey>packages/particles/smoke.png", PT_PART|PT_FLIP|PT_LERP),                     // smoke
-    new quadrenderer("<grey>packages/particles/steam.png", PT_PART|PT_FLIP),                             // steam
-    new quadrenderer("<grey>packages/particles/flames.png", PT_PART|PT_HFLIP|PT_RND4|PT_GLARE),          // flame on - no flipping please, they have orientation
-    new quadrenderer("packages/particles/ball1.png", PT_PART|PT_FEW|PT_GLARE),                     // fireball1
-    new quadrenderer("packages/particles/ball2.png", PT_PART|PT_FEW|PT_GLARE),                     // fireball2
-    new quadrenderer("packages/particles/ball3.png", PT_PART|PT_FEW|PT_GLARE),                     // fireball3
-    new taperenderer("packages/particles/flare.jpg", PT_TAPE|PT_GLARE),                            // streak
+    new quadrenderer("<grey>data/particles/blood.png", PT_PART|PT_FLIP|PT_MOD|PT_RND4, DECAL_BLOOD), // blood spats (note: rgb is inverted) 
+    new trailrenderer("data/particles/base.png", PT_TRAIL|PT_LERP),                            // water, entity
+    new quadrenderer("<grey>data/particles/smoke.png", PT_PART|PT_FLIP|PT_LERP),                     // smoke
+    new quadrenderer("<grey>data/particles/steam.png", PT_PART|PT_FLIP),                             // steam
+    new quadrenderer("<grey>data/particles/flames.png", PT_PART|PT_HFLIP|PT_RND4|PT_GLARE),          // flame on - no flipping please, they have orientation
+    new quadrenderer("data/particles/ball1.png", PT_PART|PT_FEW|PT_GLARE),                     // fireball1
+    new quadrenderer("data/particles/ball2.png", PT_PART|PT_FEW|PT_GLARE),                     // fireball2
+    new quadrenderer("data/particles/ball3.png", PT_PART|PT_FEW|PT_GLARE),                     // fireball3
+    new taperenderer("data/particles/flare.jpg", PT_TAPE|PT_GLARE),                            // streak
     &lightnings,                                                                                   // lightning
     &fireballs,                                                                                    // explosion fireball
     &bluefireballs,                                                                                // bluish explosion fireball
-    new quadrenderer("packages/particles/spark.png", PT_PART|PT_FLIP|PT_GLARE),                    // sparks
-    new quadrenderer("packages/particles/base.png",  PT_PART|PT_FLIP|PT_GLARE),                    // edit mode entities
-    new quadrenderer("packages/particles/muzzleflash1.jpg", PT_PART|PT_FEW|PT_FLIP|PT_GLARE|PT_TRACK), // muzzle flash
-    new quadrenderer("packages/particles/muzzleflash2.jpg", PT_PART|PT_FEW|PT_FLIP|PT_GLARE|PT_TRACK), // muzzle flash
-    new quadrenderer("packages/particles/muzzleflash3.jpg", PT_PART|PT_FEW|PT_FLIP|PT_GLARE|PT_TRACK), // muzzle flash
-    new quadrenderer("packages/hud/items.png", PT_PART|PT_FEW|PT_ICON),                            // hud icon
-    new quadrenderer("<colorify:1/1/1>packages/hud/items.png", PT_PART|PT_FEW|PT_ICON),            // grey hud icon
+    new quadrenderer("data/particles/spark.png", PT_PART|PT_FLIP|PT_GLARE),                    // sparks
+    new quadrenderer("data/particles/base.png",  PT_PART|PT_FLIP|PT_GLARE),                    // edit mode entities
+    new quadrenderer("data/particles/muzzleflash1.jpg", PT_PART|PT_FEW|PT_FLIP|PT_GLARE|PT_TRACK), // muzzle flash
+    new quadrenderer("data/particles/muzzleflash2.jpg", PT_PART|PT_FEW|PT_FLIP|PT_GLARE|PT_TRACK), // muzzle flash
+    new quadrenderer("data/particles/muzzleflash3.jpg", PT_PART|PT_FEW|PT_FLIP|PT_GLARE|PT_TRACK), // muzzle flash
+    new quadrenderer("data/hud/items.png", PT_PART|PT_FEW|PT_ICON),                            // hud icon
+    new quadrenderer("<colorify:1/1/1>data/hud/items.png", PT_PART|PT_FEW|PT_ICON),            // grey hud icon
     &texts,                                                                                        // text
     &meters,                                                                                       // meter
     &metervs,                                                                                      // meter vs.
     &flares,                                                                                       // lens flares - must be done last
-    new taperenderer("packages/particles/flare.jpg", PT_TAPE|PT_GLARE|PT_ROT),                     // streak rotated
-    new softquadrenderer("<grey>packages/particles/fire.png", PT_PART|PT_GLARE|PT_RND4|PT_FLIP),
-    new softquadrenderer("<grey>packages/particles/plasma.png", PT_PART|PT_GLARE|PT_FLIP),
-	new taperenderer("<grey>packages/particles/sflare.png", PT_TAPE|PT_GLARE),
-    new quadrenderer("packages/particles/heal.png", PT_PART|PT_FLIP|PT_GLARE),                     // heal
+    new taperenderer("data/particles/flare.jpg", PT_TAPE|PT_GLARE|PT_ROT),                     // streak rotated
+    new softquadrenderer("<grey>data/particles/fire.png", PT_PART|PT_GLARE|PT_RND4|PT_FLIP),
+    new softquadrenderer("<grey>data/particles/plasma.png", PT_PART|PT_GLARE|PT_FLIP),
+	new taperenderer("<grey>data/particles/sflare.png", PT_TAPE|PT_GLARE),
+    new quadrenderer("data/particles/heal.png", PT_PART|PT_FLIP|PT_GLARE),                     // healer
+    new quadrenderer("<grey>data/particles/flames.png", PT_PART|PT_HFLIP|PT_RND4|PT_GLARE|PT_ROT|PT_SPIN|PT_EXPAND),          // flamejet
 };
 
 void finddepthfxranges()
@@ -1324,7 +1369,6 @@ void regularshape(int type, int radius, int color, int dir, int num, int fade, c
             newparticle(inv?to:from, d, rnd(fade*3)+1, type, color, size, gravity);
         }
     }
-	//conoutf("%f", vel);
 }
 
 static void regularflame(int type, const vec &p, float radius, float height, int color, int density = 3, float scale = 2.0f, float speed = 200.0f, float fade = 600.0f, int gravity = -15) 

@@ -67,7 +67,7 @@ namespace server
 
     struct explodeevent : timedevent
     {
-        int id, gun, direct;
+        int id, gun, direct, traveled;
         vector<hitinfo> hits;
 
         bool keepable() const { return true; }
@@ -77,6 +77,8 @@ namespace server
 
     struct suicideevent : gameevent
     {
+		int type;
+
         void process(clientinfo *ci);
     };
 
@@ -224,7 +226,6 @@ namespace server
         vector<uchar> position, messages;
         int posoff, poslen, msgoff, msglen;
         vector<clientinfo *> bots;
-		int lastzombie;
         uint authreq;
         string authname;
         int ping, aireinit;
@@ -325,7 +326,6 @@ namespace server
             ping = 0;
             aireinit = 0;
             needclipboard = 0;
-			lastzombie = 0;
             cleanclipboard();
             mapchange();
         }
@@ -409,7 +409,7 @@ namespace server
 
 	VARFP(localrecorddemo, 0, 0, 2, demonextmatch = localrecorddemo != 0 );
 
-	// todo: add server vars here
+	//todo: add server vars here
     SVAR(serverdesc, "");
     SVAR(serverpass, "");
     SVAR(adminpass, "");
@@ -422,6 +422,7 @@ namespace server
 		}
 	});
     SVAR(servermotd, "");
+	VAR(maxzombies, 0, 20, 100);
 
     void *newclientinfo() { return new clientinfo; }
     void deleteclientinfo(void *ci) { delete (clientinfo *)ci; }
@@ -462,6 +463,12 @@ namespace server
     }
 
     void sendservmsg(const char *s) { sendf(-1, 1, "ris", N_SERVMSG, s); }
+
+	void sendservmsgf(int cn, const char *f, ...)
+	{
+		defvformatstring(str, f, f);
+		sendf(-1, 1, "ris", N_SERVMSG, f);
+	}
 
     void resetitems()
     {
@@ -543,7 +550,9 @@ namespace server
         virtual int getteamscore(const char *team) { return 0; }
         virtual void getteamscores(vector<teamscore> &scores) {}
         virtual bool extinfoteam(const char *team, ucharbuf &p) { return false; }
-		virtual clientinfo *getinfo(int n) { return NULL; }
+		virtual clientinfo *getcinfo(int n) { return NULL; }
+
+		virtual void buildworldstate(worldstate &ws) { }
     };
 
     #define SERVMODE 1
@@ -562,10 +571,10 @@ namespace server
     {
         if(n < MAXCLIENTS) return (clientinfo *)getclientinfo(n);
         n -= MAXCLIENTS;
-        return bots.inrange(n) ? bots[n] : smode? smode->getinfo(n+MAXCLIENTS): NULL;
+        return bots.inrange(n) ? bots[n] : smode? smode->getcinfo(n+MAXCLIENTS): NULL;
     }
 
-    bool canspawnitem(int type) { return !m_noitems && (type>=I_AMMO && type<=I_QUAD && !m_noammo); }
+    bool canspawnitem(int type) { return !m_noitems && !m_noammo && ((type>=I_AMMO && type<=I_QUAD) || type==I_WEAPON); }
 
     int spawntime(int type)
     {
@@ -583,6 +592,7 @@ namespace server
             case I_GREENARMOUR:
             case I_YELLOWARMOUR: sec = 20; break;
             case I_QUAD: sec = 40+rnd(40); break;
+            case I_WEAPON: sec = np*5; break;
         }
         return sec*1000;
     }
@@ -1038,7 +1048,7 @@ namespace server
             loopi(sizeof(servtypes)/sizeof(int)) if(type == servtypes[i]) return -1;
             if(type < N_EDITENT || type > N_EDITVAR || !m_edit) 
             {
-				// todo:
+				//todo: review
                 if(type != N_POS && ++ci->overflow >= 250) return -2;
             }
         }
@@ -1118,6 +1128,7 @@ namespace server
                 }
             }
         }
+		if (smode) smode->buildworldstate(ws);
         int psize = ws.positions.length(), msize = ws.messages.length();
         if(psize)
         {
@@ -1193,6 +1204,19 @@ namespace server
         putint(p, gs.playerclass);
         putint(p, gs.gunselect);
         loopi(WEAP_PISTOL-WEAP_SLUGSHOT+1) putint(p, gs.ammo[WEAP_SLUGSHOT+i]);
+    }
+
+    void relayf(int r, const char *s, ...)
+    {
+        defvformatstring(str, s, s);
+#ifdef IRC
+        ircoutf(r, "%s", str);
+#endif
+#ifdef STANDALONE
+        string ft;
+        filtertext(ft, str);
+        logoutf("%s", ft);
+#endif
     }
 
     void spawnstate(clientinfo *ci)
@@ -1348,7 +1372,6 @@ namespace server
                 putint(p, oi->state.frags);
                 putint(p, oi->state.flags);
                 putint(p, oi->state.quadmillis);
-                //putint(p, oi->state.playerclass);
                 sendstate(oi->state, p);
             }
             putint(p, -1);
@@ -1415,8 +1438,8 @@ namespace server
 
         if(m_teammode) autoteam();
 
-        if(m_capture) smode = &capturemode;
-        else if(m_ctf) smode = &ctfmode;
+        if(m_capture) smode = &capturemode; else
+		if(m_ctf) smode = &ctfmode;
         else if(m_infection) smode = &infectionmode;
         else if(m_survival) smode = &survivalmode;
         else smode = NULL;
@@ -1580,13 +1603,13 @@ namespace server
         }
     }
 
-    void suicide(clientinfo *ci)
+    void suicide(clientinfo *ci, int type = 0)
     {
         gamestate &gs = ci->state;
         if(gs.state!=CS_ALIVE) return;
         ci->state.frags += smode ? smode->fragvalue(ci, ci) : -1;
         ci->state.deaths++;
-        sendf(-1, 1, "ri6", N_DIED, ci->clientnum, ci->clientnum, gs.frags, -1, 0);
+        sendf(-1, 1, "ri6", N_DIED, ci->clientnum, ci->clientnum, gs.frags, -1-type, 0);
         ci->position.setsize(0);
         if(smode) smode->died(ci, NULL);
         gs.state = CS_DEAD;
@@ -1595,13 +1618,12 @@ namespace server
 
     void suicideevent::process(clientinfo *ci)
     {
-        suicide(ci);
+        suicide(ci, this->type);
     }
 
     void explodeevent::process(clientinfo *ci)
     {
         gamestate &gs = ci->state;
-		//const weapinfo &wp = weapons[gun];
         switch(WEAPONI(gun))
         {
             case WEAP_ROCKETL:
@@ -1611,78 +1633,54 @@ namespace server
             case WEAP_GRENADIER:
                 if(!gs.grenades.remove(id)) return;
                 break;
-
-			//case WEAP_CROSSBOW:
-				//if (!hits.empty()) dodamage(getinfo(hits[0].target), ci, wp.damage, gun, hits[0].dir);
-				//break;
-
-            //default:
-                //return;
         }
         sendf(-1, 1, "ri4x", N_EXPLODEFX, ci->clientnum, gun, id, ci->ownernum);
         loopv(hits)
         {
             hitinfo &h = hits[i];
             clientinfo *target = getinfo(h.target);
-            if(!target || target->state.state!=CS_ALIVE || h.lifesequence!=target->state.lifesequence || h.dist<0 || (WEAP_IS_EXPLOSIVE(gun) && h.dist>WEAP(gun,projradius))) continue;
+            if(!target || target->state.state!=CS_ALIVE || (h.lifesequence!=target->state.lifesequence && target->state.aitype != AI_ZOMBIE) || h.dist<0 || (WEAP_IS_EXPLOSIVE(gun) && h.dist>WEAP(gun,projradius))) continue;
 
             bool dup = false;
             loopj(i) if(hits[j].target==h.target) { dup = true; break; }
             if(dup) continue;
-
-            int damage = WEAP(gun,damage);
-            if(gs.quadmillis) damage *= 4;
-            if (WEAP_IS_EXPLOSIVE(gun)) damage = int(damage*(1-h.dist/GUN_EXP_DISTSCALE/WEAP(gun,projradius)));
-			else direct = h.headshot;
-            if(/*gun==WEAP_ROCKETL &&*/ target==ci) damage /= GUN_EXP_SELFDAMDIV;
-			if (h.headshot) damage *= GUN_HEADSHOT_MUL;
+			int damage = game::getdamageranged(WEAP(gun,damage), gun, h.headshot, gs.quadmillis, (float)traveled/WEAP(gun,range));
+            if (!WEAP_IS_EXPLOSIVE(gun)) direct = h.headshot;
+            if(target==ci) damage /= GUN_EXP_SELFDAMDIV;
             dodamage(target, ci, damage, gun, h.dir, direct);
         }
     }
 
     void shotevent::process(clientinfo *ci)
     {
-		//const weapinfo &wp = weapons[gun];
         gamestate &gs = ci->state;
         int wait = millis - gs.lastshot;
-        if(!gs.isalive(gamemillis) || wait<gs.gunwait || /*!WEAP_USABLE(WEAPONI(gun)) ||
-           gs.ammo[WEAPONI(gun)]<=0 ||*/ (WEAP(gun,range) && from.dist(to) > WEAP(gun,range) + 1)) return;
+        if(!gs.isalive(gamemillis) || wait<gs.gunwait || (WEAP(gun,range) && from.dist(to) > WEAP(gun,range) + 1)) return;
 		if (!CAN_SHOOT_WITH2(gs,gun)) return;
-        if(gun!=WEAP_FIST) gs.ammo[WEAPONI(gun)] = max(gs.ammo[WEAPONI(gun)]-WEAP(gun,numshots), 0);
+        gs.ammo[WEAPONI(gun)] = max(gs.ammo[WEAPONI(gun)]-WEAP(gun,numshots), 0);
 
         gs.lastshot = millis;
         gs.gunwait = WEAP(gun,attackdelay);
-		if (numrays != abs(WEAP(gun,numrays))) return;
+		if (numrays != WEAP(gun,numrays)) return;
         sendf(-1, 1, "rii9ivx", N_SHOTFX, ci->clientnum, gun, id,
                 int(from.x*DMF), int(from.y*DMF), int(from.z*DMF),
                 int(to.x*DMF), int(to.y*DMF), int(to.z*DMF),
 				numrays, numrays*sizeof(ivec)/sizeof(int), rays,
                 ci->ownernum);
-        gs.shotdamage += WEAP(gun,damage)*(gs.quadmillis ? 4 : 1)*WEAP(gun,numrays)*(headshot? GUN_HEADSHOT_MUL: 1.0f);
+
+		gs.shotdamage += game::getdamageranged(WEAP(gun,damage), gun, headshot, gs.quadmillis, from, to);
         switch(WEAPONI(gun))
         {
             case WEAP_ROCKETL: gs.rockets.add(id); break;
             case WEAP_GRENADIER: gs.grenades.add(id); break;
             default:
             {
-                int totalrays = 0, maxrays = abs(WEAP(gun,numrays));
+                int totalrays = 0, maxrays = WEAP(gun,numrays);
                 loopv(hits)
                 {
                     hitinfo &h = hits[i];
-					//if (h.target >= 1000)
-					//{
-					//	monsterinfo *target = getzinfo(h.target - 1000);
-					//	if(!target || target->state!=CS_ALIVE || h.rays<1 || h.dist > wp.range + 1) continue;
-					//	totalrays += h.rays;
-					//	if(totalrays>maxrays) continue;
-					//	int damage = h.rays*wp.damage;
-					//	if(gs.quadmillis) damage *= 4;
-					//	if (headshot) damage *= 2;
-					//	dodamagez(target, damage, gun, h.dir);
-					//	continue;
-					//}
                     clientinfo *target = getinfo(h.target);
-                    if(!target || target->state.state!=CS_ALIVE || h.lifesequence!=target->state.lifesequence || h.rays<1 || h.dist > WEAP(gun,range) + 1) continue;
+                    if(!target || target->state.state!=CS_ALIVE || (h.lifesequence!=target->state.lifesequence && target->state.aitype != AI_ZOMBIE) || h.rays<1 || h.dist > WEAP(gun,range) + 1) continue;
 
                     totalrays += h.rays;
                     if(totalrays>maxrays) continue;
@@ -1804,7 +1802,6 @@ namespace server
 
         if(nextexceeded && gamemillis > nextexceeded && (!m_timed || gamemillis < gamelimit))
         {
-			conoutf("%d", nextexceeded);
             nextexceeded = 0;
             loopvrev(clients) 
             {
@@ -1869,6 +1866,7 @@ namespace server
             clientinfo *ci = clients[i];
             if(ci->state.state==CS_SPECTATOR || ci->state.aitype != AI_NONE || ci->clientmap[0] || ci->mapcrc >= 0 || (req < 0 && ci->warned)) continue;
             formatstring(msg)("%s has modified map \"%s\"", colorname(ci), smapname);
+			//todo: prompt to download map
             sendf(req, 1, "ris", N_SERVMSG, msg);
             if(req < 0) ci->warned = true;
         }
@@ -1881,6 +1879,7 @@ namespace server
                 clientinfo *ci = clients[j];
                 if(ci->state.state==CS_SPECTATOR || ci->state.aitype != AI_NONE || !ci->clientmap[0] || ci->mapcrc != info.crc || (req < 0 && ci->warned)) continue;
                 formatstring(msg)("%s has modified map \"%s\"", colorname(ci), smapname);
+				//todo: prompt to download map
                 sendf(req, 1, "ris", N_SERVMSG, msg);
                 if(req < 0) ci->warned = true;
             }
@@ -2155,8 +2154,8 @@ namespace server
                 if(mastermode>=MM_LOCKED) ci->state.state = CS_SPECTATOR;
                 ci->state.lasttimeplayed = lastmillis;
 
-                const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
-                copystring(ci->team, worst ? worst : "good", MAXTEAMLEN+1);
+				const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
+                copystring(ci->team, m_oneteam? "survivors": (worst ? worst : "good"), MAXTEAMLEN+1);
 
                 sendwelcome(ci);
                 if(restorescore(ci)) sendresume(ci);
@@ -2185,6 +2184,7 @@ namespace server
                 { body; } \
             } \
         }
+
         #define QUEUE_INT(n) QUEUE_BUF(putint(cm->messages, n))
         #define QUEUE_UINT(n) QUEUE_BUF(putuint(cm->messages, n))
         #define QUEUE_STR(text) QUEUE_BUF(sendstring(text, cm->messages))
@@ -2218,9 +2218,9 @@ namespace server
                     if((!ci->local || demorecord || hasnonlocalclients()) && (cp->state.state==CS_ALIVE || cp->state.state==CS_EDITING))
                     {
 						// 220 used to be 180 but that caused a TAG_TYPE disconnect for classes with higher speeds
-						// todo: raise (or lower) the bar as more classes are added
+						//todo: raise (or lower) the bar as more classes are added
 						float dvel = max(vel.magnitude2(), (float)fabs(vel.z));
-                        if(!ci->local && !m_edit && ((m_classes && dvel >= 220) || dvel >= 180))
+                        if(!ci->local && !m_edit && ((!m_classes && dvel >= 180) || dvel >= 220))
                             cp->setexceeded();
                         cp->position.setsize(0);
                         while(curmsg<p.length()) cp->position.add(p.buf[curmsg++]);
@@ -2364,7 +2364,12 @@ namespace server
 
             case N_SUICIDE:
             {
-                if(cq) cq->addevent(new suicideevent);
+                if(cq)
+				{
+					suicideevent *sevent = new suicideevent;
+					cq->addevent(sevent);
+					sevent->type = getint(p);
+				}
                 break;
             }
 
@@ -2412,6 +2417,7 @@ namespace server
                 exp->gun = getint(p);
                 exp->id = getint(p);
 				exp->direct = getint(p);
+				exp->traveled = getint(p);
                 int hits = getint(p);
                 loopk(hits)
                 {

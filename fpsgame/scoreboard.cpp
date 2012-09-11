@@ -64,11 +64,7 @@ namespace game
         loopv(teamscores) best.add(teamscores[i].team);
     }
 
-    struct scoregroup : teamscore
-    {
-        vector<fpsent *> players;
-    };
-    static vector<scoregroup *> groups;
+	/*static*/ vector<scoregroup *> groups;
     static vector<fpsent *> spectators;
 
     static int scoregroupcmp(const scoregroup **x, const scoregroup **y)
@@ -85,16 +81,17 @@ namespace game
         return (*x)->team && (*y)->team ? strcmp((*x)->team, (*y)->team) : 0;
     }
 
-    static int groupplayers()
+    int groupplayers()
     {
         int numgroups = 0;
         spectators.shrink(0);
         loopv(players)
         {
             fpsent *o = players[i];
+			if (!m_infection) o->infected = false;
             if(!showconnecting && !o->name[0]) continue;
             if(o->state==CS_SPECTATOR) { spectators.add(o); continue; }
-            const char *team = m_teammode && o->team[0] ? (o->infected)? "infected": o->team : NULL;
+            const char *team = (m_oneteam || m_teammode) && o->team[0] ? ((o->infected)? "infected": o->team) : NULL;
             bool found = false;
             loopj(numgroups)
             {
@@ -201,16 +198,11 @@ namespace game
 						g.pushlist();
 						g.background(0x808080, numgroups>1 ? 3 : 5);
 					}
-					//else if (o->state==CS_DEAD)
-					//{
-					//	g.pushlist();
-					//	g.background(0x802020, numgroups>1 ? 3 : 5);
-					//}
                 }
                 const playermodelinfo &mdl = getplayermodelinfo(o);
                 const char *icon = sg.team && m_teammode && strcmp(sg.team, "infected") ? (isteam(player1->team, sg.team) ? mdl.blueicon : mdl.redicon) : mdl.ffaicon;
                 g.text("", 0, icon);
-                if((o==player1 /*|| o->state==CS_DEAD*/) && highlightscore && (multiplayer(false) || demoplayback || players.length() > 1)) g.poplist();
+                if(o==player1 && highlightscore && (multiplayer(false) || demoplayback || players.length() > 1)) g.poplist();
             });
             g.poplist();
 
@@ -297,26 +289,8 @@ namespace game
                 loopscoregroup(o, g.textf("%d", 0xFFFFDD, NULL, o->clientnum));
                 g.poplist();
             }
-			
-    //        if(0)
-    //        {
-    //            g.space(1);
-    //            g.pushlist();
-    //            g.text("weap", fgcolor);
-    //            loopscoregroup(o, g.textf("%d %s", 0xFFFFDD, NULL,
-				//	(  o->gunselect == playerclasses[o->playerclass].weap[0]
-				//	|| o->gunselect == playerclasses[o->playerclass].weap[1]
-				//	|| o->gunselect == playerclasses[o->playerclass].weap[2]
-				//	|| o->gunselect == WEAP_FIST)? 1: 0, weapons[o->gunselect].name));
-    //            g.poplist();
-				//if (m_classes)
-				//	loopscoregroup(o, ASSERT(o->gunselect == playerclasses[o->playerclass].weap[0]
-				//		|| o->gunselect == playerclasses[o->playerclass].weap[1]
-				//		|| o->gunselect == playerclasses[o->playerclass].weap[2]
-				//		|| o->gunselect == WEAP_FIST));
-    //        }
 
-            if(sg.team && m_teammode)
+			if(sg.team && m_teammode)
             {
                 g.poplist(); // horizontal
                 g.poplist(); // vertical
@@ -433,4 +407,3 @@ namespace game
     }
     ICOMMAND(showscores, "D", (int *down), showscores(*down!=0));
 }
-

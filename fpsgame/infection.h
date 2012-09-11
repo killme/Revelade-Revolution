@@ -15,18 +15,6 @@ struct infectionclientmode : clientmode
     static const int INFECTDIST = 25;
 	static const int STUNSECS = 3;
 
-//	struct infection
-//	{
-//		int infectmillis;
-//#ifdef SERVMODE
-//		int client, infector;
-//#else
-//		fpsent *client, *infector;
-//#endif
-//	};
-//
-//	vector<infection> infections;
-
 	int scores[2];
 
     int totalscore(int team)
@@ -73,7 +61,6 @@ struct infectionclientmode : clientmode
 #else
         loopk(2) if(scores[k]) tscores.add(teamscore(infflagteam(k+1), scores[k]));
 #endif
-		//if (!infections.empty()) tscores.add(teamscore("infected", 0));
     }
 
 #ifdef SERVMODE
@@ -184,7 +171,7 @@ struct infectionclientmode : clientmode
 		if (dist > maxdist) return;
 		float balpha = 1.f-max(.5f, (dist/maxdist));
 
-		settexture(team==0? "packages/hud/blip_grey.png": team==1? "packages/hud/blip_blue.png": "packages/hud/blip_red.png");
+		settexture(team==0? "data/hud/blip_grey.png": team==1? "data/hud/blip_blue.png": "data/hud/blip_red.png");
 
 		vec po(pos);
 		po.normalize().mul(mindist);
@@ -243,6 +230,71 @@ struct infectionclientmode : clientmode
     }
 
     const char *prefixnextmap() { return "infection_"; }
+
+
+	bool aicheck(fpsent *d, ai::aistate &b)
+	{
+		if (d->infected)
+		{
+			float mindist = 1e16f;
+			fpsent *closest = NULL;
+			loopv(players) if (!players[i]->infected && players[i]->state == CS_ALIVE)
+			{
+				if (!closest || players[i]->o.dist(closest->o) < mindist) closest = players[i];
+			}
+			if (!closest) return false;
+			b.millis = lastmillis;
+            d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
+			return true;
+		}
+		else
+		{
+			float mindist = 1e16f;
+			fpsent *closest = NULL;
+			loopv(players) if (players[i]->infected && players[i]->state == CS_ALIVE)
+			{
+				if (!closest || players[i]->o.dist(closest->o) < mindist) closest = players[i];
+			}
+			if (!closest) return false;
+			b.millis = lastmillis;
+            d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
+			return true;
+		}
+
+		return false;
+	}
+	
+	void aifind(fpsent *d, ai::aistate &b, vector<ai::interest> &interests)
+	{
+		bool inf = d->infected;
+		loopv(players)
+		{
+			fpsent *f = players[i];
+			if (inf != f->infected && f->state == CS_ALIVE)
+			{
+				ai::interest &n = interests.add();
+				n.state = ai::AI_S_PURSUE;
+				n.node = ai::closestwaypoint(f->o, ai::SIGHTMIN, true);
+				n.target = f->clientnum;
+				n.targtype = ai::AI_T_PLAYER;
+				n.score = d->o.squaredist(f->o)/100.f;
+			}
+		}
+	}
+
+	bool aipursue(fpsent *d, ai::aistate &b)
+	{
+		fpsent *e = getclient(b.target);
+		if (d->infected && !e->infected && e->state == CS_ALIVE)
+		{
+			return ai::defend(d, b, e->o, 5, 5, 2);
+		}
+		else if (!d->infected && e->infected && e->state == CS_ALIVE)
+		{
+			 return ai::violence(d, b, e, true);
+		}
+		return false;
+	}
 };
 #endif
 
@@ -271,7 +323,7 @@ case N_INFECT:
 	int disi = getint(p);
 	fpsent *infc = getclient(infi);
 	fpsent *disc = getclient(disi);
-	if (/*infi>=0 &&*/ infc)
+	if (infc)
 	{
 		infc->infected = true;
 		infc->infectmillis = lastmillis;
@@ -289,7 +341,7 @@ case N_INFECT:
 			conoutf(CON_INFO, "\f2you have been infected!");
 		}
 	}
-	if (/*disi>=0 &&*/ disc)
+	if (disc)
 	{
 		disc->infected = false;
 		disc->infectmillis = lastmillis;

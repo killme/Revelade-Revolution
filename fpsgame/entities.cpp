@@ -52,7 +52,7 @@ namespace entities
             if(e.attr2 > 0) return mapmodelname(e.attr2);
             if(e.attr2 < 0) return NULL;
         }
-		if (e.type == WEAPON)
+		if (e.type == I_WEAPON)
 		{
 			static string mdlname;
 			formatstring(mdlname)("vwep/%s", weapons[e.attr1].file);
@@ -71,7 +71,7 @@ namespace entities
                 case I_AMMO3: case I_AMMO4:
                     if(m_noammo) continue;
                     break;
-				case WEAPON:
+				case I_WEAPON:
 					if (m_noweapons) continue;
 					break;
                 case I_HEALTH: case I_HEALTH2: case I_HEALTH3: case I_HEALTH4: 
@@ -103,7 +103,7 @@ namespace entities
                 case TELEPORT:
                     if(e.attr2 < 0) continue;
                     break;
-				case WEAPON:
+				case I_WEAPON:
 				{
 					e.attr1 = e.attr1%NUMWEAPS;
 					static int dynlightmillis = 0;
@@ -152,7 +152,7 @@ namespace entities
 			particle_icon(d->abovehead(), is.icon%8, is.icon/8, PART_HUD_ICON_GREY, 2000, 0xFFFFFF, 2.0f, -8);
         }
         playsound(is.sound, d!=player1 ? &d->o : NULL, NULL, 0, 0, -1, 0, 1500);
-        d->pickup(type);
+        d->pickup(type, ents[n]->attr1);
         if(d==player1) switch(type)
         {
             case I_QUAD:
@@ -209,7 +209,7 @@ namespace entities
             e = findentity(TELEDEST, e+1);
             if(e==beenhere || e<0) { conoutf(CON_WARN, "no teleport destination for tag %d", tag); return; }
             if(beenhere<0) beenhere = e;
-            if(ents[e]->attr2==tag)
+            if(ents[e]->attr1==tag)
             {
                 teleporteffects(d, n, e, true);
                 d->o = ents[e]->o;
@@ -236,7 +236,7 @@ namespace entities
         switch(ents[n]->type)
         {
             default:
-                if(d->canpickup(ents[n]->type))
+                if(d->canpickup(ents[n]->type, ents[n]->attr1))
                 {
                     addmsg(N_ITEMPICKUP, "rci", d, n);
                     ents[n]->spawned = false; // even if someone else gets it first
@@ -309,7 +309,7 @@ namespace entities
     void putitems(packetbuf &p)            // puts items in network stream and also spawns them locally
     {
         putint(p, N_ITEMLIST);
-        loopv(ents) if(ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD && !m_noammo)
+        loopv(ents) if(((ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD) || ents[i]->type==I_WEAPON) && !m_noammo)
         {
             putint(p, i);
             putint(p, ents[i]->type);
@@ -322,7 +322,7 @@ namespace entities
     void spawnitems(bool force)
     {
         if(m_noitems) return;
-        loopv(ents) if(ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD && !m_noammo)
+        loopv(ents) if(((ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD) || ents[i]->type==I_WEAPON) && !m_noammo)
         {
             ents[i]->spawned = force || m_sp || !server::delayspawn(ents[i]->type);
         }
@@ -528,7 +528,8 @@ namespace entities
                     if(e.attr4) doleveltrigger(e.attr4, 0);
                     break;
 
-				default:
+				default:;
+					/*
 					if(m_dmsp && e.attr5 > 0 && e.triggerstate < TRIGGERING)
 					{
 						if(o.dist(e.o) < 20)
@@ -541,6 +542,7 @@ namespace entities
 							else game::canbuy(e.attr5);
 						}
 					}
+					*/
             }
         }
     }
@@ -646,7 +648,7 @@ namespace entities
 				glEnd();
                 break;
             }
-			case WEAPON:
+			case I_WEAPON:
                 renderentring(e, 8);
                 break;
 

@@ -1700,6 +1700,7 @@ void drawminimap()
 
 GLuint motiontex = 0;
 int motionw = 0, motionh = 0, lastmotion = 0;
+bool lastquake = 0;
 
 void cleanupmotionblur()
 {
@@ -1714,7 +1715,11 @@ FVARP(motionblurscale, 0, 0.5f, 1);
 
 void addmotionblur()
 {
-    if(/*!(motionblur || camera1->quake) ||*/ !hasTR || max(screen->w, screen->h) > hwtexsize) return;
+    if(!(motionblur || camera1->quake) || !hasTR || max(screen->w, screen->h) > hwtexsize)
+	{
+		lastquake = camera1->quake!=0;
+		return;
+	}
 
     if(paused || game::ispaused()) { lastmotion = 0; return; }
 
@@ -1727,52 +1732,57 @@ void addmotionblur()
         createtexture(motiontex, motionw, motionh, NULL, 3, 0, GL_RGB, GL_TEXTURE_RECTANGLE_ARB);
     }
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, motiontex);
+	if (lastquake)
+	{
+		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, motiontex);
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
 
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_TEXTURE_RECTANGLE_ARB);
+		glDisable(GL_TEXTURE_2D);
+		glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
-    rectshader->set();
+		rectshader->set();
 
-	float blurfade = lastmotion ? pow(motionblurscale, max(float(lastmillis - lastmotion)/motionblurmillis, 1.0f)) : 0;
-	if (camera1->quake) blurfade = min(blurfade+((float)camera1->quake/200.f), 0.8f);
+		float blurfade = lastmotion ? pow(motionblurscale, max(float(lastmillis - lastmotion)/motionblurmillis, 1.0f)) : 0;
+		if (camera1->quake) blurfade = min(blurfade+((float)camera1->quake/200.f), 0.8f);
 
-    glColor4f(1, 1, 1, blurfade);
-    glBegin(GL_TRIANGLE_STRIP);
-    glTexCoord2f(      0,       0); glVertex2f(-1, -1);
-    glTexCoord2f(motionw,       0); glVertex2f( 1, -1);
-    glTexCoord2f(      0, motionh); glVertex2f(-1,  1);
-    glTexCoord2f(motionw, motionh); glVertex2f( 1,  1);
-    glEnd();
+		glColor4f(1, 1, 1, blurfade);
+		glBegin(GL_TRIANGLE_STRIP);
+		glTexCoord2f(      0,       0); glVertex2f(-1, -1);
+		glTexCoord2f(motionw,       0); glVertex2f( 1, -1);
+		glTexCoord2f(      0, motionh); glVertex2f(-1,  1);
+		glTexCoord2f(motionw, motionh); glVertex2f( 1,  1);
+		glEnd();
 
-    glDisable(GL_TEXTURE_RECTANGLE_ARB);
-    glEnable(GL_TEXTURE_2D);
+		glDisable(GL_TEXTURE_RECTANGLE_ARB);
+		glEnable(GL_TEXTURE_2D);
 
-    glDisable(GL_BLEND);
+		glDisable(GL_BLEND);
 
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
 
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
- 
+		glMatrixMode(GL_MODELVIEW);
+		glPopMatrix();
+	}
+
     if(lastmillis - lastmotion >= motionblurmillis)
     {
         lastmotion = lastmillis - lastmillis%motionblurmillis;
 
         glCopyTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, 0, 0, screen->w, screen->h);
     }
+
+	lastquake = camera1->quake!=0;
 }
 
 bool dopostfx = false;
@@ -1960,6 +1970,7 @@ void gl_drawframe(int w, int h)
     addmotionblur();
     addglare();
     if(fogmat==MAT_WATER || fogmat==MAT_LAVA) drawfogoverlay(fogmat, fogblend, abovemat);
+	//addwaterglow();
     renderpostfx();
 
     glDisable(GL_TEXTURE_2D);
@@ -2063,11 +2074,11 @@ void drawdamagecompass(int w, int h)
 int damageblendmillis = 0;
 
 VARFP(damagescreen, 0, 1, 1, { if(!damagescreen) damageblendmillis = 0; });
-VARP(damagescreenfactor, 1, 14, 100);
+VARP(damagescreenfactor, 1, 20, 100);
 VARP(damagescreenalpha, 1, 90, 100);
 VARP(damagescreenfade, 0, 500, 1000);
 VARP(damagescreenmin, 1, 10, 1000);
-VARP(damagescreenmax, 1, 4000, 4000);
+VARP(damagescreenmax, 1, 1000, 4000);
 
 void damageblend(int n)
 {
@@ -2084,7 +2095,7 @@ void drawdamagescreen(int w, int h)
     glEnable(GL_TEXTURE_2D);
 
     static Texture *damagetex = NULL;
-    if(!damagetex) damagetex = textureload("packages/hud/damage.png", 3);
+    if(!damagetex) damagetex = textureload("data/hud/damage.png", 3);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, damagetex->id);
@@ -2144,7 +2155,7 @@ void drawburnscreen(int w, int h)
     glEnable(GL_TEXTURE_2D);
 
     static Texture *burntex = NULL;
-    if(!burntex) burntex = textureload("packages/hud/burn.png", 3);
+    if(!burntex) burntex = textureload("data/hud/burn.png", 3);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, burntex->id);
@@ -2170,7 +2181,7 @@ void drawscope(int w, int h)
     glEnable(GL_TEXTURE_2D);
 
     static Texture *scopetex = NULL;
-    if(!scopetex) scopetex = textureload("packages/hud/scope.png", 3);
+    if(!scopetex) scopetex = textureload("data/hud/scope.png", 3);
 
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, scopetex->id);

@@ -69,7 +69,7 @@ static bool restoredinits = false;
 
 bool initwarning(const char *desc, int level, int type)
 {
-    if(initing < level) 
+    if(initing < level)
     {
         addchange(desc, type);
         return true;
@@ -147,7 +147,7 @@ void renderbackground(const char *caption, Texture *mapshot, const char *mapname
     if(!inbetweenframes && !force) return;
 
     stopsounds(); // stop sounds while loading
- 
+
     int w = screen->w, h = screen->h;
     getbackgroundres(w, h);
     gettextres(w, h);
@@ -248,7 +248,7 @@ void renderbackground(const char *caption, Texture *mapshot, const char *mapname
             float sz = 0.35f*min(w, h), msz = (1.0f*min(w, h) - sz)/(infowidth + FONTH), x = 0.5f*(w-sz), y = ly+lh - sz/15;
             if(mapinfo)
             {
-				settextscale(0.3f);
+				settextscale(0.9f);
                 int mw, mh;
                 text_bounds(mapinfo, mw, mh, infowidth);
                 x -= 0.5f*(mw*msz + FONTH*msz);
@@ -277,7 +277,7 @@ void renderbackground(const char *caption, Texture *mapshot, const char *mapname
                 draw_text("?", 0, 0);
                 glPopMatrix();
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            }        
+            }
             settexture("data/gui/mapshot_frame.png", 3);
             glBegin(GL_TRIANGLE_STRIP);
             glTexCoord2f(0, 0); glVertex2f(x,    y);
@@ -299,7 +299,7 @@ void renderbackground(const char *caption, Texture *mapshot, const char *mapname
             }
             if(mapinfo)
             {
-				settextscale(0.3f);
+				settextscale(0.9f);
                 glPushMatrix();
                 glTranslatef(x+sz+FONTH*msz, y, 0);
                 glScalef(msz, msz, 1);
@@ -334,7 +334,7 @@ void renderprogress(float bar, const char *text, GLuint tex, bool background)   
     if(!inbetweenframes || envmapping) return;
 
     clientkeepalive();      // make sure our connection doesn't time out while loading maps etc.
-    
+
     #ifdef __APPLE__
     interceptkey(SDLK_UNKNOWN); // keep the event queue awake to avoid 'beachball' cursor
     #endif
@@ -359,7 +359,7 @@ void renderprogress(float bar, const char *text, GLuint tex, bool background)   
     glColor3f(1, 1, 1);
 
     float fh = 0.075f*min(w, h), fw = fh*10,
-          fx = renderedframe ? w - fw - fh/4 : 0.5f*(w - fw), 
+          fx = renderedframe ? w - fw - fh/4 : 0.5f*(w - fw),
           fy = renderedframe ? fh/4 : h - fh*1.5f,
           fu1 = 0/512.0f, fu2 = 511/512.0f,
           fv1 = 0/64.0f, fv2 = 52/64.0f;
@@ -546,8 +546,8 @@ void setupscreen(int &usedcolorbits, int &useddepthbits, int &usedfsaa)
         for(int i = 0; modes[i]; i++)
         {
             if(dbgmodes) conoutf(CON_DEBUG, "mode[%d]: %d x %d", i, modes[i]->w, modes[i]->h);
-            if(widest < 0 || modes[i]->w > modes[widest]->w || (modes[i]->w == modes[widest]->w && modes[i]->h > modes[widest]->h)) 
-                widest = i; 
+            if(widest < 0 || modes[i]->w > modes[widest]->w || (modes[i]->w == modes[widest]->w && modes[i]->h > modes[widest]->h))
+                widest = i;
         }
         if(scr_w < 0 || scr_h < 0)
         {
@@ -559,7 +559,7 @@ void setupscreen(int &usedcolorbits, int &useddepthbits, int &usedfsaa)
                 if(w <= modes[i]->w && h <= modes[i]->h && (best < 0 || modes[i]->w < modes[best]->w))
                     best = i;
             }
-        } 
+        }
         if(best < 0)
         {
             int w = scr_w, h = scr_h;
@@ -576,11 +576,11 @@ void setupscreen(int &usedcolorbits, int &useddepthbits, int &usedfsaa)
         {
             if(best >= 0) { scr_w = modes[best]->w; scr_h = modes[best]->h; }
             else if(desktopw > 0 && desktoph > 0) { scr_w = desktopw; scr_h = desktoph; }
-            else if(widest >= 0) { scr_w = modes[widest]->w; scr_h = modes[widest]->h; } 
+            else if(widest >= 0) { scr_w = modes[widest]->w; scr_h = modes[widest]->h; }
         }
         else if(best < 0)
-        { 
-            scr_w = min(scr_w >= 0 ? scr_w : (scr_h >= 0 ? (scr_h*SCR_DEFAULTW)/SCR_DEFAULTH : SCR_DEFAULTW), (int)modes[widest]->w); 
+        {
+            scr_w = min(scr_w >= 0 ? scr_w : (scr_h >= 0 ? (scr_h*SCR_DEFAULTW)/SCR_DEFAULTH : SCR_DEFAULTW), (int)modes[widest]->w);
             scr_h = min(scr_h >= 0 ? scr_h : (scr_w >= 0 ? (scr_w*SCR_DEFAULTH)/SCR_DEFAULTW : SCR_DEFAULTH), (int)modes[widest]->h);
         }
         if(dbgmodes) conoutf(CON_DEBUG, "selected %d x %d", scr_w, scr_h);
@@ -683,7 +683,7 @@ void resetgl()
     cleanupdepthfx();
     cleanupshaders();
     cleanupgl();
-    
+
     SDL_SetVideoMode(0, 0, 0, 0);
 
     int usedcolorbits = 0, useddepthbits = 0, usedfsaa = 0;
@@ -696,7 +696,7 @@ void resetgl()
     inbetweenframes = false;
     if(!reloadtexture(*notexture) ||
        !reloadtexture("data/gui/logo.png") ||
-       !reloadtexture("data/gui/logo_1024.png") || 
+       !reloadtexture("data/gui/logo_1024.png") ||
        !reloadtexture("data/gui/background.png") ||
        !reloadtexture("data/gui/background_detail.png") ||
        !reloadtexture("data/gui/background_decal.png") ||
@@ -722,7 +722,7 @@ vector<SDL_Event> events;
 
 void pushevent(const SDL_Event &e)
 {
-    events.add(e); 
+    events.add(e);
 }
 
 bool interceptkey(int sym)
@@ -773,10 +773,10 @@ static void checkmousemotion(int &dx, int &dy)
     loopv(events)
     {
         SDL_Event &event = events[i];
-        if(skipmousemotion(event)) 
-        { 
-            if(i > 0) events.remove(0, i); 
-            return; 
+        if(skipmousemotion(event))
+        {
+            if(i > 0) events.remove(0, i);
+            return;
         }
         dx += event.motion.xrel;
         dy += event.motion.yrel;
@@ -854,7 +854,7 @@ void swapbuffers()
     recorder::capture();
     SDL_GL_SwapBuffers();
 }
- 
+
 VARF(gamespeed, 10, 100, 1000, if(multiplayer()) gamespeed = 100);
 
 VARF(paused, 0, 0, 1, if(multiplayer()) paused = 0);
@@ -978,37 +978,38 @@ int main(int argc, char **argv)
     #endif
     #endif
 
-    int dedicated = 0, masterserv = 0;
+    int dedicated = 0;
     char *load = NULL, *initscript = NULL;
 
-    //#define log(s) puts("init: " s)
-    #define log(s) logoutf("init: " s)
+    #define log(s) puts("init: " s)
 
     initing = INIT_RESET;
+	bool doinit = true;
 	for(int i = 1; i<argc; i++)
     {
         if(argv[i][0]=='-') switch(argv[i][1])
         {
-            case 'q': 
-			{
-				const char *dir = sethomedir(&argv[i][2]);
-				if(dir) log("Using home directory: %s", dir);
-				break;
-			}
+            //case 'q':
+			//{
+			//	const char *dir = sethomedir(&argv[i][2]);
+			//	if(dir) log("Using home directory: %s", dir);
+			//	break;
+			//}
+			case 'r': doinit = false;
         }
     }
-#ifndef _DEBUG
-    execfile("init.cfg", false);
-#endif
+//#ifndef _DEBUG
+	if (doinit) execfile("init.cfg", false);
+//#endif
     for(int i = 1; i<argc; i++)
     {
         if(argv[i][0]=='-') switch(argv[i][1])
         {
-            case 'q': //printf("Using home directory: %s\n", &argv[i][2]); sethomedir(&argv[i][2]); break;
-            case 'r': //execfile(argv[i][2] ? &argv[i][2] : "init.cfg", false); restoredinits = true; break;
+            case 'g': ///*log("Setting log file", &argv[i][2]);*/ setlogfile(&argv[i][2]); break;
 				break;
+            case 'q': /*printf("Using home directory: %s\n", &argv[i][2]);*/ sethomedir(&argv[i][2]); break;
             case 'k': printf("Adding package directory: %s\n", &argv[i][2]); addpackagedir(&argv[i][2]); break;
-            case 'g': log("Setting log file", &argv[i][2]); setlogfile(&argv[i][2]); break;
+            case 'r': execfile(argv[i][2] ? &argv[i][2] : "init.cfg", false); restoredinits = true; break;
             case 'd': dedicated = atoi(&argv[i][2]); if(dedicated<=0) dedicated = 2; break;
             case 'w': scr_w = clamp(atoi(&argv[i][2]), SCR_MINW, SCR_MAXW); if(!findarg(argc, argv, "-h")) scr_h = -1; break;
             case 'h': scr_h = clamp(atoi(&argv[i][2]), SCR_MINH, SCR_MAXH); if(!findarg(argc, argv, "-w")) scr_w = -1; break;
@@ -1018,22 +1019,21 @@ int main(int argc, char **argv)
             case 'v': vsync = atoi(&argv[i][2]); break;
             case 't': fullscreen = atoi(&argv[i][2]); break;
             case 's': stencilbits = atoi(&argv[i][2]); break;
-			case 'y': dedicated = 2; masterserv = 1;
-            case 'f': 
+            case 'f':
             {
-                extern int useshaders, shaderprecision, forceglsl; 
+                extern int useshaders, shaderprecision, forceglsl;
                 int n = atoi(&argv[i][2]);
                 useshaders = n > 0 ? 1 : 0;
                 shaderprecision = clamp(n >= 4 ? n - 4 : n - 1, 0, 2);
-                forceglsl = n >= 4 ? 1 : 0; 
+                forceglsl = n >= 4 ? 1 : 0;
                 break;
             }
-            case 'l': 
+            case 'l':
             {
-                char pkgdir[] = "packages/"; 
-                load = strstr(path(&argv[i][2]), path(pkgdir)); 
-                if(load) load += sizeof(pkgdir)-1; 
-                else load = &argv[i][2]; 
+                char pkgdir[] = "packages/";
+                load = strstr(path(&argv[i][2]), path(pkgdir));
+                if(load) load += sizeof(pkgdir)-1;
+                else load = &argv[i][2];
                 break;
             }
             case 'x': initscript = &argv[i][2]; break;
@@ -1065,13 +1065,13 @@ int main(int argc, char **argv)
 
     log("game");
     game::parseoptions(gameargs);
-    initserver(dedicated>0, dedicated>1, masterserv);  // never returns if dedicated
+    initserver(dedicated>0, dedicated>1);  // never returns if dedicated
     ASSERT(dedicated <= 1);
     game::initclient();
 
     log("video: mode");
     const SDL_VideoInfo *video = SDL_GetVideoInfo();
-    if(video) 
+    if(video)
     {
         desktopw = video->current_w;
         desktoph = video->current_h;
@@ -1119,11 +1119,11 @@ int main(int argc, char **argv)
     execfile("data/brush.cfg");
     execfile("mybrushes.cfg", false);
     if(game::savedservers()) execfile(game::savedservers(), false);
-    
+
     persistidents = true;
-    
+
     initing = INIT_LOAD;
-    if(!execfile(game::savedconfig(), false)) 
+    if(!execfile(game::savedconfig(), false))
     {
         execfile(game::defaultconfig());
         writecfg(game::restoreconfig());
@@ -1138,7 +1138,7 @@ int main(int argc, char **argv)
     concatstring(gamecfgname, game::gameident());
     concatstring(gamecfgname, ".cfg");
     execfile(gamecfgname);
-    
+
     game::loadconfigs();
 
     persistidents = true;
@@ -1161,7 +1161,7 @@ int main(int argc, char **argv)
 
     inputgrab(grabinput = true);
 
-    for(;;)
+	for(;;)
     {
         static int frames = 0;
         int millis = SDL_GetTicks() - clockrealbase;
@@ -1192,6 +1192,9 @@ int main(int argc, char **argv)
         checksleep(lastmillis);
 
         serverslice(false, 0);
+#ifdef IRC
+        ircslice();
+#endif
 
         if(frames) updatefpshistory(elapsed);
         frames++;
@@ -1209,8 +1212,8 @@ int main(int argc, char **argv)
         swapbuffers();
         renderedframe = inbetweenframes = true;
     }
-    
-    ASSERT(0);   
+
+    ASSERT(0);
     return EXIT_FAILURE;
 
     #if defined(WIN32) && !defined(_DEBUG) && !defined(__GNUC__)

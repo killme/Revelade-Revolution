@@ -476,11 +476,11 @@ struct fireballrenderer : listrenderer
         pe.extendbb(o, (size+1+pe.ent->attr2)*WOBBLE); 
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, uchar *color)
+    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, float size, uchar *color)
     {
         float pmax = p->val,
-              size = p->fade ? float(ts)/p->fade : 1,
-              psize = p->size + pmax * size;
+              asize = p->fade ? float(ts)/p->fade : 1,
+              psize = size + pmax * asize;
 
         if(isfoggedsphere(psize*WOBBLE, p->o)) return;
 
@@ -520,8 +520,8 @@ struct fireballrenderer : listrenderer
         if(renderpath!=R_FIXEDFUNCTION)
         {
             setlocalparamf("center", SHPARAM_VERTEX, 0, o.x, o.y, o.z);
-            setlocalparamf("animstate", SHPARAM_VERTEX, 1, size, psize, pmax, float(lastmillis));
-            binddepthfxparams(depthfxblend, inside ? blend/(2*255.0f) : 0, 2*(p->size + pmax)*WOBBLE >= depthfxblend, p);
+            setlocalparamf("animstate", SHPARAM_VERTEX, 1, asize, psize, pmax, float(lastmillis));
+            binddepthfxparams(depthfxblend, inside ? blend/(2*255.0f) : 0, 2*(size + pmax)*WOBBLE >= depthfxblend, p);
         }
 
         glRotatef(lastmillis/7.0f, -rotdir.x, rotdir.y, -rotdir.z);
@@ -531,5 +531,5 @@ struct fireballrenderer : listrenderer
         glPopMatrix();
     }
 };
-static fireballrenderer fireballs("packages/particles/explosion.png"), bluefireballs("<mix:2,1,0>packages/particles/explosion.png");
+static fireballrenderer fireballs("data/particles/explosion.png"), bluefireballs("<mix:2,1,0>data/particles/explosion.png");
 
