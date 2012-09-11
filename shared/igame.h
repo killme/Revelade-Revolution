@@ -57,7 +57,7 @@ namespace game
     extern const char *getclientmap();
     extern const char *getmapinfo();
     extern void resetgamestate();
-    extern void suicide(physent *d);
+    extern void suicide(physent *d, int type = 0); // type = 0 (generic), 1 (fall), 2 (lava)
     extern void newmap(int size);
     extern void startmap(const char *name);
     extern void preload();
@@ -104,6 +104,7 @@ namespace server
     extern void recordpacket(int chan, void *data, int len);
     extern void parsepacket(int sender, int chan, packetbuf &p);
     extern void sendservmsg(const char *s);
+	extern void sendservmsgf(int cn, const char *f, ...);
     extern bool sendpackets(bool force = false);
     extern void serverinforeply(ucharbuf &req, ucharbuf &p);
     extern void serverupdate();

@@ -4,6 +4,7 @@ extern int curtime;                     // current frame time
 extern int lastmillis;                  // last time
 extern int totalmillis;                 // total elapsed time
 extern int gamespeed, paused;
+extern int physsteps;
 
 enum
 {
@@ -129,12 +130,6 @@ extern void conoutf(const char *s, ...);
 extern void conoutf(int type, const char *s, ...);
 extern void conoutfv(int type, const char *fmt, va_list args);
 
-extern void setlogfile(const char *fname);
-extern void closelogfile();
-extern void logoutfv(const char *fmt, va_list args);
-extern void logoutf(const char *fmt, ...);
-extern void logouts(const char *s);
-
 // menus
 extern vec menuinfrontofplayer();
 extern void newgui(char *name, char *contents, char *header = NULL);
@@ -243,6 +238,7 @@ enum
 	PART_PLASMA_SOFT,
 	PART_SHOCKWAVE,
 	PART_HEAL,
+	PART_FJFLAME,
 };
 
 extern bool canaddparticles();
@@ -259,7 +255,7 @@ extern void particle_meter(const vec &s, float val, int type, int fade = 1, int 
 extern void particle_flare(const vec &p, const vec &dest, int fade, int type, int color = 0xFFFFFF, float size = 0.28f, physent *owner = NULL);
 extern void particle_fireball(const vec &dest, float max, int type, int fade = -1, int color = 0xFFFFFF, float size = 4.0f, int gravity = 0);
 extern void removetrackedparticles(physent *owner = NULL);
-void regularshape(int type, int radius, int color, int dir, int num, int fade, const vec &p, float size, int gravity, float vel = 200.0f);
+extern void regularshape(int type, int radius, int color, int dir, int num, int fade, const vec &p, float size, int gravity, float vel = 200.0f);
 
 // decal
 enum
@@ -409,7 +405,7 @@ struct VSlot;
 
 enum { G3D_DOWN = 1, G3D_UP = 2, G3D_PRESSED = 4, G3D_ROLLOVER = 8, G3D_DRAGGED = 16 };
 
-enum { EDITORFOCUSED = 1, EDITORUSED, EDITORFOREVER };
+enum { EDITORFOCUSED = 1, EDITORUSED, EDITORFOREVER, EDITORREADONLY };
 
 struct g3d_gui
 {
@@ -457,9 +453,6 @@ struct g3d_gui
     virtual char *field(const char *name, int color, int length, int height = 0, const char *initval = NULL, int initmode = EDITORFOCUSED) = 0;
     virtual void textbox(const char *text, int width, int height, int color = 0xFFFFFF) = 0;
     virtual void mergehits(bool on) = 0;
-
-    virtual void settextscale(float tscale) = 0;
-    virtual float gettextscale() = 0;
 };
 
 struct g3d_callback

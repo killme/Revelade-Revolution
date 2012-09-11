@@ -419,7 +419,7 @@ bool listdir(const char *dir, const char *ext, vector<char *> &files)
     else return false;
 }
 
-int listfiles(const char *dir, const char *ext, vector<char *> &files)
+int listfiles(const char *dir, const char *ext, vector<char *> &files, bool searchpackagedirs)
 {
     int dirs = 0;
     if(listdir(dir, ext, files)) dirs++;
@@ -429,7 +429,7 @@ int listfiles(const char *dir, const char *ext, vector<char *> &files)
         formatstring(s)("%s%s", homedir, dir);
         if(listdir(s, ext, files)) dirs++;
     }
-    loopv(packagedirs)
+    if (searchpackagedirs) loopv(packagedirs)
     {
         formatstring(s)("%s%s", packagedirs[i], dir);
         if(listdir(s, ext, files)) dirs++;

@@ -74,5 +74,8 @@
 #include "iengine.h"
 #include "igame.h"
 
+#define IRC
+#include "irc.h"
+
 #endif
 

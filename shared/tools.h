@@ -104,6 +104,7 @@ static inline T min(T a, T b)
 
 #define MAXSTRLEN 260
 typedef char string[MAXSTRLEN];
+#define mkstring(d) string d; d[0] = 0;
 
 inline void vformatstring(char *d, const char *fmt, va_list v, int len = MAXSTRLEN) { _vsnprintf(d, len, fmt, v); d[len-1] = 0; }
 inline char *copystring(char *d, const char *s, size_t len = MAXSTRLEN) { strncpy(d, s, len); d[len-1] = 0; return d; }
@@ -965,6 +966,8 @@ static inline uchar uni2cube(int c)
 extern int decodeutf8(uchar *dst, int dstlen, uchar *src, int srclen, int *carry = NULL);
 extern int encodeutf8(uchar *dstbuf, int dstlen, uchar *srcbuf, int srclen, int *carry = NULL);
 
+extern vector<char *> packagedirs;
+
 extern char *makerelpath(const char *dir, const char *file, const char *prefix = NULL, const char *cmd = NULL);
 extern char *path(char *s);
 extern char *path(const char *s, bool copy);
@@ -982,7 +985,7 @@ extern stream *opentempfile(const char *filename, const char *mode);
 extern stream *opengzfile(const char *filename, const char *mode, stream *file = NULL, int level = Z_BEST_COMPRESSION);
 extern char *loadfile(const char *fn, int *size);
 extern bool listdir(const char *dir, const char *ext, vector<char *> &files);
-extern int listfiles(const char *dir, const char *ext, vector<char *> &files);
+extern int listfiles(const char *dir, const char *ext, vector<char *> &files, bool searchpackagedirs = true);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 extern void seedMT(uint seed);
 extern uint randomMT(void);
