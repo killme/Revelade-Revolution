@@ -179,8 +179,8 @@ static const struct weapinfo {
 	{	S_FLAUNCH,			0,	HICON_GL,		2200,	30,		4096,	170,	300,	1,		3,		1,			PJ_PROJECTILE,			1,	50,		400,240,0,		DECAL_SCORCH,	50.0f,	40.0f,	4.0f,	vec(0.8f, 0.7f, 0.4f),		{PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
 		S_FLAUNCH,			0,	HICON_GL,		2200,	30,		4096,	170,	300,	1,		3,		1,			PJ_PROJECTILE,			1,	50,		400,140,0,		DECAL_SCORCH,	50.0f,	40.0f,	4.0f,	vec(0.8f, 0.7f, 0.4f),		{PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
 		"Mortar",			"mortar" },
-	{	S_ITEMHEALTH,		0,	HICON_HEAL,		800,	0,		30,		150,	-30,	1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.5f,	1.0f,	vec(0.8f, 0.3f, 0.7f),		{PP_MUZZLE_FLASH_8, PP_HEAL_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
-		S_ITEMHEALTH,		0,	HICON_HEAL,		800,	0,		30,		150,	60,		1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.5f,	1.0f,	vec(0.8f, 0.3f, 0.7f),		{PP_MUZZLE_FLASH_8, PP_SPARK_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
+	{	S_ITEMHEALTH,		0,	HICON_HEAL,		800,	0,		30,		150,	 30,	1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.5f,	1.0f,	vec(0.8f, 0.3f, 0.7f),		{PP_MUZZLE_FLASH_8, PP_HEAL_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
+		S_ITEMHEALTH,		0,	HICON_HEAL,		800,	0,		30,		150,	 60,	1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.5f,	1.0f,	vec(0.8f, 0.3f, 0.7f),		{PP_MUZZLE_FLASH_8, PP_SPARK_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
 		"Healer",			"healer" },
 	{	S_PISTOL,			0,	HICON_PISTOL,	500,	7,		1024,	110,	25,		1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		DECAL_BULLET,	2.0f,	15.0f,	1.0f,	vec(0.5f, 0.375f, 0.25f),	{PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
 		S_PISTOL,			0,	HICON_PISTOL,	1000,	7,		1024,	110,	12,		3,		1,		1,			PJ_RAY,					0,	0,		0,	10,	0,		DECAL_BULLET,	2.0f,	15.0f,	1.0f,	vec(0.5f, 0.375f, 0.25f),	{PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
@@ -257,12 +257,12 @@ enum
 
 static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; char* name; } playerclasses[NUMPCS] =
 {
-	// weap																	mxhlth	armourtype	armour	mxspd	name
-	{ {WEAP_SLUGSHOT,	WEAP_MG,		WEAP_FLAMEJET,	WEAP_GRENADIER},	100,	A_GREEN,	50,		100,	"Offense"},
-	{ {WEAP_ROCKETL,	WEAP_SNIPER,	WEAP_GRENADIER,	WEAP_PISTOL},		120,	A_YELLOW,	60,		95,		"Defense"},
-	{ {WEAP_MG,			WEAP_ROCKETL,	WEAP_FLAMEJET,	WEAP_MORTAR},		140,	A_YELLOW,	70,		85,		"Heavy"},
-	{ {WEAP_SLUGSHOT,	WEAP_MG,		WEAP_CROSSBOW,	WEAP_GRENADIER},	80,		A_GREEN,	40,		115,	"Stealth"},
-	{ {WEAP_SLUGSHOT,	WEAP_CROSSBOW,	WEAP_HEALER,	WEAP_PISTOL},		100,	A_GREEN,	50,		100,	"Engineer"}, // WEAP_BUILD
+	// weap_01			weap_02				mxhlth	armourtype	armour	mxspd	name
+	{ {WEAP_ROCKETL,	WEAP_MORTAR},		90,		A_GREEN,	50,		80,		"Offense"},
+	{ {WEAP_ROCKETL,	WEAP_GRENADIER},	70,		A_YELLOW,	60,		75,		"Defense"},
+	{ {WEAP_MG,			WEAP_SLUGSHOT},		110,	A_YELLOW,	70,		65,		"Heavy"},
+	{ {WEAP_CROSSBOW,	WEAP_FLAMEJET},		60,		A_GREEN,	40,		115,	"Stealth"},
+	{ {WEAP_HEALER,		WEAP_PISTOL},		50,		A_GREEN,	50,		85,		"Medic"}, // WEAP_BUILD
 };
 
 static const playerclassinfo zombiepci = { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 100, A_BLUE, 0, 100, "Zombie"};

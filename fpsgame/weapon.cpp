@@ -298,24 +298,24 @@ namespace game
     }
 
     VARP(blood, 0, 1, 1);
-
-    void damageeffect(int damage, fpsent *d, bool thirdperson)
+	VARP(dampartsize, 0, 100, 150);
+    void damageeffect(int damage, fpsent *d, bool thirdperson, bool player)
     {
         vec p = d->o;
         p.z += 0.6f*(d->eyeheight + d->aboveeye) - d->eyeheight;
         if(blood) particle_splash(PART_BLOOD, damage/10, 1000, p, 0x60FFFF, 2.96f);
         if(thirdperson)
         {
-			string ds;
-            if (damage>0) formatstring(ds)("%d", min(damage, d->health+d->armour));
-			else formatstring(ds)("+%d", min(-damage, d->maxhealth-d->health));
-			int color = 0xFF6419;
-			if (damage>139) color = 0xFF0F05;
-			else if (damage>99) color = 0xFF1E0A;
-			else if (damage>49) color = 0xFF4D0F;
-			else if (damage>25) color = 0xFF4B1E;
-			else if (damage<0) {  color = 0x007755; damage = -damage; }
-			particle_textcopy(d->abovehead(), ds, PART_TEXT, 3000, color, m_insta? 4.0f: 3.5f+(damage*0.07), -2);
+			//DO NOT TOUCH
+			vec p (player1->state == CS_SPECTATOR ? hudplayer()->o:player1->o); //location of the hud player
+			vec c(d->abovehead()); //location of the damaged player
+			c.sub(p); // move vec p to the 0,0,0 position 
+			c.normalize(); //change vec c from a point to a direction (all values are less than 1 .. similar to a percent
+			c.mul(dampartsize); //set the partical dampart size units (scaler) in front of the player in vec c's direction 
+			c.add(p); //move the particle back to original posision in world space (so it is not 0,0,0)
+			////
+			defformatstring(ds)("%d", damage);
+            particle_textcopy(player ? c : d->abovehead(), ds, PART_TEXT, 3000, damage > 25 ? damage > 50 ? damage > 99 ? damage > 200 ? 0xFF0F05 : 0xFF1E0A : 0xFF4D0F: 0xFF4B1E : 0xFF6419, m_insta?4.0f:3.5f+(damage*0.07), -2);
         }
     }
 
@@ -370,7 +370,7 @@ namespace game
             h.dir = f==at ? ivec(0, 0, 0) : ivec(int(vel.x*DNF), int(vel.y*DNF), int(vel.z*DNF));
             if(at==player1)
             {
-                damageeffect(damage, f);
+                //damageeffect(damage, f,true);
 				if (damage>0)
 				{
 					if(f==player1)
@@ -681,6 +681,16 @@ namespace game
 				if (p.speed > .01f && p.offsetmillis != 0 && lastmillis-p.offsetmillis >= min((int)(50.f*ff), 10))
 				{
 					//todo: use regular_particle_flame
+					if(p.speed < 10){
+						conoutf("stop");
+						physent *a (p.owner);
+						a->o = p.o; a->radius = 5;
+						if(collide(a,vec(0,0,0),(0.0f),true)){
+							conoutf("del");
+							projs.remove(i--);
+							break;
+						}
+					}
 					if (WEAP(p.gun,projparts)[1]) regular_particle_splash(projpartpresets[WEAP(p.gun,projparts)[1]].part, projpartpresets[WEAP(p.gun,projparts)[1]].num, min((int)(800.f / ff), 500), v, projpartpresets[WEAP(p.gun,projparts)[1]].color, max((10.f * ff), 1.f), max((int)(60.f * ff), 1), projpartpresets[WEAP(p.gun,projparts)[1]].gravity);
 					if (WEAP(p.gun,projparts)[2]) regular_particle_splash(projpartpresets[WEAP(p.gun,projparts)[2]].part, projpartpresets[WEAP(p.gun,projparts)[1]].num, min((int)(800.f / ff), 500), v, projpartpresets[WEAP(p.gun,projparts)[2]].color, max((10.f * ff), 1.f), max((int)(60.f * ff), 1), projpartpresets[WEAP(p.gun,projparts)[1]].gravity);
 					//if (ff > .6f) regular_particle_flame(PART_SMOKE, v, 7, 6, 0x757065, 2, ff, 10, 400, -30);
@@ -694,7 +704,8 @@ namespace game
 							dynent *o = iterdynents(i);
 							if (o == p.owner && (ff <= 0.7f || (p.dir.z < -0.5 && (ff >= .99f || ff <= .94f)))) continue;
 							if (o->state == CS_ALIVE && o->o.dist(p.o) < damdist && o->inwater==0 && raycube(p.o, o->o, 1.f, RAY_CLIPMAT|RAY_ALPHAPOLY) >= 0.99f) // stop burning through walls
-								setonfire(o, p.owner, p.gun);
+								if(!(o==player1 && p.owner == player1))
+									setonfire(o, p.owner, p.gun);
 						}
 					}
 				}
@@ -830,7 +841,13 @@ namespace game
 		}
 		else if (WEAP_IS_FLAME(gun))
 		{
-			newprojectile(from, to, WEAP(gun,projspeed)*4, local, id, d, gun);
+			physent * a (d);
+			vec c(to);
+			c.normalize();
+			a->o = to; a->radius = 5;
+
+			//conoutf("%d",  int(collide( a,to,(0.0f),true)));
+				newprojectile(from, to, WEAP(gun,projspeed)*4, local, id, d, gun);
 		}
 		else if (WEAP_IS_REFLECTOR(gun))
 		{

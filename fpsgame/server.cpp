@@ -232,6 +232,7 @@ namespace server
         string clientmap;
         int mapcrc;
         bool warned, gameclip;
+		bool onfire;
         ENetPacket *clipboard;
         int lastclipboard, needclipboard;
 
@@ -1569,6 +1570,7 @@ namespace server
     void dodamage(clientinfo *target, clientinfo *actor, int damage, int gun, const vec &hitpush = vec(0, 0, 0), bool special = false)
     {
 		if (!actor) return;
+		if(actor != target && !strcmp(actor->team,target->team) && m_teammode)return;
         gamestate &ts = target->state;
         ts.dodamage(damage);
         if (damage>0) actor->state.damage += damage;
@@ -1738,6 +1740,7 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
+			//ci->onfire = false;
             if(curtime>0 && ci->state.quadmillis) ci->state.quadmillis = max(ci->state.quadmillis-curtime, 0);
             flushevents(ci, gamemillis);
         }
@@ -2863,6 +2866,7 @@ namespace server
 				//catt->state.lastburnpain = 0;
 				//catt->state.burnmillis = lastmillis;
 				//catt->state.fireattacker = catt;
+				clientinfo *c = getinfo(cvictim);
 				sendf(-1, 1, "riiii", N_SETONFIRE, cattacker, cvictim, gun);
 				//}
 				break;
@@ -2873,6 +2877,8 @@ namespace server
 				int cattacker = getint(p);
 				int cvictim = getint(p);
 				int damage = getint(p);
+				clientinfo *c = getinfo(cvictim);
+				//c->onfire = true;
 				dodamage(getinfo(cvictim), getinfo(cattacker), damage, WEAP_FLAMEJET);
 				break;
 			}

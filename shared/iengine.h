@@ -48,6 +48,7 @@ extern float rayfloor  (const vec &o, vec &floor, int mode = 0, float radius = 0
 extern bool  raycubelos(const vec &o, const vec &dest, vec &hitpos);
 
 extern int thirdperson;
+extern int thirdpersondistance;
 extern bool isthirdperson();
 
 extern bool settexture(const char *name, int clamp = 0);

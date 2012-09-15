@@ -80,6 +80,9 @@ namespace game
     extern void setupcamera();
     extern bool detachcamera();
     extern bool collidecamera();
+	extern int killcamstate(int i = -1);
+	extern dynent *getkillcam();
+	extern void showdeathscores();
     extern void adddynlights();
     extern void particletrack(physent *owner, vec &o, vec &d);
     extern void dynlighttrack(physent *owner, vec &o);

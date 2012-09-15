@@ -15,15 +15,17 @@ namespace game
     fpsent *player1 = NULL;         // our client
     vector<fpsent *> players;       // other clients
     int savedammo[NUMWEAPS];
+	int tauntmillis = 0;			//taunt delay timer
 
     bool clientoption(const char *arg) { return false; }
 
-    void taunt()
+ void taunt()
     {
         if(player1->state!=CS_ALIVE || player1->physstate<PHYS_SLOPE) return;
-        if(lastmillis-player1->lasttaunt<1000) return;
-        player1->lasttaunt = lastmillis;
-        addmsg(N_TAUNT, "rc", player1);
+        if(lastmillis-player1->lasttaunt<1500) return;
+		thirdperson = 2;
+		tauntmillis = 250 + lastmillis;
+		
     }
     COMMAND(taunt, "");
 
@@ -337,6 +339,7 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
+			if(d->inwater) d->onfire = false;
             if(d == player1 || d->ai) continue;
 
             if(d->state==CS_ALIVE)
@@ -499,24 +502,39 @@ namespace game
         if((player1->attacking = on)) respawn();
     }
 
-    bool canjump()
+     bool canjump()
     {
         if(!intermission) respawn();
-        return player1->state!=CS_DEAD && !intermission;
+		if(m_dmsp)if((player1->lastpain + 100 > lastmillis)) return false;
+        return player1->state!=CS_DEAD && !intermission && !(tauntmillis || player1->lasttaunt + 1500 > lastmillis);
     }
 
     bool allowmove(physent *d)
     {
+		if(m_dmsp)if(player1->lastpain + 100 > lastmillis)return false;
         if(d->type!=ENT_PLAYER) return true;
-        return !((fpsent *)d)->lasttaunt || lastmillis-((fpsent *)d)->lasttaunt>=1000;
+		if((!((fpsent *)d)->lasttaunt || lastmillis-((fpsent *)d)->lasttaunt>=1450)&&(tauntmillis == 0)) {
+			thirdperson = 0;
+			return true;
+		}
+		else
+			if((tauntmillis < lastmillis) && (tauntmillis != 0)){
+				addmsg(N_TAUNT, "rc", player1);
+				player1->lasttaunt = lastmillis;
+				tauntmillis = 0;
+				thirdpersondistance = 30;
+			}else if(tauntmillis !=0) thirdpersondistance = 5+(25 * ((250 -(tauntmillis - lastmillis))*0.004)); //1/250 = inv delay time
+			else if(player1->lasttaunt+1450 < lastmillis +200) thirdpersondistance = 5+(25 * (((player1->lasttaunt+1450 - lastmillis))*0.005)); // 1/200 = inv delay time
+			return false;
     }
-
+	
     VARP(hitsound, 0, 0, 1);
 
     void damaged(int damage, fpsent *d, fpsent *actor, bool local, int gun)
     {
 		if (gun == WEAP_FLAMEJET)
 		{
+			if(player1 == d && player1==actor) return;
 			volatile int asd = 1;
 		}
         if(d->state!=CS_ALIVE || intermission) return;
@@ -524,13 +542,15 @@ namespace game
 		if (cmode) cmode->zombiepain(damage, d, actor);
 
 		if(local) damage = d->dodamage(damage);
-        else if(actor==player1) return;
+        else if(actor==player1) {damageeffect(damage,d,true,true);return;}
 
         fpsent *h = hudplayer();
+		bool pl = false;
         if(h!=player1 && actor==h && d!=actor)
         {
             if(hitsound && lasthit != lastmillis) playsound(S_HIT);
             lasthit = lastmillis;
+			pl = true;
         }
         if(d==h)
         {
@@ -539,7 +559,7 @@ namespace game
 			d->addquake((int)qu);
             damagecompass(damage, actor->o);
         }
-        damageeffect(damage, d, d!=h);
+        damageeffect(damage, d, true, pl);
 
 		ai::damaged(d, actor);
 
@@ -551,15 +571,17 @@ namespace game
     }
 
     VARP(deathscore, 0, 1, 1);
+	void showdeathscores(){	if(deathscore) showscores(true);}
 
     void deathstate(fpsent *d, bool restore)
     {
         d->state = CS_DEAD;
+		if(d == player1) killcamstate(1);	
         d->lastpain = lastmillis;
         if(!restore) gibeffect(max(-d->health, 0), d->vel, d);
         if(d==player1)
         {
-            if(deathscore) showscores(true);
+            //if(deathscore) showscores(true);
             disablezoom();
             if(!restore) loopi(NUMWEAPS) savedammo[i] = player1->ammo[i];
             d->attacking = false;
@@ -619,7 +641,12 @@ namespace game
         deathstate(d);
 		if (cmode && d->aitype == AI_ZOMBIE) cmode->zombiekilled(d, actor);
 		ai::killed(d, actor);
+		if(d == player1)d->lastkilled = actor;
     }
+
+	VAR(killcamera,0,0,3);
+	int killcamstate(int i){ if (i==-1)return killcamera; setvar("killcamera", i); return killcamera;}
+	dynent *getkillcam(){return !followingplayer() ? player1->lastkilled  ? player1->lastkilled : player1 : followingplayer();}
 
     void timeupdate(int secs)
     {
@@ -716,7 +743,7 @@ namespace game
 
     VARP(showmodeinfo, 0, 1, 1);
 	
-	VARFP(playerclass, 0, 0, NUMPCS-1, if(player1->playerclass != playerclass) switchplayerclass(playerclass) );
+	VARFP(playerclass, -1, -1, NUMPCS-1, if(player1->playerclass != playerclass) switchplayerclass(playerclass) );
 
     void startgame()
     {
@@ -741,13 +768,11 @@ namespace game
             d->lifesequence = -1;
             d->respawned = d->suicided = -2;
         }
-
         setclientmode();
 
         intermission = false;
         maptime = maprealtime = 0;
         maplimit = -1;
-
         if(cmode)
         {
             cmode->preload();

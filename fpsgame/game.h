@@ -660,6 +660,7 @@ struct fpsent : dynent, fpsstate
     float deltayaw, deltapitch, newyaw, newpitch;
     int smoothmillis;
 
+	fpsent *lastkilled;
     string name, team, info;
     int playermodel;
     ai::aiinfo *ai;
@@ -915,7 +916,7 @@ namespace game
     extern void shoteffects(int gun, const vec &from, const vec &to, fpsent *d, bool local, int id, int prevaction);
     extern void explode(bool local, fpsent *owner, const vec &v, dynent *safe, int dam, int gun);
     extern void explodeeffects(int gun, fpsent *d, bool local, int id = 0);
-    extern void damageeffect(int damage, fpsent *d, bool thirdperson = true);
+    extern void damageeffect(int damage, fpsent *d, bool thirdperson = true, bool player = true);
     extern void gibeffect(int damage, const vec &vel, fpsent *d);
     extern float intersectdist;
     extern bool intersect(dynent *d, const vec &from, const vec &to, float &dist = intersectdist);

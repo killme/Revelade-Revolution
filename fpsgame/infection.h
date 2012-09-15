@@ -325,6 +325,7 @@ case N_INFECT:
 	fpsent *disc = getclient(disi);
 	if (infc)
 	{
+		//regular_particle_splash(PART_SMOKE,0,500,infc->o,0x106020,10,3000);
 		infc->infected = true;
 		infc->infectmillis = lastmillis;
 		loopi(NUMWEAPS) infc->ammo[i] = 0;

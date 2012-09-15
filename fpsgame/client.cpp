@@ -1044,6 +1044,8 @@ namespace game
             {
                 int hasmap = getint(p);
                 if(!hasmap) initmap = true; // we are the first client on this server, set map
+				showgui("playerclass");
+				conoutf("DO");
                 break;
             }
 

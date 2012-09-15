@@ -8,7 +8,7 @@ namespace game
     VARP(ragdoll, 0, 1, 1);
     VARP(ragdollmillis, 0, 10000, 300000);
     VARP(ragdollfade, 0, 1000, 300000);
-    VARFP(playermodel, 0, 0, 4, changedplayermodel());
+    VARFP(playermodel, 0, 0, 2, changedplayermodel());
     VARP(forceplayermodels, 0, 0, 1);
     VARP(allplayermodels, 0, 0, 1);
 
@@ -240,7 +240,7 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
-            if(d == player1 || d->state==CS_SPECTATOR || d->state==CS_SPAWNING || d->lifesequence < 0 || d == exclude) continue;
+            if( d == player1 || d->state==CS_SPECTATOR || d->state==CS_SPAWNING || d->lifesequence < 0 || d == exclude) continue; //d == player1 ||
             int team = 0;
             if((teamskins || m_teammode) && !(m_infection && d->infected)) team = isteam(player1->team, d->team) ? 1 : 2; // player1->team experimental
             renderplayer(d, getplayermodelinfo(d), team, 1, mainpass);
@@ -258,7 +258,7 @@ namespace game
                 fade -= clamp(float(lastmillis - (d->lastupdate + max(ragdollmillis - ragdollfade, 0)))/min(ragdollmillis, ragdollfade), 0.0f, 1.0f);
             renderplayer(d, getplayermodelinfo(d), team, fade, mainpass);
         } 
-        if(isthirdperson() && !followingplayer()) renderplayer(player1, getplayermodelinfo(player1), (teamskins || m_teammode) && !player1->infected ? 1 : 0, player1->state==CS_DEAD? 1: 0.3, mainpass);
+        if(isthirdperson() && !followingplayer()) renderplayer(player1, getplayermodelinfo(player1), (teamskins || m_teammode) && !player1->infected ? 1 : 0, 1.0f, mainpass);
         rendermonsters();
         rendermovables();
         entities::renderentities();
