@@ -532,6 +532,12 @@ namespace game
 
     void damaged(int damage, fpsent *d, fpsent *actor, bool local, int gun)
     {
+		if(damage <= 0){
+			if(actor==player1)
+				damageeffect(damage,d,true,true);
+			d->health = d->maxhealth < (d->health-damage) ? d->maxhealth : (d->health-damage);
+			return;
+		}
 		if (gun == WEAP_FLAMEJET)
 		{
 			if(player1 == d && player1==actor) return;

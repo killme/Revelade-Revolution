@@ -1570,8 +1570,8 @@ namespace server
     void dodamage(clientinfo *target, clientinfo *actor, int damage, int gun, const vec &hitpush = vec(0, 0, 0), bool special = false)
     {
 		if (!actor) return;
-		if(actor != target && !strcmp(actor->team,target->team) && m_teammode)return;
-        gamestate &ts = target->state;
+		if(actor != target && (!strcmp(actor->team,target->team)) && (m_teammode))if(gun = WEAP_HEALER)damage*=-1.0; else{ conoutf("%d", int(m_teammode)); return;}
+		gamestate &ts = target->state;
         ts.dodamage(damage);
         if (damage>0) actor->state.damage += damage;
         sendf(-1, 1, "ri7", N_DAMAGE, target->clientnum, actor->clientnum, damage, ts.armour, ts.health, gun);

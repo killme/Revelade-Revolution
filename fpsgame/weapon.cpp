@@ -314,8 +314,8 @@ namespace game
 			c.mul(dampartsize); //set the partical dampart size units (scaler) in front of the player in vec c's direction 
 			c.add(p); //move the particle back to original posision in world space (so it is not 0,0,0)
 			////
-			defformatstring(ds)("%d", damage);
-            particle_textcopy(player ? c : d->abovehead(), ds, PART_TEXT, 3000, damage > 25 ? damage > 50 ? damage > 99 ? damage > 200 ? 0xFF0F05 : 0xFF1E0A : 0xFF4D0F: 0xFF4B1E : 0xFF6419, m_insta?4.0f:3.5f+(damage*0.07), -2);
+			defformatstring(ds)("%d", damage * (damage<0?-1:1));
+            particle_textcopy(player ? c : d->abovehead(), ds, PART_TEXT, 3000, damage > -1 ? damage > 25 ? damage > 50 ? damage > 99 ? damage > 200 ? 0xFF0F05 : 0xFF1E0A : 0xFF4D0F: 0xFF4B1E : 0xFF6419 : 0x0F4DFF, m_insta?4.0f:3.5f+(abs(damage)*0.07), -2);
         }
     }
 
@@ -682,11 +682,9 @@ namespace game
 				{
 					//todo: use regular_particle_flame
 					if(p.speed < 10){
-						conoutf("stop");
 						physent *a (p.owner);
 						a->o = p.o; a->radius = 5;
 						if(collide(a,vec(0,0,0),(0.0f),true)){
-							conoutf("del");
 							projs.remove(i--);
 							break;
 						}
