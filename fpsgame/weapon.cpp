@@ -303,7 +303,10 @@ namespace game
     {
         vec p = d->o;
         p.z += 0.6f*(d->eyeheight + d->aboveeye) - d->eyeheight;
-        if(blood) particle_splash(PART_BLOOD, damage/10, 1000, p, 0x60FFFF, 2.96f);
+        if(blood) 
+			particle_splash(PART_BLOOD, damage/10, 1000, p, 0x60FFFF, 2.96f);
+			particle_splash(PART_BLOOD, damage/10, 1000, p.add(3), 0x60FFFF, 2.96f);
+			particle_splash(PART_BLOOD, damage/10, 1000, p.add(-6), 0x60FFFF, 2.96f);
         if(thirdperson)
         {
 			//DO NOT TOUCH
@@ -351,8 +354,8 @@ namespace game
         }
 
         fpsent *f = (fpsent *)d;
-
-        f->lastpain = lastmillis;
+		if(damage >0)
+			f->lastpain = lastmillis;
         if(at->type==ENT_PLAYER && damage>0 && (d->type != ENT_PLAYER || !isteam(at->team, ((fpsent *)d)->team))) at->totaldamage += damage;
 
         if(f->type==ENT_AI || !m_mp(gamemode) || f==at) f->hitpush(damage, vel, at, gun);
