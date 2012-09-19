@@ -1574,7 +1574,7 @@ namespace server
 		float m = 1.0;
 		if(gun == WEAP_PISTOL) actor->state.health = actor->state.maxhealth < (actor->state.health+10) ? actor->state.maxhealth : (actor->state.health + 10);
 		if(gun == WEAP_CROSSBOW) if(target->state.onfire){ damage *= 2.5; conoutf("UBER");}
-		conoutf("%d", int(target->state.onfire));
+		//conoutf("%d", int(target->state.onfire));
 		//float dist = actor->state.o.dist(target->state.o);
 		vec ac (actor->state.o);
 		vec tg (target->state.o);
