@@ -232,7 +232,6 @@ namespace server
         string clientmap;
         int mapcrc;
         bool warned, gameclip;
-		bool onfire;
         ENetPacket *clipboard;
         int lastclipboard, needclipboard;
 
@@ -640,7 +639,7 @@ namespace server
 
     void autoteam()
     {
-        static const char *teamnames[2] = {"good", "evil"};
+        static const char *teamnames[2] = {TEAM_0, TEAM_1};
         vector<clientinfo *> team[2];
         float teamrank[2] = {0, 0};
         for(int round = 0, remaining = clients.length(); remaining>=0; round++)
@@ -685,7 +684,7 @@ namespace server
 
     const char *chooseworstteam(const char *suggest = NULL, clientinfo *exclude = NULL)
     {
-        teamrank teamranks[2] = { teamrank("good"), teamrank("evil") };
+        teamrank teamranks[2] = { teamrank(TEAM_0), teamrank(TEAM_1) };
         const int numteams = sizeof(teamranks)/sizeof(teamranks[0]);
         loopv(clients)
         {
@@ -1570,8 +1569,7 @@ namespace server
     void dodamage(clientinfo *target, clientinfo *actor, int damage, int gun, const vec &hitpush = vec(0, 0, 0), bool special = false)
     {
 		if (!actor) return;
-		if(actor != target && (!strcmp(actor->team,target->team)) && (m_teammode))if(gun = WEAP_HEALER)damage*=-1.0; else{ conoutf("%d", int(m_teammode)); return;}
-		gamestate &ts = target->state;
+        gamestate &ts = target->state;
         ts.dodamage(damage);
         if (damage>0) actor->state.damage += damage;
         sendf(-1, 1, "ri7", N_DAMAGE, target->clientnum, actor->clientnum, damage, ts.armour, ts.health, gun);
@@ -1740,7 +1738,6 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
-			//ci->onfire = false;
             if(curtime>0 && ci->state.quadmillis) ci->state.quadmillis = max(ci->state.quadmillis-curtime, 0);
             flushevents(ci, gamemillis);
         }
@@ -2158,7 +2155,7 @@ namespace server
                 ci->state.lasttimeplayed = lastmillis;
 
 				const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
-                copystring(ci->team, m_oneteam? "survivors": (worst ? worst : "good"), MAXTEAMLEN+1);
+                copystring(ci->team, m_oneteam? "survivors": (worst ? worst : TEAM_0), MAXTEAMLEN+1);
 
                 sendwelcome(ci);
                 if(restorescore(ci)) sendresume(ci);
@@ -2866,7 +2863,6 @@ namespace server
 				//catt->state.lastburnpain = 0;
 				//catt->state.burnmillis = lastmillis;
 				//catt->state.fireattacker = catt;
-				clientinfo *c = getinfo(cvictim);
 				sendf(-1, 1, "riiii", N_SETONFIRE, cattacker, cvictim, gun);
 				//}
 				break;
@@ -2877,8 +2873,6 @@ namespace server
 				int cattacker = getint(p);
 				int cvictim = getint(p);
 				int damage = getint(p);
-				clientinfo *c = getinfo(cvictim);
-				//c->onfire = true;
 				dodamage(getinfo(cvictim), getinfo(cattacker), damage, WEAP_FLAMEJET);
 				break;
 			}

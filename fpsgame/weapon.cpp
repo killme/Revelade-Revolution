@@ -309,16 +309,23 @@ namespace game
 			particle_splash(PART_BLOOD, damage/10, 1000, p.add(-6), 0x60FFFF, 2.96f);
         if(thirdperson)
         {
-			//DO NOT TOUCH
 			vec p (player1->state == CS_SPECTATOR ? hudplayer()->o:player1->o); //location of the hud player
 			vec c(d->abovehead()); //location of the damaged player
 			c.sub(p); // move vec p to the 0,0,0 position 
 			c.normalize(); //change vec c from a point to a direction (all values are less than 1 .. similar to a percent
 			c.mul(dampartsize); //set the partical dampart size units (scaler) in front of the player in vec c's direction 
 			c.add(p); //move the particle back to original posision in world space (so it is not 0,0,0)
-			////
-			defformatstring(ds)("%d", damage * (damage<0?-1:1));
-            particle_textcopy(player ? c : d->abovehead(), ds, PART_TEXT, 3000, damage > -1 ? damage > 25 ? damage > 50 ? damage > 99 ? damage > 200 ? 0xFF0F05 : 0xFF1E0A : 0xFF4D0F: 0xFF4B1E : 0xFF6419 : 0x0F4DFF, m_insta?4.0f:3.5f+(abs(damage)*0.07), -2);
+
+			string ds;
+            if (damage>0) formatstring(ds)("%d", min(damage, d->health+d->armour));
+			else formatstring(ds)("+%d", min(-damage, d->maxhealth-d->health));
+			int color = 0xFF6419;
+			if (damage>139) color = 0xFF0F05;
+			else if (damage>99) color = 0xFF1E0A;
+			else if (damage>49) color = 0xFF4D0F;
+			else if (damage>25) color = 0xFF4B1E;
+			else if (damage<0) {  color = 0x007755; damage = -damage; }
+			particle_textcopy(player ? c : d->abovehead(), ds, PART_TEXT, 3000, color, m_insta? 4.0f: 3.5f+(damage*0.07), -2);
         }
     }
 
@@ -354,8 +361,8 @@ namespace game
         }
 
         fpsent *f = (fpsent *)d;
-		if(damage >0)
-			f->lastpain = lastmillis;
+		if(damage > 0)
+	        f->lastpain = lastmillis;
         if(at->type==ENT_PLAYER && damage>0 && (d->type != ENT_PLAYER || !isteam(at->team, ((fpsent *)d)->team))) at->totaldamage += damage;
 
         if(f->type==ENT_AI || !m_mp(gamemode) || f==at) f->hitpush(damage, vel, at, gun);
@@ -373,7 +380,7 @@ namespace game
             h.dir = f==at ? ivec(0, 0, 0) : ivec(int(vel.x*DNF), int(vel.y*DNF), int(vel.z*DNF));
             if(at==player1)
             {
-                //damageeffect(damage, f,true);
+                //@todo: damageeffect(damage, f);
 				if (damage>0)
 				{
 					if(f==player1)
@@ -684,14 +691,6 @@ namespace game
 				if (p.speed > .01f && p.offsetmillis != 0 && lastmillis-p.offsetmillis >= min((int)(50.f*ff), 10))
 				{
 					//todo: use regular_particle_flame
-					if(p.speed < 10){
-						physent *a (p.owner);
-						a->o = p.o; a->radius = 5;
-						if(collide(a,vec(0,0,0),(0.0f),true)){
-							projs.remove(i--);
-							break;
-						}
-					}
 					if (WEAP(p.gun,projparts)[1]) regular_particle_splash(projpartpresets[WEAP(p.gun,projparts)[1]].part, projpartpresets[WEAP(p.gun,projparts)[1]].num, min((int)(800.f / ff), 500), v, projpartpresets[WEAP(p.gun,projparts)[1]].color, max((10.f * ff), 1.f), max((int)(60.f * ff), 1), projpartpresets[WEAP(p.gun,projparts)[1]].gravity);
 					if (WEAP(p.gun,projparts)[2]) regular_particle_splash(projpartpresets[WEAP(p.gun,projparts)[2]].part, projpartpresets[WEAP(p.gun,projparts)[1]].num, min((int)(800.f / ff), 500), v, projpartpresets[WEAP(p.gun,projparts)[2]].color, max((10.f * ff), 1.f), max((int)(60.f * ff), 1), projpartpresets[WEAP(p.gun,projparts)[1]].gravity);
 					//if (ff > .6f) regular_particle_flame(PART_SMOKE, v, 7, 6, 0x757065, 2, ff, 10, 400, -30);
@@ -705,8 +704,7 @@ namespace game
 							dynent *o = iterdynents(i);
 							if (o == p.owner && (ff <= 0.7f || (p.dir.z < -0.5 && (ff >= .99f || ff <= .94f)))) continue;
 							if (o->state == CS_ALIVE && o->o.dist(p.o) < damdist && o->inwater==0 && raycube(p.o, o->o, 1.f, RAY_CLIPMAT|RAY_ALPHAPOLY) >= 0.99f) // stop burning through walls
-								if(!(o==player1 && p.owner == player1))
-									setonfire(o, p.owner, p.gun);
+								setonfire(o, p.owner, p.gun);
 						}
 					}
 				}
@@ -842,13 +840,7 @@ namespace game
 		}
 		else if (WEAP_IS_FLAME(gun))
 		{
-			physent * a (d);
-			vec c(to);
-			c.normalize();
-			a->o = to; a->radius = 5;
-
-			//conoutf("%d",  int(collide( a,to,(0.0f),true)));
-				newprojectile(from, to, WEAP(gun,projspeed)*4, local, id, d, gun);
+			newprojectile(from, to, WEAP(gun,projspeed)*4, local, id, d, gun);
 		}
 		else if (WEAP_IS_REFLECTOR(gun))
 		{
@@ -1217,7 +1209,7 @@ namespace game
 			// todo: this should be moved to server
 			// todo: use gamemillis instead of lastmillis
 			// todo: put the following block in its own function, to be used from survival mode
-			if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai) && lastmillis-d->lastburnpain >= 1000)
+			if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai) && lastmillis-d->lastburnpain >= clamp(lastmillis-d->burnmillis, 200, 1000))
 			{
 				int damage = min(WEAP(d->burngun,damage)*1000/max(lastmillis-d->burnmillis, 1000), d->health)*(((fpsent *)d->fireattacker)->quadmillis ? 4 : 1);
 				if(d->fireattacker->type==ENT_PLAYER) ((fpsent*)d->fireattacker)->totaldamage += damage;
@@ -1278,3 +1270,20 @@ namespace game
 	ICOMMAND(getplayerclassname, "i", (int *i), result((*i<NUMPCS)?playerclasses[*i].name:zombiepci.name));
 	ICOMMAND(getplayerclassinfo, "i", (int *i), result(getclassinfo(*i)));
 };
+
+ICOMMAND(weapattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int *a6, int *a7), {
+	WEAP(*a1, attackdelay) = *a2;
+	WEAP(*a1, kickamount) = *a3;
+	WEAP(*a1, range) = *a4;
+	WEAP(*a1, power) = *a5;
+	WEAP(*a1, damage) = *a6;
+	WEAP(*a1, numshots) = *a7;
+});
+ICOMMAND(projattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int *a6, int *a7), {
+	WEAP(*a1, projtype) = *a2;
+	WEAP(*a1, projmdl) = *a3;
+	WEAP(*a1, projspeed) = *a4;
+	WEAP(*a1, projradius) = *a5;
+	WEAP(*a1, projgravity) = *a6;
+	WEAP(*a1, projlife) = *a7;
+});

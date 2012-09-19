@@ -543,7 +543,7 @@ struct gui : g3d_gui
             defaultshader->set();
         }
         static const float tc[4][2] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
-        /*const*/ vec &color = (overlaid ? vec(1, 1, 1) : light);
+        /*const*/ vec color = (overlaid ? vec(1, 1, 1) : light);
 		if (t->colorize)
 		{
 			color.x *= guiiconcolorr/512.0f;

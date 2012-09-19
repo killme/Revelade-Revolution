@@ -399,7 +399,10 @@ struct demoheader
 };
 
 #define MAXNAMELEN 15
-#define MAXTEAMLEN 4
+#define MAXTEAMLEN 10
+
+#define TEAM_0 "survivor"
+#define TEAM_1 "scavenger"
 
 enum
 {

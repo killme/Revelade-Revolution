@@ -1045,7 +1045,6 @@ namespace game
                 int hasmap = getint(p);
                 if(!hasmap) initmap = true; // we are the first client on this server, set map
 				showgui("playerclass");
-				conoutf("DO");
                 break;
             }
 
@@ -1288,8 +1287,6 @@ namespace game
                 fpsent *target = getclient(tcn),
                        *actor = getclient(acn);
                 if(!target || !actor) break;
-				if(gun == WEAP_PISTOL) actor->health = actor->maxhealth < (actor->health+10) ? actor->maxhealth : (actor->health + 10);
-				//if(damage == 0 && gun == WEAP_HEALER)target->armour += ((m_teammode)&&(strcmp(actor->team, target->team)))? 10 :-10;
                 target->armour = armour;
                 target->health = health;
                 if(target->state == CS_ALIVE && actor != player1) target->lastpain = lastmillis;
