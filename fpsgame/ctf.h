@@ -1,7 +1,7 @@
 #ifndef PARSEMESSAGES
 
-#define ctfteamflag(s) (!strcmp(s, TEAM_0) ? 1 : (!strcmp(s, TEAM_1) ? 2 : 0))
-#define ctfflagteam(i) (i==1 ? TEAM_0 : (i==2 ? TEAM_1 : NULL))
+#define ctfteamflag(s) (!strcmp(s, "good") ? 1 : (!strcmp(s, "evil") ? 2 : 0))
+#define ctfflagteam(i) (i==1 ? "good" : (i==2 ? "evil" : NULL))
 
 #ifdef SERVMODE
 struct ctfservmode : servmode

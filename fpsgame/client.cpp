@@ -1043,8 +1043,8 @@ namespace game
             case N_WELCOME:
             {
                 int hasmap = getint(p);
+				conoutf("%d",hasmap);
                 if(!hasmap) initmap = true; // we are the first client on this server, set map
-				showgui("playerclass");
                 break;
             }
 
@@ -1216,6 +1216,7 @@ namespace game
                 parsestate(d, p);
                 if(!d) break;
                 d->state = CS_SPAWNING;
+				//showgui("playerclass");
                 if(player1->state==CS_SPECTATOR && following==d->clientnum)
                     lasthit = 0;
                 break;
@@ -1287,8 +1288,19 @@ namespace game
                 fpsent *target = getclient(tcn),
                        *actor = getclient(acn);
                 if(!target || !actor) break;
+				//if(gun == WEAP_PISTOL) actor->health = actor->maxhealth < (actor->health+10) ? actor->maxhealth : (actor->health + 10);
+				//if(damage == 0 && gun == WEAP_HEALER)target->armour += ((m_teammode)&&(strcmp(actor->team, target->team)))? 10 :-10;
                 target->armour = armour;
                 target->health = health;
+				/*conoutf("%d",gun);
+				if(gun == WEAP_FLAMEJET){
+					target->onfire = 1;
+					target->burnmillis = lastmillis;
+					target->burngun = gun;
+					target->fireattacker = actor;
+					addmsg(N_ONFIRE, "ri3", ((fpsent*)actor)->clientnum, ((fpsent*)d)->clientnum, gun);
+					conoutf("0.0");
+				}*/
                 if(target->state == CS_ALIVE && actor != player1) target->lastpain = lastmillis;
                 damaged(damage, target, actor, false, gun);
                 break;
@@ -1726,13 +1738,26 @@ namespace game
                 if(!m_edit) return;
                 string oldname;
                 copystring(oldname, getclientmap());
-                defformatstring(mname)("getmap_%d", lastmillis);
-                defformatstring(fname)("packages/base/%s.ogz", mname);
+                defformatstring(mname)("getmap_%s", oldname);
+                defformatstring(fname)("packages/base/pit.ogz", mname);
+				conoutf("%s %d",data,len);
+				//stream *test = openrawfile(path("packages/base/cool.ogz"),"wb");
+				conoutf("%s %d",data,len);
+				stream *test= openrawfile(path(fname),"rb");
                 stream *map = openrawfile(path(fname), "wb");
+				conoutf("do");
+				void *a;
+				if(!test) conoutf("PLEASE");
+				test->read(&a,7*sizeof(int));
+				conoutf("Not");
+				//conoutf("%s %d",a,len);
                 if(!map) return;
+				//conoutf("%s %d",data,len);
                 conoutf("received map");
-                map->write(data, len);
+				conoutf("CUM");
+                map->write(a, len);
                 delete map;
+				delete test;
                 load_world(mname, oldname[0] ? oldname : NULL);
                 remove(findfile(fname, "rb"));
                 entities::spawnitems(true);
@@ -1760,8 +1785,9 @@ namespace game
     }
 
     void getmap()
-    {
+	{
         if(!m_edit) { conoutf(CON_ERROR, "\"getmap\" only works in coop edit mode"); return; }
+		conoutf(CON_ERROR,"getmap does not work at this time ;("); return;
         conoutf("getting map...");
         addmsg(N_GETMAP, "r");
     }

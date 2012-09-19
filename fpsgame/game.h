@@ -239,6 +239,7 @@ static struct gamemodeinfo
 #define m_dmsp         (m_check(gamemode, M_DMSP))
 #define m_classicsp    (m_check(gamemode, M_CLASSICSP))
 
+
 //todo: fix following
 //#define m_classes      (m_check(gamemode, M_CLASSES)) (!m_insta)
 #define m_classes      (!m_insta)
@@ -399,10 +400,7 @@ struct demoheader
 };
 
 #define MAXNAMELEN 15
-#define MAXTEAMLEN 10
-
-#define TEAM_0 "survivor"
-#define TEAM_1 "scavenger"
+#define MAXTEAMLEN 4
 
 enum
 {
@@ -654,7 +652,7 @@ struct fpsent : dynent, fpsstate
     int respawned, suicided;
     int lastpain;
     int lastaction, lastattackgun;
-    bool attacking, altfire, wasattacking;
+    bool attacking, altfire, wasattacking, hasjumped;
     int attacksound, attackchan, idlesound, idlechan;
     int lasttaunt;
     int lastpickup, lastpickupmillis, lastbase, lastrepammo, flagpickup;
@@ -675,7 +673,7 @@ struct fpsent : dynent, fpsstate
 		ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1),
 		attackchan(-1), idlesound(-1), idlechan(-1), frags(0), flags(0), deaths(0), totaldamage(0),
 		totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1),
-		muzzle(-1, -1, -1), altfire(false), wasattacking(false)
+		muzzle(-1, -1, -1), altfire(false), wasattacking(false), hasjumped(false)
     {
         name[0] = team[0] = info[0] = 0;
         respawn(0);
@@ -932,6 +930,7 @@ namespace game
     extern void updateprojectiles(int curtime);
     extern void removeprojectiles(fpsent *owner);
     extern void renderprojectiles();
+	extern void renderdecals3d();
     extern void preloadprojmodels();
     extern void removeweapons(fpsent *owner);
     extern void updateweapons(int curtime);

@@ -48,7 +48,7 @@ extern float rayfloor  (const vec &o, vec &floor, int mode = 0, float radius = 0
 extern bool  raycubelos(const vec &o, const vec &dest, vec &hitpos);
 
 extern int thirdperson;
-extern float thirdpersondistance;
+extern int thirdpersondistance;
 extern bool isthirdperson();
 
 extern bool settexture(const char *name, int clamp = 0);
@@ -287,7 +287,7 @@ extern bool movecamera(physent *pl, const vec &dir, float dist, float stepdist);
 extern void physicsframe();
 extern void dropenttofloor(entity *e);
 extern bool droptofloor(vec &o, float radius, float height);
-
+extern int lookupmaterial(const vec &v);
 extern void vecfromyawpitch(float yaw, float pitch, int move, int strafe, vec &m);
 extern void vectoyawpitch(const vec &v, float &yaw, float &pitch);
 extern bool moveplatform(physent *p, const vec &dir);

@@ -19,15 +19,13 @@ namespace game
 
     bool clientoption(const char *arg) { return false; }
 
-    void taunt()
+ void taunt()
     {
         if(player1->state!=CS_ALIVE || player1->physstate<PHYS_SLOPE) return;
         if(lastmillis-player1->lasttaunt<1500) return;
 		thirdperson = 2;
 		tauntmillis = 250 + lastmillis;
 		
-        //@todo: player1->lasttaunt = lastmillis;
-        //addmsg(N_TAUNT, "rc", player1);
     }
     COMMAND(taunt, "");
 
@@ -219,7 +217,7 @@ namespace game
         clearprojectiles();
         clearbouncers();
     }
-
+	
 	FVAR(lasthp, 0, 0, 1000);
 	FVAR(lastap, 0, 0, 1000);
 
@@ -227,7 +225,7 @@ namespace game
     {
         d->respawn(gamemode);
         d->spawnstate(gamemode);
-		if (d == player1)
+		if (d == player1) 
 		{
 			lasthp = 0.f;
 			lastap = 0.f;
@@ -341,7 +339,6 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
-			if(d->inwater) d->onfire = false;
             if(d == player1 || d->ai) continue;
 
             if(d->state==CS_ALIVE)
@@ -498,38 +495,59 @@ namespace game
     // inputs
 
     void doattack(bool on, bool altfire)
-    {
-        if(intermission) return;
+	{
+        if(intermission || player1->lasttaunt + 1500 > lastmillis) return;
 		player1->altfire = altfire;
         if((player1->attacking = on)) respawn();
     }
-
-    bool canjump()
+	bool candoublejump(){ return player1->playerclass == PCS_STEALTH;}
+     bool canjump()
     {
         if(!intermission) respawn();
-        return player1->state!=CS_DEAD && !intermission;
+		if(m_dmsp)if((player1->lastpain + 100 > lastmillis)) return false;
+        return player1->state!=CS_DEAD && !intermission && !(tauntmillis || player1->lasttaunt + 1500 > lastmillis);
     }
 
     bool allowmove(physent *d)
     {
+		if(m_dmsp)if(player1->lastpain + 100 > lastmillis)return false;
         if(d->type!=ENT_PLAYER) return true;
-        return !((fpsent *)d)->lasttaunt || lastmillis-((fpsent *)d)->lasttaunt>=1000;
+		if((!((fpsent *)d)->lasttaunt || lastmillis-((fpsent *)d)->lasttaunt>=1450)&&(tauntmillis == 0)) {
+			thirdperson = 0;
+			return true;
+		}
+		else
+			if((tauntmillis < lastmillis) && (tauntmillis != 0)){
+				addmsg(N_TAUNT, "rc", player1);
+				player1->lasttaunt = lastmillis;
+				tauntmillis = 0;
+				thirdpersondistance = 30;
+			}else if(tauntmillis !=0) thirdpersondistance = 5+(25 * ((250 -(tauntmillis - lastmillis))*0.004)); //1/250 = inv delay time
+			else if(player1->lasttaunt+1450 < lastmillis +200) thirdpersondistance = 5+(25 * (((player1->lasttaunt+1450 - lastmillis))*0.005)); // 1/200 = inv delay time
+			return false;
     }
-
+	
     VARP(hitsound, 0, 0, 1);
 
     void damaged(int damage, fpsent *d, fpsent *actor, bool local, int gun)
     {
+		if(damage <= 0){
+			if(actor==player1)
+				damageeffect(damage,d,true,true);
+			d->health = d->maxhealth < (d->health-damage) ? d->maxhealth : (d->health-damage);
+			return;
+		}
+		if (gun == WEAP_FLAMEJET)	
+		{
+			if(player1 == d && player1==actor) return;
+			volatile int asd = 1;
+		}
         if(d->state!=CS_ALIVE || intermission) return;
 
 		if (cmode) cmode->zombiepain(damage, d, actor);
 
 		if(local) damage = d->dodamage(damage);
-        else if(actor==player1)
-		{
-			damageeffect(damage,d,true,true);
-			return;
-		}
+        else if(actor==player1) {damageeffect(damage,d,true,true);return;}
 
         fpsent *h = hudplayer();
 		bool pl = false;
@@ -656,7 +674,7 @@ namespace game
 
             showscores(true);
             disablezoom();
-
+            
             if(identexists("intermission")) execute("intermission");
         }
     }
@@ -729,8 +747,7 @@ namespace game
     }
 
     VARP(showmodeinfo, 0, 1, 1);
-
-	//@todo: [-1] -> [0]
+	
 	VARFP(playerclass, -1, -1, NUMPCS-1, if(player1->playerclass != playerclass) switchplayerclass(playerclass) );
 
     void startgame()
@@ -756,13 +773,11 @@ namespace game
             d->lifesequence = -1;
             d->respawned = d->suicided = -2;
         }
-
         setclientmode();
 
         intermission = false;
         maptime = maprealtime = 0;
         maplimit = -1;
-
         if(cmode)
         {
             cmode->preload();
@@ -801,7 +816,7 @@ namespace game
         else findplayerspawn(player1, -1);
         entities::resetspawns();
         copystring(clientmap, name ? name : "");
-
+        
         sendmapinfo();
     }
 
@@ -1032,7 +1047,7 @@ namespace game
 		}
 		float rw = ((float)w / ((float)h/1800.f)), rh = 1800;
 		float iw = rw+512.f, ix = 256;
-
+		
 		loopi(hudevents.length())
 		{
 			if (lastmillis-hudevents[i].millis > 2000)
@@ -1045,7 +1060,7 @@ namespace game
 			float x = clamp((lastmillis-hudevents[i].millis)-1000.f, -1000.f, 1000.f);
 			x = ((x<0? min(x+500.f, 0.f): max(x-500.f, 0.f))+500)/1000*iw -ix;
 			float y = 350;
-
+			
 			Texture *i_special = NULL;
 			switch (hudevents[i].type)
 			{
@@ -1107,7 +1122,7 @@ namespace game
 		// draw round number (fingers)
 		x += sw+10;
 		y -= sh/2.5;
-
+		
 		float rxscale = min(740.f/(dmround*40-(dmround/5)*15), 1.f);
 		x /= rxscale;
 		glScalef(rxscale, 1, 1);
@@ -1172,7 +1187,7 @@ namespace game
 
 		char tcx[10];
 		int tcw, tch;
-		sprintf(tcx, "%d", d->ammo[d->gunselect]);
+		sprintf_s(tcx, "%d", d->ammo[d->gunselect]);
 		text_bounds(tcx, tcw, tch);
 		draw_text(tcx, (int)rw/2 - 80 - tcw/2, (rh-260-tch)/2);
 
@@ -1226,7 +1241,7 @@ namespace game
 		}
         glPopMatrix();
 	}
-
+	
 	void drawhudbody(float x, float y, float sx, float sy, float ty)
     {
 		glBegin(GL_TRIANGLE_STRIP);
@@ -1254,7 +1269,7 @@ namespace game
 		float rw = ((float)w / ((float)h/1800.f)), rh = 1800;
 		float scale = a_scale * 1.6;
 		float x = (rw/scale)/2.f+100, y = (rh-gunwaitft->ys*2.f)/(scale*2.f);
-
+		
 		glPushMatrix();
 		glScalef(scale, scale, 1);
 		glColor4f(1.0f, 1.0f, 1.0f, 0.5);
@@ -1264,7 +1279,7 @@ namespace game
 
 		glBindTexture(GL_TEXTURE_2D, gunwaitft->id);
 		drawhudbody(x, y + (1-mwait) * gunwaitft->ys, gunwaitft->xs, mwait * gunwaitft->ys, 1-mwait);
-
+ 			
 		glPopMatrix();
 	}
 
@@ -1294,23 +1309,22 @@ namespace game
 
 		defaultshader->set();
 		glBindTexture(GL_TEXTURE_2D, 0);
-
+		
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glColor4f(.2f, .2f, .6f, .6f);
-
-		glBegin(GL_TRIANGLE_STRIP);
+		glBegin(GL_POLYGON);
 
 		glVertex2f(x-10,  y-10);
 		glVertex2f(x+600, y-10);
-		glVertex2f(x-10,  iy);
 		glVertex2f(x+600, iy);
+		glVertex2f(x-10,  iy);
 
 		glEnd();
 
 		string cname;
 		stringformatter cfmt = stringformatter(cname);
 		settextscale(.8f);
-
+		
 		loopi(numplayers)
 		{
 			fpsent *o = sg->players[i];
@@ -1318,7 +1332,6 @@ namespace game
 			draw_text(cname, x, y);
 			y += step;
 		}
-
 		settextscale(1.f);
 	}
 
@@ -1388,7 +1401,7 @@ namespace game
 				}
 
 				// draw health
-				lasthp += float((d->health>lasthp)? 1: (d->health<lasthp)? -1: 0) * min(curtime/10.f, float(abs(d->health-lasthp)));
+				lasthp += float((d->health>lasthp)? 1: (d->health<lasthp)? -1: 0) * min(curtime/10.f, abs(d->health-lasthp));
 				lasthp = min(lasthp, (float)d->maxhealth);
 				float b = max(lasthp, 0.f) / d->maxhealth, ba = 1;
 				if (b <= .4f)
@@ -1431,20 +1444,20 @@ namespace game
 						glColor4f(1.f, 0.5f, 0.f, a_alpha);
 					}
 
-					lastap += ((d->armour>lastap)? 1: (d->armour<lastap)? -1: 0) * min(curtime/10.f, float(abs(d->armour-lastap)));
+					lastap += ((d->armour>lastap)? 1: (d->armour<lastap)? -1: 0) * min(curtime/10.f, abs(d->armour-lastap));
 					lastap = min(lastap, (float)maxarmour);
 					float c = max(lastap, 0.f) / (float)maxarmour;
 					drawhudbody(bx, by + (1-c) * h_body_armour->ys, h_body_armour->xs, c * h_body_armour->ys, 1-c);
 				}
-
+ 			
 				glPopMatrix();
 
 				char tst[20];
 				int tw, th;
 				if (d->armour > 0)
-					sprintf(tst, "%d/%d", d->health, d->armour);
+					sprintf_s(tst, "%d/%d", d->health, d->armour);
 				else
-					sprintf(tst, "%d", d->health);
+					sprintf_s(tst, "%d", d->health);
 				text_bounds(tst, tw, th);
 				draw_text(tst, bx + (h_body->xs*a_scale)/2 - tw/2, by*a_scale + h_body->ys*a_scale + 6);
 			}

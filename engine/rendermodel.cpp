@@ -1020,8 +1020,8 @@ void renderclient(dynent *d, const char *mdlname, modelattach *attachments, int 
     float yaw = testanims && d==player ? 0 : d->yaw+90,
           pitch = testpitch && d==player ? testpitch : d->pitch;
 	if (py && (testp || testy)) { yaw = d->yaw+testy; pitch = testp; }
-    vec o = d->feetpos();
-    int basetime = 0;
+	vec o = d->feetpos();
+	int basetime = 0;
     if(animoverride) anim = (animoverride<0 ? ANIM_ALL : animoverride)|ANIM_LOOP;
     else if(d->state==CS_DEAD)
     {

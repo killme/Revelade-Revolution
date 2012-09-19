@@ -59,9 +59,9 @@ static vec zombiehurtpos;
 static fpsent *bestenemy;
 #endif
 
-static int csnextzombie, csspawncsremain, csnumkilled, cszombietotal, csmtimestart, csremain, csdmround, csroundtotal, csroundtime;
-static int cslastowner = -1;
-static int csnumzombies = 20;
+static int nextzombie, spawnremain, numkilled, zombietotal, mtimestart, remain, dmround, roundtotal, roundtime;
+static int lastowner = -1;
+static int numzombies = 20;
 
 #ifdef SERVMODE
 	struct zombie : clientinfo
@@ -95,8 +95,8 @@ static int csnumzombies = 20;
 
 			// mini algorithm to give each player a turn
 			// should probably be improved
-			do cslastowner = (cslastowner+1)%clients.length(); while (clients[cslastowner]->state.aitype != AI_NONE);
-			ownernum = clients[cslastowner]->clientnum;
+			do lastowner = (lastowner+1)%clients.length(); while (clients[lastowner]->state.aitype != AI_NONE);
+			ownernum = clients[lastowner]->clientnum;
 
 			sendf(-1, 1, "ri4", N_SURVSPAWNSTATE, clientnum, ztype, ownernum);
 
@@ -367,12 +367,12 @@ struct survivalclientmode : clientmode
 	
 	//static void nextround(bool clear = false)
 	//{ // server
-	//	csdmround++;
-	//	csnextzombie = lastmillis+10000+ (csdmround * 1000);
-	//	csremain += cszombietotal = csspawncsremain = csroundtotal = ((level)*3) + (((csdmround-1)*(level*2)) + int(csdmround*csdmround));
+	//	dmround++;
+	//	nextzombie = lastmillis+10000+ (dmround * 1000);
+	//	remain += zombietotal = spawnremain = roundtotal = ((level)*3) + (((dmround-1)*(level*2)) + int(dmround*dmround));
 	//	conoutf(CON_GAMEINFO, "\f2Round%s clear!", (clear)? "": " not");
 	//	playsound(S_V_BASECAP);
-	//	csroundtime = 0;
+	//	roundtime = 0;
 
 	//	//todo add next round message
 	//}
@@ -392,12 +392,12 @@ struct survivalclientmode : clientmode
 
     void zombiekilled(fpsent *d, fpsent *actor)
     {
-        csnumkilled++;
+        numkilled++;
         player1->frags++;
         ((zombie*)d)->pain(0, actor);
-        //csremain--;
-		//if(csremain == 0){
-			//csnumkilled = 0;
+        //remain--;
+		//if(remain == 0){
+			//numkilled = 0;
 			//nextround(true);
 		//}
     }
@@ -475,19 +475,19 @@ struct survivalclientmode : clientmode
     {
 		loopv(zombies) if (zombies[i]->ownernum == ci->clientnum)
 		{
-			cslastowner = 0;
-			//if (clients[cslastowner]->state.aitype != AI_NONE || cslastowner != ci->clientnum) 
-			while (clients[cslastowner]->state.aitype != AI_NONE || cslastowner == ci->clientnum)
+			lastowner = 0;
+			//if (clients[lastowner]->state.aitype != AI_NONE || lastowner != ci->clientnum) 
+			while (clients[lastowner]->state.aitype != AI_NONE || lastowner == ci->clientnum)
 			{
-				cslastowner = (cslastowner+1)%clients.length();
-				if (cslastowner == 0)
+				lastowner = (lastowner+1)%clients.length();
+				if (lastowner == 0)
 				{
-					cslastowner = -1;
+					lastowner = -1;
 					break;
 				}
 			}
-			if (cslastowner < 0) return;
-			sendf(-1, 1, "ri3", N_SURVREASSIGN, zombies[i]->clientnum, cslastowner);
+			if (lastowner < 0) return;
+			sendf(-1, 1, "ri3", N_SURVREASSIGN, zombies[i]->clientnum, lastowner);
 		}
     }
 
@@ -569,8 +569,8 @@ struct survivalclientmode : clientmode
 		level = 2;
 
 		zombies.deletecontents();
-		zombies.growbuf(csnumzombies);
-		loopi(csnumzombies)
+		zombies.growbuf(numzombies);
+		loopi(numzombies)
 		{
 			zombie *zi = zombies.add(new zombie());
 			zi->clientnum = ZOMBIE_CN + i;
@@ -582,17 +582,17 @@ struct survivalclientmode : clientmode
         removetrackeddynlights();
 
         cleardynentcache();
-        csnumkilled = 0;
-        cszombietotal = 0;
-        csspawncsremain = 0;
-        csremain = 0;
-		csdmround = 1;
-		csroundtotal = 1;
+        numkilled = 0;
+        zombietotal = 0;
+        spawnremain = 0;
+        remain = 0;
+		dmround = 1;
+		roundtotal = 1;
         zombiehurt = false;
-		csnextzombie = csmtimestart = lastmillis+10000 +(csdmround * 1000);
-		csremain = cszombietotal = csspawncsremain = csroundtotal = ((level)*3) + (((csdmround-1)*(level*2)) + int(csdmround*csdmround*0.1));
-		csnextzombie = csmtimestart = lastmillis+10000;
-		cszombietotal = csspawncsremain = int(1.3*(level*level))+3*10;
+		nextzombie = mtimestart = lastmillis+10000 +(dmround * 1000);
+		remain = zombietotal = spawnremain = roundtotal = ((level)*3) + (((dmround-1)*(level*2)) + int(dmround*dmround*0.1));
+		nextzombie = mtimestart = lastmillis+10000;
+		zombietotal = spawnremain = int(1.3*(level*level))+3*10;
         teleports.setsize(0);
         loopv(entities::ents) if(entities::ents[i]->type==TELEPORT) teleports.add(i);
 	}
@@ -648,18 +648,18 @@ struct survivalclientmode : clientmode
 
 	void update(int curtime)
 	{
-        //if(csspawncsremain && lastmillis>csnextzombie)
+        //if(spawnremain && lastmillis>nextzombie)
         //{
-            //if(csspawncsremain--==cszombietotal) { conoutf(CON_GAMEINFO, "\f2ROUND %d: %d zombies. Fight!", csdmround, cszombietotal); playsound(S_V_FIGHT); }
-            //csnextzombie = lastmillis+5000;
+            //if(spawnremain--==zombietotal) { conoutf(CON_GAMEINFO, "\f2ROUND %d: %d zombies. Fight!", dmround, zombietotal); playsound(S_V_FIGHT); }
+            //nextzombie = lastmillis+5000;
 			//todo send spawn message
             //spawnzombie();
         //}
 
-		//if (csspawncsremain == 0 && csremain <= 6 && csroundtime == 0) csroundtime = lastmillis;
-		//if (csroundtime && lastmillis-csroundtime > 150000) nextround();
+		//if (spawnremain == 0 && remain <= 6 && roundtime == 0) roundtime = lastmillis;
+		//if (roundtime && lastmillis-roundtime > 150000) nextround();
         
-        //if(killsendsp && cszombietotal && !csspawncsremain && csnumkilled==cszombietotal) endsp(true);
+        //if(killsendsp && zombietotal && !spawnremain && numkilled==zombietotal) endsp(true);
         
         bool zombiewashurt = zombiehurt;
         
@@ -720,7 +720,7 @@ struct survivalclientmode : clientmode
 		{
 			case N_SURVINIT:
 			{
-				csnumzombies = getint(p);
+				numzombies = getint(p);
 				int n = getint(p);
 				loopi(n) parsezombiestate(p);
 				break;
