@@ -2,10 +2,6 @@
 
 namespace game
 {
-    VARP(minradarscale, 0, 384, 10000);
-    VARP(maxradarscale, 1, 1024, 10000);
-    FVARP(minimapalpha, 0, 1, 1);
-
     #include "capture.h"
     #include "ctf.h"
     #include "infection.h"
@@ -1301,7 +1297,7 @@ namespace game
 					addmsg(N_ONFIRE, "ri3", ((fpsent*)actor)->clientnum, ((fpsent*)d)->clientnum, gun);
 					conoutf("0.0");
 				}*/
-                if(target->state == CS_ALIVE && actor != player1) target->lastpain = lastmillis;
+                if(target->state == CS_ALIVE && actor	!= player1) target->lastpain = lastmillis;
                 damaged(damage, target, actor, false, gun);
                 break;
             }

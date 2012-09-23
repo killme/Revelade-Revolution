@@ -938,7 +938,7 @@ void recomputecamera()
 				}
 				//death in general seconstage
 				else if(game::killcamstate() == 1){
-					game::showdeathscores();
+					//game::showdeathscores();
 				}
 				game::killcamstate(2);
 				vec to(killcam->o);
@@ -1618,6 +1618,7 @@ VARFP(minimapsize, 7, 8, 10, { if(minimaptex) drawminimap(); });
 void bindminimap()
 {
     glBindTexture(GL_TEXTURE_2D, minimaptex);
+	//if(!minimaptex) conoutf("FALSE");
 }
 
 void clipminimap(ivec &bbmin, ivec &bbmax, cube *c = worldroot, int x = 0, int y = 0, int z = 0, int size = worldsize>>1)

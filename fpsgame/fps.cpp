@@ -783,7 +783,6 @@ namespace game
             cmode->preload();
             cmode->setup();
         }
-
         conoutf(CON_GAMEINFO, "\f2game mode is %s", server::modename(gamemode));
 
         if(m_classicsp)
@@ -975,7 +974,7 @@ namespace game
 	bool getround() {if (dopickups){dopickups = false; return true;} return false; }
 	*/
 
-    bool needminimap() { return m_ctf || m_protect || m_hold || m_capture; }
+	bool needminimap() { return true;} //m_ctf || m_protect || m_hold || m_capture; }
 
     void drawicon(int icon, float x, float y, float sz)
     {
@@ -1173,6 +1172,7 @@ namespace game
 		float aw = ammo_bar->xs * 1.9, ah = ammo_bar->ys * 1.9;
 		float ax = rw - aw, ay = rh - ah;
 
+		glColor3f(m_teammode || d->infected ?0.7:1, d->infected?1:m_teammode?0.7:1, d->infected? 0.7:1);
 		glBegin(GL_TRIANGLE_STRIP);
 		glTexCoord2f(0, 0); glVertex2f(ax	,	ay);
 		glTexCoord2f(1, 0); glVertex2f(ax+aw,	ay);
@@ -1466,6 +1466,142 @@ namespace game
        }
     }
 
+	VARP(minradarscale, 0, 384, 10000);
+    VARP(maxradarscale, 1, 1024, 10000);
+    FVARP(minimapalpha, 0, 0.7, 1);
+	 float calcradarscale()
+    {
+        //return radarscale<=0 || radarscale>maxradarscale ? maxradarscale : max(radarscale, float(minradarscale));
+        return clamp(max(minimapradius.x, minimapradius.y)/3, float(minradarscale), float(maxradarscale));
+    }
+	void drawminimaps(fpsent *d, float x, float y, float s)
+    {
+        vec pos = vec(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
+        vecfromyawpitch(camera1->yaw, 0, 1, 0, dir);
+        float scale = calcradarscale();
+		glPushMatrix();
+        glBegin(GL_TRIANGLE_FAN);
+        loopi(16)
+        {
+            vec tc = vec(dir).rotate_around_z(i/16.0f*2*M_PI);
+            glTexCoord2f(pos.x + tc.x*scale*minimapscale.x, pos.y + tc.y*scale*minimapscale.y);
+            vec v = vec(0, -1, 0).rotate_around_z(i/16.0f*2*M_PI);
+            glVertex2f(x + 0.5f*s*(1.0f + v.x), y + 0.5f*s*(1.0f + v.y));
+        }
+        glEnd();
+		glPopMatrix();
+    }
+
+	void drawradar(float x, float y, float s)
+    {
+        glBegin(GL_TRIANGLE_STRIP);
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(x,   y);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f(x+s, y);
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(x,   y+s);
+        glTexCoord2f(1.0f, 1.0f); glVertex2f(x+s, y+s);
+        glEnd();
+    }
+	void drawblip (fpsent *d, float x, float y, float s, vec pos,int t,float size){
+	float scale = calcradarscale();
+        vec dir = d->o;
+        dir.sub(pos).div(scale);
+        float xoffset =  -size,
+              yoffset = -size,
+              dist = dir.magnitude2(), maxdist = 1 - 0.05f, fade = 1.0;
+        if(dist >= maxdist) return;//dir.mul(maxdist/dist);
+		float zdist = abs(d->feetpos().z - pos.z);
+		if(zdist > t) fade =  t/(zdist*1.5);
+		if(fade <= 0.05f) return;
+		glColor4f(1,1, 1, fade);
+        dir.rotate_around_z(-camera1->yaw*RAD);
+        drawradar(x + s*0.5f*(1.0f + dir.x + xoffset), y + s*0.5f*(1.0f + dir.y + yoffset), size*s);
+	}
+	void drawplayerblit(fpsent *d, float x, float y, float s, int i){
+		fpsent *p = players[i];
+		vec pos = vec(p->o);
+		bool enemy = m_teammode ? strcmp(d->team, p->team) : true;
+		//if(enemy && lastmillis%1000 > 500) return;
+		settexture(m_teammode ? strcmp(d->team, p->team) ? "data/hud/blip_red.png" : "data/hud/blip_blue.png":"data/hud/blip_neutral.png", 3);
+		drawblip(d,x,y,s,pos,40,0.03);
+	}
+	void drawitemblit(fpsent *d, float x, float y, float s, int i){
+		extentity *p = entities::ents[i];
+			vec pos = vec(p->o);
+			int type = p->type;
+			if(type < I_AMMO) return;
+			else if (type <= I_AMMO4){ settexture("data/hud/blip_ammo.png");}
+			else if (type <= I_HEALTH4){ settexture("data/hud/blip_health.png");}
+			else if (type == I_GREENARMOUR) settexture("data/hud/blip_garmour.png");
+			else if (type == I_YELLOWARMOUR) settexture("data/hud/blip_yarmour.png");
+			else if (type == I_QUAD) settexture("data/hud/blip_quad.png");
+			else return;
+			drawblip(d,x,y,s,pos,20,0.07);
+	}
+	 void drawblip(fpsent *d, float x, float y, float s, int i, int type)
+	 {
+		switch(type){
+		case 0:
+			drawplayerblit(d,x,y,s,i);
+			return;
+		break;
+		case 1:
+			drawitemblit(d,x,y,s,i);
+		break;
+		}
+		//drawblip(d, x, y, s, d->o, false);
+	 }
+
+	void drawhud(fpsent *d, int w, int h)
+    {
+		//drawminimap();
+		//float minimapalpha = 0.7;
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
+        if(minimapalpha >= 1) glDisable(GL_BLEND);
+        bindminimap();
+        drawminimaps(d, x, y, s);
+        #if 0
+        settexture("data/hud/compass.png", 3);
+        glPushMatrix();
+        glTranslatef(x - roffset + 0.5f*rsize, y - roffset + 0.5f*rsize, 0);
+        glRotatef(camera1->yaw + 180, 0, 0, -1);
+        drawradar(-0.5f*rsize, -0.5f*rsize, rsize);
+        glPopMatrix();
+        #endif
+		loopv(entities::ents){
+			extentity *e = entities::ents[i];
+			if(!(d->canpickup(e->type, e->attr1)) && !(e->spawned)) continue; 
+			drawblip(d,x,y,s,i,1);
+		}
+		if(cmode){
+			cmode->drawhud(d,w,h);
+		}
+		 loopv(players)
+        {
+			//fpsent *p = players[i];
+            drawblip(d, x, y, s, i, 0);
+        }
+		 glColor4f(m_teammode || d->infected ?0.7:1, d->infected?1:m_teammode?0.7:1, d->infected? 0.7:1,minimapalpha);
+		//glColor4f(m_teammode?0.7:1, m_teammode?0.7:1, 1, minimapalpha);
+        if(minimapalpha >= 1) glEnable(GL_BLEND);
+        //glColor3f(1, 1, 1);
+        float margin = 0.04f, roffset = s*margin, rsize = s + 2*roffset;
+        settexture("data/hud/radar.png", 3);
+        drawradar(x - roffset, y - roffset, rsize);
+        if(d->state == CS_DEAD )//&& (m_efficiency || !m_protect))
+        {
+            int wait = max(float(cmode? cmode->respawnmillis(player1): spawnwait-float(lastmillis-player1->lastpain))/1000.f, 0.f) +0.8; // add 0.8 so that it looks like it flips to 0 right as u can respawn
+            if(wait>=0)
+            {
+                glPushMatrix();
+                glScalef(2, 2, 1);
+                bool flash = wait>0 && d==player1 && lastspawnattempt>=d->lastpain && lastmillis < lastspawnattempt+100;
+                draw_textf("%s%d", (x+s/2)/2-(wait>=10 ? 28 : 16), (y+s/2)/2-32, flash ? "\f3" : "", wait);
+                glPopMatrix();
+            }
+        }
+    }
+
     void gameplayhud(int w, int h)
     {
         fpsent *d = hudplayer();
@@ -1489,7 +1625,7 @@ namespace game
         if(d->state!=CS_EDITING)
         {
             if(d->state!=CS_SPECTATOR) drawhudicons(d, w, h);
-            if(cmode) cmode->drawhud(d, w, h);
+            drawhud(d, w, h);
         }
 
 		glPopMatrix();
@@ -1497,8 +1633,8 @@ namespace game
 
     int clipconsole(int w, int h)
     {
-        if(cmode) return cmode->clipconsole(w, h);
-        return 0;
+        //if(cmode) return cmode->clipconsole(w, h);
+		return (h*(1 + 1 + 10))/(4*10);
     }
 
     VARP(teamcrosshair, 0, 1, 1);

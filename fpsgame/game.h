@@ -821,6 +821,8 @@ namespace game
     extern int respawnent;
     extern int following;
     extern int smoothmove, smoothdist;
+	extern int minradarscale;
+	extern int maxradarscale;
 	extern bool inputenabled;
 	struct hudevent { int type, millis; hudevent(int _type, int _millis): type(_type), millis(_millis) {} };
 	extern vector<hudevent> hudevents;

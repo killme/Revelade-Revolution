@@ -136,16 +136,13 @@ static const char * const projmodels[] =
 	"projectiles/grenade",	// 1
 	"projectiles/rocket",	// 2
 	"projectiles/rocket",	// 3
-	"projectiles/arrow"		// 4
+	"arrow"		// 4
 };
 
 static const char * const gibmodels[] = { "gibs/gib01", "gibs/gib02", "gibs/gib03" };
 static const char * const debrismodels[] = { "debris/debris01", "debris/debris02", "debris/debris03", "debris/debris04" };
 static const char * const barreldebrismodels[] = { "barreldebris/debris01", "barreldebris/debris02", "barreldebris/debris03", "barreldebris/debris04" };
 
-// a negative 'numrays' denotes random offsetting
-// projparts[] =  muzzle, trail_1, trail_2, explosion
-// todo: implement 'projlife'
 static const struct weapinfo {
 	short sound, looping, icon, attackdelay, kickamount, range, power, damage, numrays, offset, numshots,
 		projtype, projmdl, projspeed, projradius, projgravity, projlife, decal; float decalsize, muzzlelightsize, quakemul; vec color; char projparts[4];
@@ -195,6 +192,55 @@ static const struct weapinfo {
 		-1,					0,	0,				0,		0,		0,		0,		120,	1,		0,		0,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.0f,	1.0f,	vec(0,0,0),					{0, 0, 0, 0 },
 		"Barrel",			NULL, 0},
 };
+//static const struct weapinfo {
+//	short sound, looping, icon, attackdelay, kickamount, range, power, damage, numrays, offset, numshots,
+//		projtype, projmdl, projspeed, projradius, projgravity, projlife, decal; float decalsize, muzzlelightsize, quakemul; vec color; char projparts[4];
+//	short sound2, looping2, icon2, attackdelay2, kickamount2, range2, power2, damage2, numrays2, offset2, numshots2, // altfire
+//		projtype2, projmdl2, projspeed2, projradius2, projgravity2, projlife2, decal2; float decalsize2, muzzlelightsize2, quakemul2; vec color2; char projparts2[4];
+//	const char *name, *file; short distmod; } weapons[NUMWEAPS] =
+//{
+//	//	sound				lp	icon			atckdly	kick	range	pwr		damage	numrays	offset	numshots	projtype				mdl	prjspd	rad	gvt	prjlife	decal			dclsz	mzllsz	quakem	color						projparts
+//	{	S_CHAINSAW_ATTACK,	1,	HICON_FIST,		250,	0,		14,		198,	50,		15,		0,		0,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.0f,	0.0f,	vec(0,0,0),					{0, 0, 0, 0 },
+//		S_CHAINSAW_ATTACK,	1,	HICON_FIST,		250,	0,		14,		198,	50,		15,		0,		0,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.0f,	0.0f,	vec(0,0,0),					{0, 0, 0, 0 },
+//		"Chainsaw",			"fist", 0},
+//	{	S_SG,				0,	HICON_SG,		1400,	20,		1024,	130,	10,		20,		4,		1,			PJ_RAY,					0,	0,		0,	0,	0,		DECAL_BULLET,	2.0f,	30.0f,	1.0f,	vec(0.5f, 0.375f, 0.25f),	{PP_MUZZLE_FLASH_1, PP_STREAK_FLARE_2, 0, 0 },
+//		S_SG,				0,	HICON_SG,		1600,	20,		1024,	200,	70,		1,		0,		2,			PJ_PROJECTILE,			2,	100,	30,	0,	0,		DECAL_BULLET,	2.0f,	30.0f,	1.0f,	vec(0.2f, 0.1f, 0.1f),		{PP_MUZZLE_FLASH_1, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLACK },
+//		"Slugshot",			"shotg" , 1},
+//	{	S_CG,				0,	HICON_CG,		150, 	7,		1024,	1,		25,		1,		2,		1,			PJ_PROJECTILE,			0,	512,	0,	0,	0,		DECAL_BULLET,	2.0f,	30.0f,	1.0f,	vec(0.5f, 0.375f, 0.25f),	{PP_MUZZLE_FLASH_6, PP_STREAK_FLARE_3, 0, PP_SPARK_SPLASH_1 },
+//		S_CG,				0,	HICON_CG,		100,	7,		1024,	0,		40,		2,		3,		2,			PJ_PROJECTILE,			0,	485,	0,	0,	0,		DECAL_BULLET,	2.0f,	30.0f,	1.0f,	vec(0.5f, 0.15f, 0.10f),	{PP_MUZZLE_FLASH_6, PP_STREAK_FLARE_4, 0, PP_SPARK_SPLASH_4 },
+//		"Assault Rifle",	"chaing" , 1},
+//	{	S_RLFIRE,			0,	HICON_RL,		1600,	20,		1024,	160,	80,		1,		1,		1,			PJ_PROJECTILE,			2,	45,		60,	10,	0,		-1,				30.0f,	25.0f,	1.6f,	vec(0.6f, 0.3f, 0.15f),		{PP_MUZZLE_FLASH_2, PP_SMOKE_SPLASH_3, PP_FLAME_SPLASH_2, PP_EXPLOSION_RED },
+//		S_RLFIRE,			0,	HICON_RL,		2000,	20,		2048,	160,	70,		1,		1,		2,			PJ_PROJECTILE|PJT_HOME,	2,	15,		90,	20,	0,		-1,				30.0f,	25.0f,	1.6f,	vec(0.6f, 0.55f, 0.15f),	{PP_MUZZLE_FLASH_2, PP_SMOKE_SPLASH_3, PP_FLAME_SPLASH_2, PP_EXPLOSION_YELLOW },
+//		"Rocket Launcher",	"rocket" , 1},
+//	{	S_RIFLE,			0,	HICON_RIFLE,	1500,	30,		2048,	140,	100,	1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		DECAL_BULLET,	3.0f,	25.0f,	1.0f,	vec(0.5f, 0.375f, 0.25f),	{PP_MUZZLE_FLASH_5, PP_SMOKE_TRAIL_1, 0, PP_SPARK_SPLASH_1 },
+//		S_ITEMHEALTH,		0,	HICON_RIFLE,	250,	0,		2048,	140,	800,	1,		0,		1,			PJ_SPECIAL,				0,	0,		0,	0,	0,		DECAL_BULLET,	3.0f,	25.0f,	1.0f,	vec(0.5f, 0.275f, 0.15f),	{0, 0, 0, 0 },
+//		"Sniper Rifle",		"rifle" , -1},
+//	{	S_FLAME,			1,	HICON_FT,		180,	0,		1024,	135,	20,		1,		0,		1,			PJ_FLAME,				0,	11,		30,	-1,	0,		DECAL_SCORCH,	20.0f,	25.0f,	1.0f,	vec(1.f, 0.4f, 0.2f),		{PP_MUZZLE_FLASH_3, PP_FLAME_SPLASH_1, 0, 0 },
+//		S_FLAME,			0,	HICON_FT,		300,	50,		1024,	135,	40,		1,		0,		1,			PJ_FLAME,				2,	50,	     0,	-1, 0,		DECAL_SCORCH,	20.0f,	25.0f,	1.0f,	vec(0.6f, 0.3f, 0.15f),		{PP_MUZZLE_FLASH_2, PP_STREAK_FLARE_3, PP_FLAME_SPLASH_2, 0 },
+//		"Flame Jet",		"flameg" , 0},
+//	{	S_CBOW,				0,	HICON_CB,		400,	15,		2048,	100,	100, 	1,		0,		1,			PJ_PROJECTILE,			4,	300,	0,	20,	0,		DECAL_CRACK,	2.0f,	30.0f,	1.0f,	vec(0,0,0),					{0, PP_SMOKE_TRAIL_3, 0, PP_SPARK_SPLASH_2 },
+//		S_CBOW,				0,	HICON_CB,		1000,	25,		1024,	140,	60,		1,		0,		1,			PJ_PROJECTILE,			4,	50,		20,	10,	0,		DECAL_CRACK,	2.5f,	0.0f,	1.0f,	vec(0,0,0),					{0, PP_SMOKE_TRAIL_2, PP_SPARK_SPLASH_2, PP_EXPLOSION_ORANGE },
+//		"Crossbow",			"cbow" , 1},
+//	{	S_FLAUNCH,			0,	HICON_GL,		500,	10,		1024,	130,	80,		1,		0,		1,			PJ_BOUNCER|PJT_TIMED,	1,	250,	50,	0,	1500,	DECAL_SCORCH,	25.0f,	20.0f,	1.6f,	vec(0.25f, 1.0f, 1.0f),		{PP_MUZZLE_FLASH_4, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLUE },
+//		S_FLAUNCH,			0,	HICON_GL,		500,	10,		1024,	130,	100,	1,		0,		1,			PJ_BOUNCER|PJT_STICKY,	1,	80,		30,	0,	0,		DECAL_SCORCH,	25.0f,	20.0f,	1.6f,	vec(0.01f, 0.06f, 0.06f),	{PP_MUZZLE_FLASH_4, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLUE },
+//		"Grenadier",		"gl" , 0},
+//	{	S_FLAUNCH,			0,	HICON_GL,		2200,	30,		4096,	150,	70,		1,		4,		1,			PJ_PROJECTILE,			1,	50,		200,200,0,		DECAL_SCORCH,	50.0f,	40.0f,	4.0f,	vec(0.8f, 0.7f, 0.4f),		{PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
+//		S_FLAUNCH,			0,	HICON_GL,		2200,	30,		4096,	150,	70,		1,		4,		1,			PJ_PROJECTILE,			1,	50,		200,200,0,		DECAL_SCORCH,	50.0f,	40.0f,	4.0f,	vec(0.8f, 0.7f, 0.4f),		{PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
+//		"Mortar",			"mortar" , 1},
+//	{	S_ITEMHEALTH,		0,	HICON_HEAL,		800,	0,		1024,	50, 	60,		1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.5f,	1.0f,	vec(0.8f, 0.3f, 0.7f),		{PP_MUZZLE_FLASH_8, PP_HEAL_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
+//		S_ITEMHEALTH,		0,	HICON_HEAL,		600,	0,		1024,	70,		20,		3,		3,		1,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.5f,	1.0f,	vec(0.8f, 0.3f, 0.7f),		{PP_MUZZLE_FLASH_8, PP_HEAL_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
+//		"Healer",			"healer" , -1},
+//	{	S_PISTOL,			0,	HICON_PISTOL,	250,	7,		1024,	40,		50,		1,		0,		1,			PJ_RAY,					0,	0,		0,	0,	0,		DECAL_BULLET,	2.0f,	15.0f,	1.0f,	vec(0.5f, 0.375f, 0.25f),	{PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
+//		S_PISTOL,			0,	HICON_PISTOL,	500,	7,		1024,	60,		25,		3,		1,		1,			PJ_RAY,					0,	0,		0,	10,	0,		DECAL_BULLET,	2.0f,	15.0f,	1.0f,	vec(0.5f, 0.375f, 0.25f),	{PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
+//		"Pistol",			"pistol" , 1},
+//
+//	{	S_PIGR1,			0,	0,				250,	1,		12,		0,		12,		1,		0,		0,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.0f,	1.0f,	vec(0,0,0),					{0, 0, 0, 0 },
+//		S_PIGR1,			0,	0,				250,	1,		12,		0,		50,		1,		0,		0,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.0f,	1.0f,	vec(0,0,0),					{0, 0, 0, 0 },
+//		"Bite",				NULL, 0 },
+//	{	-1,					0,	0,				0,		0,		0,		0,		120,	1,		0,		0,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.0f,	1.0f,	vec(0,0,0),					{0, 0, 0, 0 },
+//		-1,					0,	0,				0,		0,		0,		0,		120,	1,		0,		0,			PJ_RAY,					0,	0,		0,	0,	0,		-1,				0.0f,	0.0f,	1.0f,	vec(0,0,0),					{0, 0, 0, 0 },
+//		"Barrel",			NULL, 0},
+//};
 
 #define GUN_FRAG_NORMAL				"killed"
 #define GUN_FRAGBY_NORMAL			"killed"
@@ -255,6 +301,14 @@ enum PLAYERCLASSES
 	PCS_STEALTH,
 	PCS_ENGINEER,
 	NUMPCS
+};
+
+struct arrowattach
+{
+float yaw, pitch;
+vec o;
+int lifemillis;
+dynent *owner;
 };
 
 static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; char* name; } playerclasses[NUMPCS] =

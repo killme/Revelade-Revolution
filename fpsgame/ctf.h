@@ -425,26 +425,27 @@ struct ctfclientmode : clientmode
     {
         //return radarscale<=0 || radarscale>maxradarscale ? maxradarscale : max(radarscale, float(minradarscale));
         return clamp(max(minimapradius.x, minimapradius.y)/3, float(minradarscale), float(maxradarscale));
+		//return 1.0f;
     }
 
-    void drawminimap(fpsent *d, float x, float y, float s)
-    {
-        vec pos = vec(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
-        vecfromyawpitch(camera1->yaw, 0, 1, 0, dir);
-        float scale = calcradarscale();
-        glBegin(GL_TRIANGLE_FAN);
-        loopi(16)
-        {
-            vec tc = vec(dir).rotate_around_z(i/16.0f*2*M_PI);
-            glTexCoord2f(pos.x + tc.x*scale*minimapscale.x, pos.y + tc.y*scale*minimapscale.y);
-            vec v = vec(0, -1, 0).rotate_around_z(i/16.0f*2*M_PI);
-            glVertex2f(x + 0.5f*s*(1.0f + v.x), y + 0.5f*s*(1.0f + v.y));
-        }
-        glEnd();
-    }
+ //   void drawminimap(fpsent *d, float x, float y, float s)
+ //   {
+ //       vec pos = vec(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
+ //       vecfromyawpitch(camera1->yaw, 0, 1, 0, dir);
+ //       float scale = calcradarscale();
+ //       glBegin(GL_TRIANGLE_FAN);
+ //       loopi(16)
+ //       {
+ //           vec tc = vec(dir).rotate_around_z(i/16.0f*2*M_PI);
+ //           glTexCoord2f(pos.x + tc.x*scale*minimapscale.x, pos.y + tc.y*scale*minimapscale.y);
+ //           vec v = vec(0, -1, 0).rotate_around_z(i/16.0f*2*M_PI);
+ //           glVertex2f(x + 0.5f*s*(1.0f + v.x), y + 0.5f*s*(1.0f + v.y));
+ //       }
+ //       glEnd();
+ //   }
 
     void drawradar(float x, float y, float s)
-    {
+	{
         glBegin(GL_TRIANGLE_STRIP);
         glTexCoord2f(0.0f, 0.0f); glVertex2f(x,   y);
         glTexCoord2f(1.0f, 0.0f); glVertex2f(x+s, y);
@@ -476,13 +477,12 @@ struct ctfclientmode : clientmode
                         (flagblip ? "data/hud/blip_red_flag.png" : "data/hud/blip_red.png")), 3);
         drawblip(d, x, y, s, flagblip ? (f.owner ? f.owner->o : (f.droptime ? f.droploc : f.spawnloc)) : f.spawnloc, flagblip);
     }
-
     int clipconsole(int w, int h)
     {
         return (h*(1 + 1 + 10))/(4*10);
     }
 
-    void drawhud(fpsent *d, int w, int h)
+   /*void drawhud(fpsent *d, int w, int h)
     {
         if(d->state == CS_ALIVE)
         {
@@ -500,7 +500,7 @@ struct ctfclientmode : clientmode
                 break;
             }
         }
-
+		float minimapalpha = 1.0;
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
         glColor4f(1, 1, 1, minimapalpha);
@@ -549,7 +549,23 @@ struct ctfclientmode : clientmode
                 glPopMatrix();
             }
         }
-    }
+    }*/
+
+	void drawhud(fpsent *d, int w, int h){
+		int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
+		loopv(flags)
+        {
+            flag &f = flags[i];
+            if(m_hold ? f.spawnindex < 0 : !ctfflagteam(f.team)) continue;
+            if(!m_hold) drawblip(d, x, y, s, i, false);
+            if(f.owner)
+            {
+                if(!m_hold && lastmillis%1000 >= 500) continue;
+            }
+            else if(f.droptime && (f.droploc.x < 0 || lastmillis%300 >= 150)) continue;
+            drawblip(d, x, y, s, i, true);
+        }
+	}
 
     void removeplayer(fpsent *d)
     {

@@ -462,18 +462,23 @@ namespace game
 			radialeffect(o, v, damage, owner, gun);
 		}
     }
-	vector<projectile> decals3d;
+	vector<arrowattach> decals3d;
     void projsplash(projectile &p, vec &v, dynent *safe, int damage)
     {
 		explode(p.local, p.owner, v, safe, damage, p.gun);
 		adddecal(WEAP(p.gun,decal), v, vec(p.dir).neg(), WEAP(p.gun,decalsize));
-		if(p.gun == WEAP_CROSSBOW){
+		if(p.gun == WEAP_CROSSBOW%NUMWEAPS){
 			float yaw,pitch;
-			projectile d (p);
+			arrowattach d;
 			vectoyawpitch(p.dir, yaw, pitch);
-			d.speed =0;
+			d.yaw = yaw;
+			d.pitch = pitch;
 			d.o = v;
-			d.offsetmillis = lastmillis + 10000;
+			if(safe)
+				d.owner = safe;
+			else
+				d.owner = NULL;
+			d.lifemillis = lastmillis + 10000;
 			decals3d.add(d);
 		}
 	}
@@ -1131,18 +1136,29 @@ namespace game
 
 
 
-		//loopv(decals3d){
-		//	//conoutf("%d 0.0", i);
-		//	float yaw,pitch;
-		//	projectile p  = decals3d[i];
-		//	if(p.offsetmillis < lastmillis){decals3d.remove(i); continue;}
-		//	vectoyawpitch(p.dir, yaw, pitch);
-		//	yaw += 90;
-		//	pitch-= 90;
-		//	rendermodel(&p.light, "arrow", ANIM_MAPMODEL|ANIM_LOOP, p.o, yaw, pitch, MDL_CULL_VFC|MDL_CULL_DIST|MDL_CULL_OCCLUDED, NULL, NULL, 0, 0, 1.0f);
-		//	//rendermodel(&p.light,projmodels[WEAP(WEAP_GRENADIER,projmdl)], ANIM_MAPMODEL|ANIM_LOOP, p.o ,yaw, pitch);
-		//	//conoutf("%f, %f, %f", p.o.x,p.o.y,p.o.z)
-		//}
+		loopv(decals3d){
+			//conoutf("%d 0.0", i);
+			arrowattach p  = decals3d[i];
+			if(p.lifemillis < lastmillis){decals3d.remove(i); continue;}
+			//float yaw = 90 + p.yaw;
+			//pitch-= 90;
+			float fade = 1.0f;
+			if(p.lifemillis < lastmillis+1000)fade = 0.001*(p.lifemillis-lastmillis);
+			float yaw, pitch;
+			if(p.owner){
+				continue;
+				if (p.owner == player1 && !thirdperson) continue;
+				p.o = p.owner->headpos();
+				yaw = p.owner->yaw + p.yaw + 90;
+				pitch = p.pitch + p.owner->pitch;
+			}else{
+				pitch = p.pitch + 90;
+				yaw = p.yaw;
+			}
+			rendermodel(NULL, "arrow", ANIM_MAPMODEL|ANIM_LOOP, p.o, yaw, pitch, MDL_CULL_VFC|MDL_CULL_DIST|MDL_CULL_OCCLUDED, NULL,NULL, 0, 0, fade);
+			//rendermodel(&p.light,projmodels[WEAP(WEAP_GRENADIER,projmdl)], ANIM_MAPMODEL|ANIM_LOOP, p.o ,yaw, pitch);
+			//conoutf("%f, %f, %f", p.o.x,p.o.y,p.o.z)
+		}
     }
 
     void renderprojectiles()

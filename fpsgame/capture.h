@@ -415,7 +415,7 @@ struct captureclientmode : clientmode
     float calcradarscale()
     {
         //return radarscale<=0 || radarscale>maxradarscale ? maxradarscale : max(radarscale, float(minradarscale));
-        return clamp(max(minimapradius.x, minimapradius.y)/3, float(minradarscale), float(maxradarscale));
+        //return clamp(max(minimapradius.x, minimapradius.y)/3, float(minradarscale), float(maxradarscale));
     }
 
     void drawblips(fpsent *d, float blipsize, int fw, int fh, int type, bool skipenemy = false)
@@ -505,7 +505,8 @@ struct captureclientmode : clientmode
 
     void drawhud(fpsent *d, int w, int h)
     {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#if 0
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
         glColor4f(1, 1, 1, minimapalpha);
         if(minimapalpha >= 1) glDisable(GL_BLEND);
@@ -559,6 +560,7 @@ struct captureclientmode : clientmode
                 glPopMatrix();
             }
         }
+#endif
     }
 
     void setup()

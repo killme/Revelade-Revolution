@@ -63,6 +63,9 @@ namespace game
     extern void preload();
     extern float abovegameplayhud(int w, int h);
     extern void gameplayhud(int w, int h);
+	//extern void abc(fpsent *d, float blipsize, int fw, int fh, int type, bool skipenemy);
+	//extern void abc(fpsent *d, float x, float y, float s);
+	//extern void def(fpsent *d, float blipsize, int fw, int fh, int type, bool skipenemy);
 	extern bool candoublejump();
     extern bool canjump();
     extern bool allowmove(physent *d);
