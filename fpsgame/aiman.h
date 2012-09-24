@@ -87,6 +87,7 @@ namespace aiman
 
 	const char *getbotname()
 	{
+		if(ai::botnames.length() == 0) { defformatstring(name)("chase"); conoutf("BOT NAMES ARE NOT LOADED PLEASE ADD \'exec \"data\\botnames.cfg\"\' to your server-init.cfg file"); return name;}
 		const char *name = ai::botnames[rnd(ai::botnames.length())];
 		if (bots.length() > ai::botnames.length()) return name;
 		loopv(bots)
@@ -97,6 +98,7 @@ namespace aiman
 				i = -1;
 			}
 		}
+		//defformatstring(name)("chase");
 		return name;
 	}
 

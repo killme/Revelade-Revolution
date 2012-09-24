@@ -1153,7 +1153,7 @@ static void splash(int type, int color, int radius, int num, int fade, const vec
 			int x, y, z;
 			do
 			{
-				x = rnd(radius*2)-radius;
+				x = rnd(radius*2)-radius;	
 				y = rnd(radius*2)-radius;
 				z = rnd(radius*2)-radius;
 			}

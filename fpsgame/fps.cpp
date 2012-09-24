@@ -1521,7 +1521,7 @@ namespace game
 		vec pos = vec(p->o);
 		bool enemy = m_teammode ? strcmp(d->team, p->team) : true;
 		//if(enemy && lastmillis%1000 > 500) return;
-		settexture(m_teammode ? strcmp(d->team, p->team) ? "data/hud/blip_red.png" : "data/hud/blip_blue.png":"data/hud/blip_neutral.png", 3);
+		settexture(!m_infection ? m_teammode ? strcmp(d->team, p->team) ? "data/hud/blip_red.png" : "data/hud/blip_blue.png":"data/hud/blip_red.png": p->infected ? "data/hud/blip_green.png": "data/hud/blip_red.png", 3);
 		drawblip(d,x,y,s,pos,40,0.03);
 	}
 	void drawitemblit(fpsent *d, float x, float y, float s, int i){

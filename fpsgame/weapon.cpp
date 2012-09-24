@@ -299,14 +299,15 @@ namespace game
 
     VARP(blood, 0, 1, 1);
 	VARP(dampartsize, 0, 100, 150);
+
     void damageeffect(int damage, fpsent *d, bool thirdperson, bool player)
     {
         vec p = d->o;
         p.z += 0.6f*(d->eyeheight + d->aboveeye) - d->eyeheight;
         if(blood) 
-			particle_splash(PART_BLOOD, damage/10, 1000, p, 0x60FFFF, 2.96f);
-			particle_splash(PART_BLOOD, damage/10, 1000, p.add(3), 0x60FFFF, 2.96f);
-			particle_splash(PART_BLOOD, damage/10, 1000, p.add(-6), 0x60FFFF, 2.96f);
+			particle_splash(PART_BLOOD, damage/10, 1000, p, 0x60FFFF, 2.96f, 150, 2, 1.0f, false);
+			particle_splash(PART_BLOOD, damage/10, 1000, p.add(3), 0x60FFFF, 2.96f, 150, 2, 1.0f, false);
+			particle_splash(PART_BLOOD, damage/10, 1000, p.add(-6), 0x60FFFF, 2.96f, 150, 2, 1.0f, false);
         if(thirdperson)
         {
 			//DO NOT TOUCH
@@ -484,6 +485,30 @@ namespace game
 	}
 	void renderdecals3d(void)
 	{
+		loopv(decals3d){
+			//conoutf("%d 0.0", i);
+			arrowattach p  = decals3d[i];
+			if(p.lifemillis < lastmillis){decals3d.remove(i); continue;}
+			//float yaw = 90 + p.yaw;
+			//pitch-= 90;
+			float fade = 1.0f;
+			if(p.lifemillis < lastmillis+1500){fade = 0.00067*(p.lifemillis-lastmillis);}
+			float yaw, pitch;
+			if(p.owner){
+				continue;
+				//code will not work .. dont touch
+				if (p.owner == player1 && !thirdperson) continue;
+				p.o = p.owner->headpos();
+				yaw = p.owner->yaw + p.yaw+90;
+				pitch = p.pitch + p.owner->pitch;
+			}else{
+				pitch = p.pitch;
+				yaw = p.yaw+90;
+			}
+			rendermodel(NULL, "arrow", ANIM_MAPMODEL|ANIM_LOOP, p.o, yaw, pitch, MDL_CULL_VFC|MDL_CULL_DIST|MDL_CULL_OCCLUDED, NULL,NULL, 0, 0, fade);
+			//rendermodel(&p.light,projmodels[WEAP(WEAP_GRENADIER,projmdl)], ANIM_MAPMODEL|ANIM_LOOP, p.o ,yaw, pitch);
+			//conoutf("%f, %f, %f", p.o.x,p.o.y,p.o.z)
+		}
 	}
     void explodeeffects(int gun, fpsent *d, bool local, int id)
     {
@@ -1133,32 +1158,6 @@ namespace game
                 rendermodel(&bnc.light, mdl, ANIM_MAPMODEL|ANIM_LOOP, pos, yaw, pitch, cull, NULL, NULL, 0, 0, fade);
             }
         }
-
-
-
-		loopv(decals3d){
-			//conoutf("%d 0.0", i);
-			arrowattach p  = decals3d[i];
-			if(p.lifemillis < lastmillis){decals3d.remove(i); continue;}
-			//float yaw = 90 + p.yaw;
-			//pitch-= 90;
-			float fade = 1.0f;
-			if(p.lifemillis < lastmillis+1000)fade = 0.001*(p.lifemillis-lastmillis);
-			float yaw, pitch;
-			if(p.owner){
-				continue;
-				if (p.owner == player1 && !thirdperson) continue;
-				p.o = p.owner->headpos();
-				yaw = p.owner->yaw + p.yaw + 90;
-				pitch = p.pitch + p.owner->pitch;
-			}else{
-				pitch = p.pitch + 90;
-				yaw = p.yaw;
-			}
-			rendermodel(NULL, "arrow", ANIM_MAPMODEL|ANIM_LOOP, p.o, yaw, pitch, MDL_CULL_VFC|MDL_CULL_DIST|MDL_CULL_OCCLUDED, NULL,NULL, 0, 0, fade);
-			//rendermodel(&p.light,projmodels[WEAP(WEAP_GRENADIER,projmdl)], ANIM_MAPMODEL|ANIM_LOOP, p.o ,yaw, pitch);
-			//conoutf("%f, %f, %f", p.o.x,p.o.y,p.o.z)
-		}
     }
 
     void renderprojectiles()
