@@ -412,12 +412,6 @@ struct captureclientmode : clientmode
         }
     }
 
-    float calcradarscale()
-    {
-        //return radarscale<=0 || radarscale>maxradarscale ? maxradarscale : max(radarscale, float(minradarscale));
-        //return clamp(max(minimapradius.x, minimapradius.y)/3, float(minradarscale), float(maxradarscale));
-    }
-
     void drawblips(fpsent *d, float blipsize, int fw, int fh, int type, bool skipenemy = false)
     {
         float scale = calcradarscale();
@@ -477,54 +471,10 @@ struct captureclientmode : clientmode
         return (h*(1 + 1 + 10))/(4*10);
     }
 
-    void drawminimap(fpsent *d, float x, float y, float s)
+	void drawhud(fpsent *d, int w, int h)
     {
-        vec pos = vec(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
-        vecfromyawpitch(camera1->yaw, 0, 1, 0, dir);
-        float scale = calcradarscale();
-        glBegin(GL_TRIANGLE_FAN);
-        loopi(16)
-        {
-            vec tc = vec(dir).rotate_around_z(i/16.0f*2*M_PI);
-            glTexCoord2f(pos.x + tc.x*scale*minimapscale.x, pos.y + tc.y*scale*minimapscale.y);
-            vec v = vec(0, -1, 0).rotate_around_z(i/16.0f*2*M_PI);
-            glVertex2f(x + 0.5f*s*(1.0f + v.x), y + 0.5f*s*(1.0f + v.y));
-        }
-        glEnd();
-    }
-
-    void drawradar(float x, float y, float s)
-    {
-        glBegin(GL_TRIANGLE_STRIP);
-        glTexCoord2f(0.0f, 0.0f); glVertex2f(x,   y);
-        glTexCoord2f(1.0f, 0.0f); glVertex2f(x+s, y);
-        glTexCoord2f(0.0f, 1.0f); glVertex2f(x,   y+s);
-        glTexCoord2f(1.0f, 1.0f); glVertex2f(x+s, y+s);
-        glEnd();
-    }
-
-    void drawhud(fpsent *d, int w, int h)
-    {
-#if 0
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
-        glColor4f(1, 1, 1, minimapalpha);
-        if(minimapalpha >= 1) glDisable(GL_BLEND);
-        bindminimap();
-        drawminimap(d, x, y, s);
-        if(minimapalpha >= 1) glEnable(GL_BLEND);
-        glColor3f(1, 1, 1);
-        float margin = 0.04f, roffset = s*margin, rsize = s + 2*roffset;
-        settexture("data/hud/radar.png", 3);
-        drawradar(x - roffset, y - roffset, rsize);
-        #if 0
-        settexture("data/hud/compass.png", 3);
-        glPushMatrix();
-        glTranslatef(x - roffset + 0.5f*rsize, y - roffset + 0.5f*rsize, 0);
-        glRotatef(camera1->yaw + 180, 0, 0, -1);
-        drawradar(-0.5f*rsize, -0.5f*rsize, rsize);
-        glPopMatrix();
-        #endif
         bool showenemies = lastmillis%1000 >= 500;
         int fw = 1, fh = 1;
         if(basenumbers)
@@ -560,7 +510,6 @@ struct captureclientmode : clientmode
                 glPopMatrix();
             }
         }
-#endif
     }
 
     void setup()

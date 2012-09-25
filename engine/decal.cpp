@@ -539,7 +539,6 @@ VARP(maxdecaldistance, 1, 512, 10000);
 
 void adddecal(int type, const vec &center, const vec &surface, float radius, const bvec &color, int info)
 {
-	//if(type == 1)conoutf("HEHE");
     if(!showdecals || type<0 || (size_t)type>=sizeof(decals)/sizeof(decals[0]) || center.dist(camera1->o) - radius > maxdecaldistance) return;
     decalrenderer &d = decals[type];
     d.adddecal(center, surface, radius, color, info);

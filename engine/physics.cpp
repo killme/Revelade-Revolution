@@ -1662,7 +1662,7 @@ void modifyvelocity(physent *pl, bool local, bool water, bool floating, int curt
         if(pl->jumping)
         {
             pl->jumping = false;
-            //pl->vel.z = max(pl->vel.z, JUMPVEL);
+            pl->vel.z = max(pl->vel.z, JUMPVEL);
         }
     }
     else if(pl->physstate >= PHYS_SLOPE || water)
@@ -1670,31 +1670,15 @@ void modifyvelocity(physent *pl, bool local, bool water, bool floating, int curt
         if(water && !pl->inwater) pl->vel.div(8);
         if(pl->jumping)
         {
-			//conoutf("jumping");
-			pl->hasjumped = false;
             pl->jumping = false;
-			//if(pl->hasjumped)
-            pl->vel.z = max(pl->vel.z, (JUMPVEL)); // physics impulse upwards
+
+            pl->vel.z = max(pl->vel.z, JUMPVEL); // physics impulse upwards
             if(water) { pl->vel.x /= 8.0f; pl->vel.y /= 8.0f; } // dampen velocity change even harder, gives correct water feel
 
             game::physicstrigger(pl, local, 1, 0);
         }
     }
-	if(!floating && pl->physstate == PHYS_FALL)
-	{ 
-		pl->timeinair += curtime; 
-		if(!pl->hasjumped && pl->jumping && game::candoublejump())
-		{
-			pl->hasjumped = true;
-			pl->jumping = false; 
-			pl->vel.z *= (JUMPVEL/50);
-			pl->vel.y *= (JUMPVEL/100);
-			pl->vel.x *= (JUMPVEL/100);
-			if(water){pl->vel.x /= 8.0f; pl->vel.y /= 8.0f;}
-			game::physicstrigger(pl, local, 1, 0);
-			pl->physstate = PHYS_SLOPE;
-		}
-	}
+    if(!floating && pl->physstate == PHYS_FALL) pl->timeinair += curtime;
 
     vec m(0.0f, 0.0f, 0.0f);
     if(game::allowmove(pl) && (pl->move || pl->strafe))

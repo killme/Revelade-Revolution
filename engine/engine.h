@@ -393,7 +393,6 @@ extern bool glaring;
 
 extern void drawglaretex();
 extern void addglare();
-extern void addwaterglow();
 
 // depthfx
 extern bool depthfxing;

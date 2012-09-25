@@ -186,15 +186,12 @@ int ircrecv(ircnet *n)
 
 void ircnewnet(int type, const char *name, const char *serv, int port, const char *nick, const char *ip, const char *passkey)
 {
-	//conoutf("dod");
     if(!name || !*name || !serv || !*serv || !port || !nick || !*nick) return;
     ircnet *m = ircfind(name);
     if(m)
     {
-		conoutf("DKFJK");
         if(m->state != IRC_DISC) conoutf("ircnet %s already exists", m->name);
         else ircestablish(m);
-		conoutf("DOEKE");
         return;
     }
     ircnet &n = *ircnets.add(new ircnet);
@@ -212,7 +209,6 @@ void ircnewnet(int type, const char *name, const char *serv, int port, const cha
     n.address.port = n.port;
     n.input[0] = n.authname[0] = n.authpass[0] = 0;
     conoutf("added irc %s %s (%s:%d) [%s]", type == IRCT_RELAY ? "relay" : "client", name, serv, port, nick);
-	conoutf("DKD");
 }
 
 ICOMMAND(ircaddclient, "ssisss", (const char *n, const char *s, int *p, const char *c, const char *h, const char *z), {
@@ -259,7 +255,6 @@ ICOMMAND(ircauth, "sss", (const char *name, const char *s, const char *t), {
     copystring(n->authpass, t);
 });
 ICOMMAND(ircconnect, "s", (const char *name), {
-	conoutf("LEZ");
     ircnet *n = ircfind(name);
     if(!n) { conoutf("no such ircnet: %s", name); return; }
     if(n->state != IRC_DISC) { conoutf("ircnet %s is already connected", n->name); return; }
@@ -744,7 +739,7 @@ void ircslice()
                 }
             }
         }
-		else if(!n->lastattempt || totalmillis-n->lastattempt >= 60000){ircestablish(n);}
+        else if(!n->lastattempt || totalmillis-n->lastattempt >= 60000) ircestablish(n);
     }
 }
 #ifndef STANDALONE
@@ -860,7 +855,6 @@ bool ircnetgui(g3d_gui *g, ircnet *n, bool tab)
 
 bool ircgui(g3d_gui *g, const char *s)
 {
-	//conoutf("COOL");
     g->allowautotab(false);
     g->strut(94);
     if(s && *s)
@@ -870,7 +864,7 @@ bool ircgui(g3d_gui *g, const char *s)
         {
             if(!ircnetgui(g, n, false)) return false;
         }
-        else g->textf("not currently connected to %s", 0xFFFFFF, NULL, 0, s);
+        else g->textf("not currently connected to %s", 0xFFFFFF, NULL, s);
     }
     else
     {
@@ -879,14 +873,12 @@ bool ircgui(g3d_gui *g, const char *s)
         {
             ircnet *n = ircnets[i];
             g->pushlist();
-			if(n)conoutf("COOL");
-			else conoutf("DK");
-            g->buttonf("%s via %s:[%d]", 0xFFFFFF, NULL, n->name, n->serv, n->port); //%s via %s:[%d]
+            g->buttonf("%s via %s:[%d]", 0xFFFFFF, NULL, n->name, n->serv, n->port);
             g->space(1);
             const char *ircstates[IRC_MAX] = {
                     "\froffline", "\foconnecting", "\fynegotiating", "\fgonline"
             };
-            g->buttonf("\fs%s\fS as %s", 0xFFFFFF, NULL, 0, true, ircstates[n->state], n->nick);
+            g->buttonf("\fs%s\fS as %s", 0xFFFFFF, NULL, ircstates[n->state], n->nick);
             g->poplist();
             nets++;
         }

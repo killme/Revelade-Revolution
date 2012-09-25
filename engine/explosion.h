@@ -533,3 +533,48 @@ struct fireballrenderer : listrenderer
 };
 static fireballrenderer fireballs("data/particles/explosion.png"), bluefireballs("<mix:2,1,0>data/particles/explosion.png");
 
+struct swrenderer : listrenderer
+{
+    swrenderer(const char *texname)
+        : listrenderer(texname, 0, PT_EXPAND_FAST)
+    {}
+
+    void seedemitter(particleemitter &pe, const vec &o, const vec &d, int fade, float size, int gravity)
+    {
+        pe.maxfade = max(pe.maxfade, fade);
+        pe.extendbb(o, size); 
+    }
+
+    void startrender()
+    {
+		glDisable(GL_CULL_FACE);
+    }
+
+    void endrender()
+    {
+		glEnable(GL_CULL_FACE);
+    }
+
+    void cleanup()
+    {
+    }
+
+    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, float size, uchar *color)
+    {
+		float hsize = size;
+
+        glPushMatrix();
+		//glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glColor4ub(color[0], color[1], color[2], blend);
+
+		glBegin(GL_TRIANGLE_STRIP);
+		glTexCoord2f(0.0f, 0.0f); glVertex3f(o.x-hsize, o.y-hsize, o.z);
+		glTexCoord2f(0.0f, 1.0f); glVertex3f(o.x-hsize, o.y+hsize, o.z);
+		glTexCoord2f(1.0f, 0.0f); glVertex3f(o.x+hsize, o.y-hsize, o.z);
+		glTexCoord2f(1.0f, 1.0f); glVertex3f(o.x+hsize, o.y+hsize, o.z);
+		glEnd();
+
+        glPopMatrix();
+    }
+};
+static swrenderer shockwave("<grey>data/particles/explosion/shockwave.png");

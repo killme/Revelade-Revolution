@@ -1,7 +1,7 @@
 #ifndef PARSEMESSAGES
 
-#define infteamflag(s) (!strcmp(s, "good") ? 1 : (!strcmp(s, "evil") ? 2 : 0))
-#define infflagteam(i) (i==1 ? "good" : (i==2 ? "evil" : NULL))
+#define infteamflag(s) (!strcmp(s, TEAM_0) ? 1 : (!strcmp(s, TEAM_1) ? 2 : 0))
+#define infflagteam(i) (i==1 ? TEAM_0 : (i==2 ? TEAM_1 : NULL))
 
 #ifdef SERVMODE
 FVAR(infection_pz_ratio, 0, 2, 100);
@@ -21,7 +21,7 @@ struct infectionclientmode : clientmode
     {
 #ifndef SERVMODE
 		int res = 0;
-		char *ct = infflagteam(team);
+		const char *ct = infflagteam(team);
 		loopv(game::players) if (isteam(game::players[i]->team, ct)) res += game::players[i]->frags;
 		return res;
 #else
@@ -53,7 +53,7 @@ struct infectionclientmode : clientmode
 #ifndef SERVMODE
 		loopk(2)
 		{
-			char *ct = infflagteam(k+1);
+			const char *ct = infflagteam(k+1);
 			tscores.add(teamscore(ct, 0));
 			loopv(game::players)
 				if (isteam(game::players[i]->team, ct)) tscores[k].score += game::players[i]->frags;
@@ -325,7 +325,6 @@ case N_INFECT:
 	fpsent *disc = getclient(disi);
 	if (infc)
 	{
-		//regular_particle_splash(PART_SMOKE,0,500,infc->o,0x106020,10,3000);
 		infc->infected = true;
 		infc->infectmillis = lastmillis;
 		loopi(NUMWEAPS) infc->ammo[i] = 0;

@@ -1,7 +1,7 @@
 #ifndef PARSEMESSAGES
 
-#define ctfteamflag(s) (!strcmp(s, "good") ? 1 : (!strcmp(s, "evil") ? 2 : 0))
-#define ctfflagteam(i) (i==1 ? "good" : (i==2 ? "evil" : NULL))
+#define ctfteamflag(s) (!strcmp(s, TEAM_0) ? 1 : (!strcmp(s, TEAM_1) ? 2 : 0))
+#define ctfflagteam(i) (i==1 ? TEAM_0 : (i==2 ? TEAM_1 : NULL))
 
 #ifdef SERVMODE
 struct ctfservmode : servmode
@@ -421,53 +421,6 @@ struct ctfclientmode : clientmode
         }
     }
 
-    float calcradarscale()
-    {
-        //return radarscale<=0 || radarscale>maxradarscale ? maxradarscale : max(radarscale, float(minradarscale));
-        return clamp(max(minimapradius.x, minimapradius.y)/3, float(minradarscale), float(maxradarscale));
-		//return 1.0f;
-    }
-
- //   void drawminimap(fpsent *d, float x, float y, float s)
- //   {
- //       vec pos = vec(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
- //       vecfromyawpitch(camera1->yaw, 0, 1, 0, dir);
- //       float scale = calcradarscale();
- //       glBegin(GL_TRIANGLE_FAN);
- //       loopi(16)
- //       {
- //           vec tc = vec(dir).rotate_around_z(i/16.0f*2*M_PI);
- //           glTexCoord2f(pos.x + tc.x*scale*minimapscale.x, pos.y + tc.y*scale*minimapscale.y);
- //           vec v = vec(0, -1, 0).rotate_around_z(i/16.0f*2*M_PI);
- //           glVertex2f(x + 0.5f*s*(1.0f + v.x), y + 0.5f*s*(1.0f + v.y));
- //       }
- //       glEnd();
- //   }
-
-    void drawradar(float x, float y, float s)
-	{
-        glBegin(GL_TRIANGLE_STRIP);
-        glTexCoord2f(0.0f, 0.0f); glVertex2f(x,   y);
-        glTexCoord2f(1.0f, 0.0f); glVertex2f(x+s, y);
-        glTexCoord2f(0.0f, 1.0f); glVertex2f(x,   y+s);
-        glTexCoord2f(1.0f, 1.0f); glVertex2f(x+s, y+s);
-        glEnd();
-    }
-
-    void drawblip(fpsent *d, float x, float y, float s, const vec &pos, bool flagblip)
-    {
-        float scale = calcradarscale();
-        vec dir = d->o;
-        dir.sub(pos).div(scale);
-        float size = flagblip ? 0.1f : 0.05f,
-              xoffset = flagblip ? -2*(3/32.0f)*size : -size,
-              yoffset = flagblip ? -2*(1 - 3/32.0f)*size : -size,
-              dist = dir.magnitude2(), maxdist = 1 - 0.05f - 0.05f;
-        if(dist >= maxdist) dir.mul(maxdist/dist);
-        dir.rotate_around_z(-camera1->yaw*RAD);
-        drawradar(x + s*0.5f*(1.0f + dir.x + xoffset), y + s*0.5f*(1.0f + dir.y + yoffset), size*s);
-    }
-
     void drawblip(fpsent *d, float x, float y, float s, int i, bool flagblip)
     {
         flag &f = flags[i];
@@ -475,14 +428,15 @@ struct ctfclientmode : clientmode
                     ((m_hold ? ctfteamflag(f.owner->team) : f.team)==ctfteamflag(player1->team) ?
                         (flagblip ? "data/hud/blip_blue_flag.png" : "data/hud/blip_blue.png") :
                         (flagblip ? "data/hud/blip_red_flag.png" : "data/hud/blip_red.png")), 3);
-        drawblip(d, x, y, s, flagblip ? (f.owner ? f.owner->o : (f.droptime ? f.droploc : f.spawnloc)) : f.spawnloc, flagblip);
+        game::drawblip(d, x, y, s, flagblip ? (f.owner ? f.owner->o : (f.droptime ? f.droploc : f.spawnloc)) : f.spawnloc, flagblip);
     }
+
     int clipconsole(int w, int h)
     {
         return (h*(1 + 1 + 10))/(4*10);
     }
 
-   /*void drawhud(fpsent *d, int w, int h)
+    void drawhud(fpsent *d, int w, int h)
     {
         if(d->state == CS_ALIVE)
         {
@@ -500,30 +454,13 @@ struct ctfclientmode : clientmode
                 break;
             }
         }
-		float minimapalpha = 1.0;
+
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
-        glColor4f(1, 1, 1, minimapalpha);
-        if(minimapalpha >= 1) glDisable(GL_BLEND);
-        bindminimap();
-        drawminimap(d, x, y, s);
-        if(minimapalpha >= 1) glEnable(GL_BLEND);
-        glColor3f(1, 1, 1);
-        float margin = 0.04f, roffset = s*margin, rsize = s + 2*roffset;
-        settexture("data/hud/radar.png", 3);
-        drawradar(x - roffset, y - roffset, rsize);
-        #if 0
-        settexture("data/hud/compass.png", 3);
-        glPushMatrix();
-        glTranslatef(x - roffset + 0.5f*rsize, y - roffset + 0.5f*rsize, 0);
-        glRotatef(camera1->yaw + 180, 0, 0, -1);
-        drawradar(-0.5f*rsize, -0.5f*rsize, rsize);
-        glPopMatrix();
-        #endif
         if(m_hold)
         {
             settexture("data/hud/blip_neutral.png", 3);
-            loopv(holdspawns) drawblip(d, x, y, s, holdspawns[i].o, false);
+            loopv(holdspawns) game::drawblip(d, x, y, s, holdspawns[i].o, false);
         }
         loopv(flags)
         {
@@ -549,23 +486,7 @@ struct ctfclientmode : clientmode
                 glPopMatrix();
             }
         }
-    }*/
-
-	void drawhud(fpsent *d, int w, int h){
-		int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
-		loopv(flags)
-        {
-            flag &f = flags[i];
-            if(m_hold ? f.spawnindex < 0 : !ctfflagteam(f.team)) continue;
-            if(!m_hold) drawblip(d, x, y, s, i, false);
-            if(f.owner)
-            {
-                if(!m_hold && lastmillis%1000 >= 500) continue;
-            }
-            else if(f.droptime && (f.droploc.x < 0 || lastmillis%300 >= 150)) continue;
-            drawblip(d, x, y, s, i, true);
-        }
-	}
+    }
 
     void removeplayer(fpsent *d)
     {

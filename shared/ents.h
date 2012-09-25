@@ -42,13 +42,13 @@ struct extentity : entity                       // part of the entity that doesn
 
 //extern vector<extentity *> ents;                // map entities
 
-enum GameStates { CS_ALIVE = 0, CS_DEAD, CS_SPAWNING, CS_LAGGED, CS_EDITING, CS_SPECTATOR };
+enum { CS_ALIVE = 0, CS_DEAD, CS_SPAWNING, CS_LAGGED, CS_EDITING, CS_SPECTATOR };
 
-enum PhysicsStates { PHYS_FLOAT = 0, PHYS_FALL, PHYS_SLIDE, PHYS_SLOPE, PHYS_FLOOR, PHYS_STEP_UP, PHYS_STEP_DOWN, PHYS_BOUNCE };
+enum { PHYS_FLOAT = 0, PHYS_FALL, PHYS_SLIDE, PHYS_SLOPE, PHYS_FLOOR, PHYS_STEP_UP, PHYS_STEP_DOWN, PHYS_BOUNCE };
 
-enum AIStates { ENT_PLAYER = 0, ENT_AI, ENT_INANIMATE, ENT_CAMERA, ENT_BOUNCE };
+enum { ENT_PLAYER = 0, ENT_AI, ENT_INANIMATE, ENT_CAMERA, ENT_BOUNCE };
 
-enum CollisionState { COLLIDE_AABB = 0, COLLIDE_OBB, COLLIDE_ELLIPSE };
+enum { COLLIDE_AABB = 0, COLLIDE_OBB, COLLIDE_ELLIPSE };
 
 struct physent                                  // base entity type, can be affected by physics
 {
@@ -62,7 +62,7 @@ struct physent                                  // base entity type, can be affe
     vec floor;                                  // the normal of floor the dynent is on
 
     int inwater, quake;
-    bool jumping, hasjumped;
+    bool jumping;
     char move, strafe;
 
     uchar physstate;                            // one of PHYS_* above
@@ -182,6 +182,7 @@ struct ragdolldata;
 struct dynent : physent                         // animated characters, or characters that can receive input
 {
     bool k_left, k_right, k_up, k_down;         // see input code
+
     entitylight light;
     animinterpinfo animinterp[MAXANIMPARTS];
     ragdolldata *ragdoll;

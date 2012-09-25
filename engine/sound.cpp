@@ -293,16 +293,28 @@ void stopmapsound(extentity *e)
     }
 }
         
+int waterchan = -1;
+
 void checkmapsounds()
 {
     const vector<extentity *> &ents = entities::getents();
+    if(lookupmaterial(camera1->o)==MAT_WATER)
+    {
+        if(waterchan==-1) waterchan = playsound(115, NULL, NULL, -1, NULL, NULL, waterchan);
+    }
+    else
+    {
+        stopsound(115, waterchan);
+        waterchan = -1;
+    }
     loopv(ents)
     {
         extentity &e = *ents[i];
         if(e.type!=ET_SOUND) continue;
         if(camera1->o.dist(e.o) < e.attr2)
         {
-            if(!e.visible) playsound(e.attr1, NULL, &e, -1);
+            if(!e.visible && lookupmaterial(camera1->o)!=MAT_WATER) playsound(e.attr1, NULL, &e, -1);
+            else if(lookupmaterial(camera1->o)==MAT_WATER) stopmapsound(&e);
         }
         else if(e.visible) stopmapsound(&e);
     }
@@ -316,6 +328,8 @@ bool updatechannel(soundchannel &chan)
 {
     if(!chan.slot) return false;
     int vol = soundvol, pan = 255/2;
+    int lvol = 100;
+    bool nopan = false;
     if(chan.hasloc())
     {
         vec v;
@@ -323,6 +337,27 @@ bool updatechannel(soundchannel &chan)
         int rad = maxsoundradius;
         if(chan.ent)
         {
+            int dist = -1;
+            int closest = -1;
+
+            loopi(entities::getents().length())
+            {
+                extentity &tmp = *entities::getents()[i];
+                if(tmp.type == 31 && tmp.attr3 == chan.ent->attr4 && (closest == -1 || camera1->o.dist(tmp.o) < camera1->o.dist(entities::getents()[closest]->o))) closest = i;
+            }
+
+            if(closest > -1)
+            {
+                extentity &e = *entities::getents()[closest];
+                dist = (camera1->o.dist(e.o));
+
+                if(dist <= e.attr1) lvol = 0;
+                else if(dist <= e.attr1+e.attr2) lvol = ((dist-e.attr1)*100)/e.attr2;
+                else lvol = 100;
+            }
+
+            nopan = chan.ent->attr5 == 2;
+
             rad = chan.ent->attr2;
             if(chan.ent->attr3)
             {
@@ -332,7 +367,7 @@ bool updatechannel(soundchannel &chan)
         }
         else if(chan.radius > 0) rad = maxsoundradius ? min(maxsoundradius, chan.radius) : chan.radius;
         if(rad > 0) vol -= int(clamp(dist/rad, 0.0f, 1.0f)*soundvol); // simple mono distance attenuation
-        if(stereo && (v.x != 0 || v.y != 0) && dist>0)
+        if(!nopan && stereo && (v.x != 0 || v.y != 0) && dist>0)
         {
             v.rotate_around_z(-camera1->yaw*RAD);
             pan = int(255.9f*(0.5f - 0.5f*v.x/v.magnitude2())); // range is from 0 (left) to 255 (right)
@@ -340,6 +375,7 @@ bool updatechannel(soundchannel &chan)
     }
     vol = (vol*MAXVOL*chan.slot->volume)/255/255;
     vol = min(vol, MAXVOL);
+    vol = (lvol * vol)/100;
     if(vol == chan.volume && pan == chan.pan) return false;
     chan.volume = vol;
     chan.pan = pan;

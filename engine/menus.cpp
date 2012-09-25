@@ -170,7 +170,7 @@ void restoregui(int pos)
 void showgui(const char *name)
 {
     menu *m = guis.access(name);
-	if(!m){conoutf("could not find menu"); return;}
+    if(!m) return;
     int pos = guistack.find(m);
     if(pos<0) pushgui(m);
     else restoregui(pos);

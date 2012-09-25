@@ -656,6 +656,12 @@ void renderentradius(extentity &e, bool color)
             renderentarrow(e, dir, 4);
             break;
         }
+        case ET_PARTICLES:
+        {
+            if(e.attr1!=80) return;
+            renderentsphere(e, e.attr2);
+            break;
+        }
 
         default:
             if(e.type>=ET_GAMESPECIFIC) 
@@ -894,15 +900,15 @@ extentity *newentity(bool local, const vec &o, int type, int v1, int v2, int v3,
     return &e;
 }
 
-void newentity(int type, int a1, int a2, int a3, int a4, int a5)
+void newentity(int type, int a1, int a2, int a3, int a4, int a5, bool custom, vec o)
 {
     if(entities::getents().length() >= MAXENTS) { conoutf("too many entities"); return; }
-    extentity *t = newentity(true, player->o, type, a1, a2, a3, a4, a5);
-    dropentity(*t, (type==31)-1); // CAMERA - hacked
+    extentity *t = newentity(true, custom ? o : player->o, type, a1, a2, a3, a4, a5);
+    if(!custom) dropentity(*t, (type==31)-1); // CAMERA - hacked
     entities::getents().add(t);
     int i = entities::getents().length()-1;
     t->type = ET_EMPTY;
-    enttoggle(i);
+    if(!custom) enttoggle(i);
     makeundoent();
     entedit(i, e.type = type);
 }

@@ -19,13 +19,15 @@ namespace game
 
     bool clientoption(const char *arg) { return false; }
 
- void taunt()
+    void taunt()
     {
         if(player1->state!=CS_ALIVE || player1->physstate<PHYS_SLOPE) return;
         if(lastmillis-player1->lasttaunt<1500) return;
 		thirdperson = 2;
 		tauntmillis = 250 + lastmillis;
 		
+        //@todo: player1->lasttaunt = lastmillis;
+        //addmsg(N_TAUNT, "rc", player1);
     }
     COMMAND(taunt, "");
 
@@ -217,7 +219,7 @@ namespace game
         clearprojectiles();
         clearbouncers();
     }
-	
+
 	FVAR(lasthp, 0, 0, 1000);
 	FVAR(lastap, 0, 0, 1000);
 
@@ -225,7 +227,7 @@ namespace game
     {
         d->respawn(gamemode);
         d->spawnstate(gamemode);
-		if (d == player1) 
+		if (d == player1)
 		{
 			lasthp = 0.f;
 			lastap = 0.f;
@@ -339,6 +341,7 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
+			if(d->inwater) d->onfire = false;
             if(d == player1 || d->ai) continue;
 
             if(d->state==CS_ALIVE)
@@ -495,59 +498,38 @@ namespace game
     // inputs
 
     void doattack(bool on, bool altfire)
-	{
-        if(intermission || player1->lasttaunt + 1500 > lastmillis) return;
+    {
+        if(intermission) return;
 		player1->altfire = altfire;
         if((player1->attacking = on)) respawn();
     }
-	bool candoublejump(){ return player1->playerclass == PCS_STEALTH;}
-     bool canjump()
+
+    bool canjump()
     {
         if(!intermission) respawn();
-		if(m_dmsp)if((player1->lastpain + 100 > lastmillis)) return false;
-        return player1->state!=CS_DEAD && !intermission && !(tauntmillis || player1->lasttaunt + 1500 > lastmillis);
+        return player1->state!=CS_DEAD && !intermission;
     }
 
     bool allowmove(physent *d)
     {
-		if(m_dmsp)if(player1->lastpain + 100 > lastmillis)return false;
         if(d->type!=ENT_PLAYER) return true;
-		if((!((fpsent *)d)->lasttaunt || lastmillis-((fpsent *)d)->lasttaunt>=1450)&&(tauntmillis == 0)) {
-			thirdperson = 0;
-			return true;
-		}
-		else
-			if((tauntmillis < lastmillis) && (tauntmillis != 0)){
-				addmsg(N_TAUNT, "rc", player1);
-				player1->lasttaunt = lastmillis;
-				tauntmillis = 0;
-				thirdpersondistance = 30;
-			}else if(tauntmillis !=0) thirdpersondistance = 5+(25 * ((250 -(tauntmillis - lastmillis))*0.004)); //1/250 = inv delay time
-			else if(player1->lasttaunt+1450 < lastmillis +200) thirdpersondistance = 5+(25 * (((player1->lasttaunt+1450 - lastmillis))*0.005)); // 1/200 = inv delay time
-			return false;
+        return !((fpsent *)d)->lasttaunt || lastmillis-((fpsent *)d)->lasttaunt>=1000;
     }
-	
+
     VARP(hitsound, 0, 0, 1);
 
     void damaged(int damage, fpsent *d, fpsent *actor, bool local, int gun)
     {
-		if(damage <= 0){
-			if(actor==player1)
-				damageeffect(damage,d,true,true);
-			d->health = d->maxhealth < (d->health-damage) ? d->maxhealth : (d->health-damage);
-			return;
-		}
-		if (gun == WEAP_FLAMEJET)	
-		{
-			if(player1 == d && player1==actor) return;
-			volatile int asd = 1;
-		}
         if(d->state!=CS_ALIVE || intermission) return;
 
 		if (cmode) cmode->zombiepain(damage, d, actor);
 
 		if(local) damage = d->dodamage(damage);
-        else if(actor==player1) {damageeffect(damage,d,true,true);return;}
+        else if(actor==player1)
+		{
+			damageeffect(damage,d,true,true);
+			return;
+		}
 
         fpsent *h = hudplayer();
 		bool pl = false;
@@ -674,7 +656,7 @@ namespace game
 
             showscores(true);
             disablezoom();
-            
+
             if(identexists("intermission")) execute("intermission");
         }
     }
@@ -747,7 +729,8 @@ namespace game
     }
 
     VARP(showmodeinfo, 0, 1, 1);
-	
+
+	//@todo: [-1] -> [0]
 	VARFP(playerclass, -1, -1, NUMPCS-1, if(player1->playerclass != playerclass) switchplayerclass(playerclass) );
 
     void startgame()
@@ -773,16 +756,19 @@ namespace game
             d->lifesequence = -1;
             d->respawned = d->suicided = -2;
         }
+
         setclientmode();
 
         intermission = false;
         maptime = maprealtime = 0;
         maplimit = -1;
+
         if(cmode)
         {
             cmode->preload();
             cmode->setup();
         }
+
         conoutf(CON_GAMEINFO, "\f2game mode is %s", server::modename(gamemode));
 
         if(m_classicsp)
@@ -815,7 +801,7 @@ namespace game
         else findplayerspawn(player1, -1);
         entities::resetspawns();
         copystring(clientmap, name ? name : "");
-        
+
         sendmapinfo();
     }
 
@@ -974,7 +960,7 @@ namespace game
 	bool getround() {if (dopickups){dopickups = false; return true;} return false; }
 	*/
 
-	bool needminimap() { return true;} //m_ctf || m_protect || m_hold || m_capture; }
+    bool needminimap() { return m_valid(gamemode)/*m_ctf || m_protect || m_hold || m_capture*/; }
 
     void drawicon(int icon, float x, float y, float sz)
     {
@@ -1046,7 +1032,7 @@ namespace game
 		}
 		float rw = ((float)w / ((float)h/1800.f)), rh = 1800;
 		float iw = rw+512.f, ix = 256;
-		
+
 		loopi(hudevents.length())
 		{
 			if (lastmillis-hudevents[i].millis > 2000)
@@ -1059,7 +1045,7 @@ namespace game
 			float x = clamp((lastmillis-hudevents[i].millis)-1000.f, -1000.f, 1000.f);
 			x = ((x<0? min(x+500.f, 0.f): max(x-500.f, 0.f))+500)/1000*iw -ix;
 			float y = 350;
-			
+
 			Texture *i_special = NULL;
 			switch (hudevents[i].type)
 			{
@@ -1121,7 +1107,7 @@ namespace game
 		// draw round number (fingers)
 		x += sw+10;
 		y -= sh/2.5;
-		
+
 		float rxscale = min(740.f/(dmround*40-(dmround/5)*15), 1.f);
 		x /= rxscale;
 		glScalef(rxscale, 1, 1);
@@ -1172,7 +1158,6 @@ namespace game
 		float aw = ammo_bar->xs * 1.9, ah = ammo_bar->ys * 1.9;
 		float ax = rw - aw, ay = rh - ah;
 
-		glColor3f(m_teammode || d->infected ?0.7:1, d->infected?1:m_teammode?0.7:1, d->infected? 0.7:1);
 		glBegin(GL_TRIANGLE_STRIP);
 		glTexCoord2f(0, 0); glVertex2f(ax	,	ay);
 		glTexCoord2f(1, 0); glVertex2f(ax+aw,	ay);
@@ -1187,7 +1172,7 @@ namespace game
 
 		char tcx[10];
 		int tcw, tch;
-		sprintf_s(tcx, "%d", d->ammo[d->gunselect]);
+		sprintf(tcx, "%d", d->ammo[d->gunselect]);
 		text_bounds(tcx, tcw, tch);
 		draw_text(tcx, (int)rw/2 - 80 - tcw/2, (rh-260-tch)/2);
 
@@ -1241,7 +1226,7 @@ namespace game
 		}
         glPopMatrix();
 	}
-	
+
 	void drawhudbody(float x, float y, float sx, float sy, float ty)
     {
 		glBegin(GL_TRIANGLE_STRIP);
@@ -1269,7 +1254,7 @@ namespace game
 		float rw = ((float)w / ((float)h/1800.f)), rh = 1800;
 		float scale = a_scale * 1.6;
 		float x = (rw/scale)/2.f+100, y = (rh-gunwaitft->ys*2.f)/(scale*2.f);
-		
+
 		glPushMatrix();
 		glScalef(scale, scale, 1);
 		glColor4f(1.0f, 1.0f, 1.0f, 0.5);
@@ -1279,7 +1264,7 @@ namespace game
 
 		glBindTexture(GL_TEXTURE_2D, gunwaitft->id);
 		drawhudbody(x, y + (1-mwait) * gunwaitft->ys, gunwaitft->xs, mwait * gunwaitft->ys, 1-mwait);
- 			
+
 		glPopMatrix();
 	}
 
@@ -1304,27 +1289,32 @@ namespace game
 		if (!sg) return;
 
 		int numplayers = min(sg->players.length(), 9);
-		int x = 1800*w/h - 600, y = 540, step = FONTH + 10;
-		int iy = y + step*numplayers - 10;
+		int x = 1800*w/h - 500, y = 540, step = FONTH+4;
+		int iy = y + step*numplayers - 15;
 
-		defaultshader->set();
-		glBindTexture(GL_TEXTURE_2D, 0);
-		
+		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glColor4f(.2f, .2f, .6f, .6f);
-		glBegin(GL_POLYGON);
+		defaultshader->set();
 
-		glVertex2f(x-10,  y-10);
-		glVertex2f(x+600, y-10);
-		glVertex2f(x+600, iy);
-		glVertex2f(x-10,  iy);
+		static Texture *teamhudbg = NULL;
+		if (!teamhudbg) teamhudbg = textureload("data/hud/teamhudbg.png", 0, true, false);
+		glBindTexture(GL_TEXTURE_2D, teamhudbg->id);
+
+		glColor4f(.2f, .2f, .6f, .2f);
+
+		glBegin(GL_TRIANGLE_STRIP);
+
+		glTexCoord2f(0.f, 0.f); glVertex2f(x-10,  y-10);
+		glTexCoord2f(1.f, 0.f); glVertex2f(x+460, y-10);
+		glTexCoord2f(0.f, 1.f); glVertex2f(x-10,  iy);
+		glTexCoord2f(1.f, 1.f); glVertex2f(x+460, iy);
 
 		glEnd();
 
 		string cname;
 		stringformatter cfmt = stringformatter(cname);
-		settextscale(.8f);
-		
+		settextscale(.6f);
+
 		loopi(numplayers)
 		{
 			fpsent *o = sg->players[i];
@@ -1332,6 +1322,7 @@ namespace game
 			draw_text(cname, x, y);
 			y += step;
 		}
+
 		settextscale(1.f);
 	}
 
@@ -1401,7 +1392,7 @@ namespace game
 				}
 
 				// draw health
-				lasthp += float((d->health>lasthp)? 1: (d->health<lasthp)? -1: 0) * min(curtime/10.f, abs(d->health-lasthp));
+				lasthp += float((d->health>lasthp)? 1: (d->health<lasthp)? -1: 0) * min(curtime/10.f, float(abs(d->health-lasthp)));
 				lasthp = min(lasthp, (float)d->maxhealth);
 				float b = max(lasthp, 0.f) / d->maxhealth, ba = 1;
 				if (b <= .4f)
@@ -1444,20 +1435,20 @@ namespace game
 						glColor4f(1.f, 0.5f, 0.f, a_alpha);
 					}
 
-					lastap += ((d->armour>lastap)? 1: (d->armour<lastap)? -1: 0) * min(curtime/10.f, abs(d->armour-lastap));
+					lastap += ((d->armour>lastap)? 1: (d->armour<lastap)? -1: 0) * min(curtime/10.f, float(abs(d->armour-lastap)));
 					lastap = min(lastap, (float)maxarmour);
 					float c = max(lastap, 0.f) / (float)maxarmour;
 					drawhudbody(bx, by + (1-c) * h_body_armour->ys, h_body_armour->xs, c * h_body_armour->ys, 1-c);
 				}
- 			
+
 				glPopMatrix();
 
 				char tst[20];
 				int tw, th;
 				if (d->armour > 0)
-					sprintf_s(tst, "%d/%d", d->health, d->armour);
+					sprintf(tst, "%d/%d", d->health, d->armour);
 				else
-					sprintf_s(tst, "%d", d->health);
+					sprintf(tst, "%d", d->health);
 				text_bounds(tst, tw, th);
 				draw_text(tst, bx + (h_body->xs*a_scale)/2 - tw/2, by*a_scale + h_body->ys*a_scale + 6);
 			}
@@ -1466,20 +1457,21 @@ namespace game
        }
     }
 
-	VARP(minradarscale, 0, 384, 10000);
+    VARP(minradarscale, 0, 384, 10000);
     VARP(maxradarscale, 1, 1024, 10000);
-    FVARP(minimapalpha, 0, 0.7, 1);
-	 float calcradarscale()
+    FVARP(minimapalpha, 0, 1, 1);
+
+    float calcradarscale()
     {
         //return radarscale<=0 || radarscale>maxradarscale ? maxradarscale : max(radarscale, float(minradarscale));
         return clamp(max(minimapradius.x, minimapradius.y)/3, float(minradarscale), float(maxradarscale));
     }
-	void drawminimaps(fpsent *d, float x, float y, float s)
+
+    void drawminimap(fpsent *d, float x, float y, float s)
     {
         vec pos = vec(d->o).sub(minimapcenter).mul(minimapscale).add(0.5f), dir;
         vecfromyawpitch(camera1->yaw, 0, 1, 0, dir);
         float scale = calcradarscale();
-		glPushMatrix();
         glBegin(GL_TRIANGLE_FAN);
         loopi(16)
         {
@@ -1489,10 +1481,9 @@ namespace game
             glVertex2f(x + 0.5f*s*(1.0f + v.x), y + 0.5f*s*(1.0f + v.y));
         }
         glEnd();
-		glPopMatrix();
     }
 
-	void drawradar(float x, float y, float s)
+    void drawradar(float x, float y, float s)
     {
         glBegin(GL_TRIANGLE_STRIP);
         glTexCoord2f(0.0f, 0.0f); glVertex2f(x,   y);
@@ -1501,106 +1492,23 @@ namespace game
         glTexCoord2f(1.0f, 1.0f); glVertex2f(x+s, y+s);
         glEnd();
     }
-	void drawblip (fpsent *d, float x, float y, float s, vec pos,int t,float size){
-	float scale = calcradarscale();
+
+    void drawblip(fpsent *d, float x, float y, float s, const vec &pos, bool flagblip)
+    {
+        float scale = calcradarscale();
         vec dir = d->o;
         dir.sub(pos).div(scale);
-        float xoffset =  -size,
-              yoffset = -size,
-              dist = dir.magnitude2(), maxdist = 1 - 0.05f, fade = 1.0;
-        if(dist >= maxdist) return;//dir.mul(maxdist/dist);
-		float zdist = abs(d->feetpos().z - pos.z);
-		if(zdist > t) fade =  t/(zdist*1.5);
-		if(fade <= 0.05f) return;
-		glColor4f(1,1, 1, fade);
+        float size = flagblip ? 0.1f : 0.05f,
+              xoffset = flagblip ? -2*(3/32.0f)*size : -size,
+              yoffset = flagblip ? -2*(1 - 3/32.0f)*size : -size,
+              dist = dir.magnitude2(), maxdist = 1 - 0.05f - 0.05f;
+        if(dist >= maxdist) dir.mul(maxdist/dist);
         dir.rotate_around_z(-camera1->yaw*RAD);
         drawradar(x + s*0.5f*(1.0f + dir.x + xoffset), y + s*0.5f*(1.0f + dir.y + yoffset), size*s);
-	}
-	void drawplayerblit(fpsent *d, float x, float y, float s, int i){
-		fpsent *p = players[i];
-		vec pos = vec(p->o);
-		bool enemy = m_teammode ? strcmp(d->team, p->team) : true;
-		//if(enemy && lastmillis%1000 > 500) return;
-		settexture(!m_infection ? m_teammode ? strcmp(d->team, p->team) ? "data/hud/blip_red.png" : "data/hud/blip_blue.png":"data/hud/blip_red.png": p->infected ? "data/hud/blip_green.png": "data/hud/blip_red.png", 3);
-		drawblip(d,x,y,s,pos,40,0.03);
-	}
-	void drawitemblit(fpsent *d, float x, float y, float s, int i){
-		extentity *p = entities::ents[i];
-			vec pos = vec(p->o);
-			int type = p->type;
-			if(type < I_AMMO) return;
-			else if (type <= I_AMMO4){ settexture("data/hud/blip_ammo.png");}
-			else if (type <= I_HEALTH4){ settexture("data/hud/blip_health.png");}
-			else if (type == I_GREENARMOUR) settexture("data/hud/blip_garmour.png");
-			else if (type == I_YELLOWARMOUR) settexture("data/hud/blip_yarmour.png");
-			else if (type == I_QUAD) settexture("data/hud/blip_quad.png");
-			else return;
-			drawblip(d,x,y,s,pos,20,0.07);
-	}
-	 void drawblip(fpsent *d, float x, float y, float s, int i, int type)
-	 {
-		switch(type){
-		case 0:
-			drawplayerblit(d,x,y,s,i);
-			return;
-		break;
-		case 1:
-			drawitemblit(d,x,y,s,i);
-		break;
-		}
-		//drawblip(d, x, y, s, d->o, false);
-	 }
-
-	void drawhud(fpsent *d, int w, int h)
-    {
-		//drawminimap();
-		//float minimapalpha = 0.7;
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
-        if(minimapalpha >= 1) glDisable(GL_BLEND);
-        bindminimap();
-        drawminimaps(d, x, y, s);
-        #if 0
-        settexture("data/hud/compass.png", 3);
-        glPushMatrix();
-        glTranslatef(x - roffset + 0.5f*rsize, y - roffset + 0.5f*rsize, 0);
-        glRotatef(camera1->yaw + 180, 0, 0, -1);
-        drawradar(-0.5f*rsize, -0.5f*rsize, rsize);
-        glPopMatrix();
-        #endif
-		loopv(entities::ents){
-			extentity *e = entities::ents[i];
-			if(!(d->canpickup(e->type, e->attr1)) && !(e->spawned)) continue; 
-			drawblip(d,x,y,s,i,1);
-		}
-		if(cmode){
-			cmode->drawhud(d,w,h);
-		}
-		 loopv(players)
-        {
-			//fpsent *p = players[i];
-            drawblip(d, x, y, s, i, 0);
-        }
-		 glColor4f(m_teammode || d->infected ?0.7:1, d->infected?1:m_teammode?0.7:1, d->infected? 0.7:1,minimapalpha);
-		//glColor4f(m_teammode?0.7:1, m_teammode?0.7:1, 1, minimapalpha);
-        if(minimapalpha >= 1) glEnable(GL_BLEND);
-        //glColor3f(1, 1, 1);
-        float margin = 0.04f, roffset = s*margin, rsize = s + 2*roffset;
-        settexture("data/hud/radar.png", 3);
-        drawradar(x - roffset, y - roffset, rsize);
-        if(d->state == CS_DEAD )//&& (m_efficiency || !m_protect))
-        {
-            int wait = max(float(cmode? cmode->respawnmillis(player1): spawnwait-float(lastmillis-player1->lastpain))/1000.f, 0.f) +0.8; // add 0.8 so that it looks like it flips to 0 right as u can respawn
-            if(wait>=0)
-            {
-                glPushMatrix();
-                glScalef(2, 2, 1);
-                bool flash = wait>0 && d==player1 && lastspawnattempt>=d->lastpain && lastmillis < lastspawnattempt+100;
-                draw_textf("%s%d", (x+s/2)/2-(wait>=10 ? 28 : 16), (y+s/2)/2-32, flash ? "\f3" : "", wait);
-                glPopMatrix();
-            }
-        }
     }
+
+	VARP(showradar, 0, 1, 1);
+	FVARP(radartexalpha, 0, 0.4f, 1);
 
     void gameplayhud(int w, int h)
     {
@@ -1622,10 +1530,62 @@ namespace game
             if(f) draw_text(colorname(f), w*1800/h - fw - pw, 1200 - fh);
         }
 
+		if (needminimap()) // draw minimap
+		{
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			int s = 1800/4, x = 1800*w/h - s - s/10, y = s/10;
+			glColor4f(1, 1, 1, minimapalpha);
+			if(minimapalpha >= 1) glDisable(GL_BLEND);
+			bindminimap();
+			drawminimap(d, x, y, s);
+			if(minimapalpha >= 1) glEnable(GL_BLEND);
+			glColor4f(1, 1, 1, radartexalpha);
+			float margin = 0.04f, roffset = s*margin, rsize = s + 2*roffset;
+			settexture("data/hud/radar.png", 3);
+			drawradar(x - roffset, y - roffset, rsize);
+			#if 0
+			settexture("data/hud/compass.png", 3);
+			glPushMatrix();
+			glTranslatef(x - roffset + 0.5f*rsize, y - roffset + 0.5f*rsize, 0);
+			glRotatef(camera1->yaw + 180, 0, 0, -1);
+			drawradar(-0.5f*rsize, -0.5f*rsize, rsize);
+			glPopMatrix();
+			#endif
+
+			glColor4f(0.f, 0.f, 1.f, 1.f);
+			loopv(players) if (players[i] != d && isteam(players[i]->team, d->team))
+			{
+				drawblip(d, x, y, s, players[i]->o, false);
+			}
+			glColor4f(0.f, 0.f, 1.f, 1.f);
+			extentity *ent;
+			int lastc = 0;
+			loopv(entities::ents) if (entities::ents[i]->spawned)
+			{
+				ent = entities::ents[i];
+				if (ent->type >= I_HEALTH && ent->type <= I_HEALTH4)
+				{
+					if (lastc != 1) glColor4f(0.f, 1.f, 0.f, 1.f);
+					else lastc = 1;
+				}
+				else if (ent->type >= I_AMMO && ent->type <= I_AMMO4)
+				{
+					if (lastc != 2) glColor4f(1.f, 1.f, 1.f, 1.f);
+					else lastc = 2;
+				}
+				else
+				{
+					if (lastc != 3) glColor4f(1.f, .8f, .3f, 1.f);
+					else lastc = 3;
+				}
+				drawblip(d, x, y, s, ent->o, false);
+			}
+		}
+
         if(d->state!=CS_EDITING)
         {
             if(d->state!=CS_SPECTATOR) drawhudicons(d, w, h);
-            drawhud(d, w, h);
+            if(cmode) cmode->drawhud(d, w, h);
         }
 
 		glPopMatrix();
@@ -1633,8 +1593,8 @@ namespace game
 
     int clipconsole(int w, int h)
     {
-        //if(cmode) return cmode->clipconsole(w, h);
-		return (h*(1 + 1 + 10))/(4*10);
+        if(cmode) return cmode->clipconsole(w, h);
+        return 0;
     }
 
     VARP(teamcrosshair, 0, 1, 1);
@@ -1717,6 +1677,11 @@ namespace game
         }
 #endif
     }
+
+	FVAR(thisver, 0.0f, (float)RR_VERSION, 1e10f);
+	FVARP(latestver, 0.0f, 0.0f, 1e10f);
+	SVARP(latestlink, "");
+	ICOMMAND(newver, "fs", (float *ver, const char *link), { latestver = *ver; strcpy(latestlink, link); });
 
     bool serverinfostartcolumn(g3d_gui *g, int i)
     {

@@ -146,7 +146,7 @@ void renderbackground(const char *caption, Texture *mapshot, const char *mapname
 {
     if(!inbetweenframes && !force) return;
 
-    stopsounds(); // stop sounds while loading
+    if(!mainmenu) stopsounds(); // stop sounds while loading
 
     int w = screen->w, h = screen->h;
     getbackgroundres(w, h);

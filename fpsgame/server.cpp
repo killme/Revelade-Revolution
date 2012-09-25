@@ -232,7 +232,6 @@ namespace server
         string clientmap;
         int mapcrc;
         bool warned, gameclip;
-		bool onfire;
         ENetPacket *clipboard;
         int lastclipboard, needclipboard;
 
@@ -640,7 +639,7 @@ namespace server
 
     void autoteam()
     {
-        static const char *teamnames[2] = {"good", "evil"};
+        static const char *teamnames[2] = {TEAM_0, TEAM_1};
         vector<clientinfo *> team[2];
         float teamrank[2] = {0, 0};
         for(int round = 0, remaining = clients.length(); remaining>=0; round++)
@@ -685,7 +684,7 @@ namespace server
 
     const char *chooseworstteam(const char *suggest = NULL, clientinfo *exclude = NULL)
     {
-        teamrank teamranks[2] = { teamrank("good"), teamrank("evil") };
+        teamrank teamranks[2] = { teamrank(TEAM_0), teamrank(TEAM_1) };
         const int numteams = sizeof(teamranks)/sizeof(teamranks[0]);
         loopv(clients)
         {
@@ -1570,40 +1569,9 @@ namespace server
     void dodamage(clientinfo *target, clientinfo *actor, int damage, int gun, const vec &hitpush = vec(0, 0, 0), bool special = false)
     {
 		if (!actor) return;
-		if(actor != target && (!strcmp(actor->team,target->team)) && (m_teammode))if(gun == WEAP_HEALER) damage*=-1.0; else{return;}
-		float m = 1.0;
-		if(gun == WEAP_PISTOL) actor->state.health = actor->state.maxhealth < (actor->state.health+10) ? actor->state.maxhealth : (actor->state.health + 10);
-		if(gun == WEAP_CROSSBOW) if(target->state.onfire){ damage *= 2.5; conoutf("UBER");}
-		//conoutf("%d", int(target->state.onfire));
-		//float dist = actor->state.o.dist(target->state.o);
-		vec ac (actor->state.o);
-		vec tg (target->state.o);
-		float dist = ((ac.x-tg.x)*(ac.x-tg.x)) + ((ac.x-tg.y)*(ac.x-tg.y)) + ((ac.x-tg.z)*(ac.x-tg.z));
-		//conoutf("%f,%f,%f",ac.x,ac.y,ac.z);
-		//damage is scaled based on distance between players to force players closer to kill eachother
-		if(dist < 100*100){
-			//conoutf("close");
-			m = 1;
-		}else if(dist <400*400){
-			//conoutf("small");
-			m = 0.9;
-		}else if(dist <700*700){
-			//conoutf("medium");
-			m = 0.8;
-		}else if(dist <1000*1000){
-			//conoutf("long");
-			m = 0.6;
-		}else if(dist <1500*1500){
-			//conoutf("distance");
-			m = 0.4;
-		}else{
-			//conoutf("miles");
-			m = 0.2;
-		}
-		damage *= weapons[gun].distmod == 0 ? 1 : weapons[gun].distmod > 0 ? m : abs((1-m)+0.7);
-		gamestate &ts = target->state;
-        ts.dodamage(damage);	
-        actor->state.damage += damage;
+        gamestate &ts = target->state;
+        ts.dodamage(damage);
+        if (damage>0) actor->state.damage += damage;
         sendf(-1, 1, "ri7", N_DAMAGE, target->clientnum, actor->clientnum, damage, ts.armour, ts.health, gun);
         if(target==actor) target->setpushed();
         else if(target!=actor && !hitpush.iszero() && damage>0)
@@ -1700,7 +1668,8 @@ namespace server
 				numrays, numrays*sizeof(ivec)/sizeof(int), rays,
                 ci->ownernum);
 
-		gs.shotdamage += game::getdamageranged(WEAP(gun,damage), gun, headshot, gs.quadmillis, from, to);
+		int damage = game::getdamageranged(WEAP(gun,damage), gun, headshot, gs.quadmillis, from, to);
+		gs.shotdamage += damage;
         switch(WEAPONI(gun))
         {
             case WEAP_ROCKETL: gs.rockets.add(id); break;
@@ -1716,9 +1685,6 @@ namespace server
 
                     totalrays += h.rays;
                     if(totalrays>maxrays) continue;
-                    int damage = h.rays*WEAP(gun,damage);
-                    if(gs.quadmillis) damage *= 4;
-					if (h.headshot) damage *= gun == WEAP_SNIPER ? 2.0 : GUN_HEADSHOT_MUL;
                     dodamage(target, ci, damage, gun, h.dir, h.headshot);
                 }
                 break;
@@ -1770,7 +1736,6 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
-			//ci->onfire = false;
             if(curtime>0 && ci->state.quadmillis) ci->state.quadmillis = max(ci->state.quadmillis-curtime, 0);
             flushevents(ci, gamemillis);
         }
@@ -1825,17 +1790,6 @@ namespace server
                     }
                 }
             }
-			loopv(connects){
-				clientinfo *ci = connects[i];
-				if((ci->state.onfire) && ((ci->state.state == CS_ALIVE && curtime-ci->state.lastburnpain >= 1000))){ // check to see if player is alive or burn time is not up or is not on fire
-					physent *p;
-					p->o = ci->state.o;
-					p->headpos();
-					if(lookupmaterial(vec(p->o.x, p->o.y, p->o.z +5))== MAT_WATER){ ci->state.onfire = false; continue;} //check to see if the player is chest deep in water NOTE: 5 is a hack varible it should be (headpos()-o)/2;
-					int damage = min((weapons[WEAP_FLAMEJET].damage)*1000/max(lastmillis-ci->state.burnmillis, 1000), ci->state.health)*(ci->state.fireattacker->state.quadmillis ? 4 : 1);
-					conoutf("%d dam",damage);
-				}else{ ci->state.onfire = false; conoutf("EXINGUSH");}
-			}
             aiman::checkai();
             if(smode) smode->update();
         }
@@ -2199,7 +2153,7 @@ namespace server
                 ci->state.lasttimeplayed = lastmillis;
 
 				const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
-                copystring(ci->team, m_oneteam? "survivors": (worst ? worst : "good"), MAXTEAMLEN+1);
+                copystring(ci->team, m_oneteam? "survivors": (worst ? worst : TEAM_0), MAXTEAMLEN+1);
 
                 sendwelcome(ci);
                 if(restorescore(ci)) sendresume(ci);
@@ -2775,8 +2729,7 @@ namespace server
             case N_GETMAP:
                 if(mapdata)
                 {
-                    sendf(sender, 1, "ris", N_SERVMSG, "This function is not suported at this time");
-					break;
+                    sendf(sender, 1, "ris", N_SERVMSG, "server sending map...");
                     sendfile(sender, 2, mapdata, "ri", N_SENDMAP);
                     ci->needclipboard = totalmillis;
                 }
@@ -2908,8 +2861,6 @@ namespace server
 				//catt->state.lastburnpain = 0;
 				//catt->state.burnmillis = lastmillis;
 				//catt->state.fireattacker = catt;
-				//clientinfo *ci = getinfo(cvictim);
-				//ci->state.onfire = true;
 				sendf(-1, 1, "riiii", N_SETONFIRE, cattacker, cvictim, gun);
 				//}
 				break;
@@ -2920,8 +2871,6 @@ namespace server
 				int cattacker = getint(p);
 				int cvictim = getint(p);
 				int damage = getint(p);
-				clientinfo *c = getinfo(cvictim);
-				//c->onfire = true;
 				dodamage(getinfo(cvictim), getinfo(cattacker), damage, WEAP_FLAMEJET);
 				break;
 			}

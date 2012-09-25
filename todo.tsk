@@ -37,6 +37,7 @@ Texture material can be specified with the texture definition, different materia
 <task actualstartdate="2012-08-31 10:27:48.502000" completiondate="2012-08-31 11:26:50.013000" id="5d7f8b61-f33d-11e1-84fa-bc5ff4298c11" percentageComplete="100" status="1" subject="DMSP lag" />
 <task actualstartdate="2012-08-15 13:53:48.507000" completiondate="2012-08-21 05:23:09.495000" id="7e06a2b0-e6c7-11e1-a225-bc5ff4298c11" percentageComplete="100" status="1" subject="Fix GUI font size" />
 <task actualstartdate="2012-09-17 01:54:45.818000" icon="led_red_icon" id="829c79a1-0051-11e2-878e-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Send map bug" />
+<task actualstartdate="2012-09-22 06:44:32.574000" icon="led_red_icon" id="d1fda5de-0467-11e2-b915-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Fix death cam" />
 </task>
 <task actualstartdate="2012-07-14 07:48:58.443000" expandedContexts="('taskviewer',)" id="394ff1b0-cd6f-11e1-906b-bc5ff4298c11" status="1" subject="Global">
 <task actualstartdate="2012-07-14 07:49:18.707000" id="4563fc30-cd6f-11e1-9f9a-bc5ff4298c11" status="1" subject="Load maps from Sauerbraten" />
@@ -48,6 +49,14 @@ Texture material can be specified with the texture definition, different materia
 <task actualstartdate="2012-07-14 07:46:27.528000" id="7eb17780-d164-11e1-b525-bc5ff4298c11" status="1" subject="Video playback" />
 <task actualstartdate="2012-07-14 07:50:40.930000" id="7eb17781-d164-11e1-bf2e-bc5ff4298c11" status="1" subject="Dynamic map loading" />
 <task actualstartdate="2012-07-14 07:46:18.481000" id="7eb17782-d164-11e1-8b61-bc5ff4298c11" status="1" subject="Write campaign tutorial" />
+</task>
+<task actualstartdate="2012-09-22 02:10:32.962000" expandedContexts="('taskviewer',)" id="8b37ee1e-0441-11e2-b19c-bc5ff4298c11" status="1" subject="Realism">
+<task actualstartdate="2012-09-22 02:14:25.840000" id="16064b00-0442-11e2-bf25-bc5ff4298c11" status="1" subject="Bullet hit sound" />
+<task actualstartdate="2012-09-22 02:14:38.632000" id="1da6598f-0442-11e2-8ea9-bc5ff4298c11" status="1" subject="More realistic sound effects" />
+<task actualstartdate="2012-09-22 04:40:50.679000" id="8a327f80-0456-11e2-8727-bc5ff4298c11" status="1" subject="More smoke, especially muzzle" />
+<task actualstartdate="2012-09-22 02:10:39.457000" id="8f16fd0f-0441-11e2-a032-bc5ff4298c11" status="1" subject="New explosion effect" />
+<task actualstartdate="2012-09-22 02:10:53.336000" id="975cc180-0441-11e2-97f0-bc5ff4298c11" status="1" subject="Make all bullets weapons (except Sniper Rifle and Slugshot) shoot projectiles" />
+<task actualstartdate="2012-09-22 02:12:56.569000" id="e0d09e8f-0441-11e2-9ee9-bc5ff4298c11" status="1" subject="&quot;Matrix style&quot; bullet effects (visible waves)" />
 </task>
 <task actualstartdate="2012-07-14 07:49:28.170000" completiondate="2012-08-22 06:22:19.025000" expandedContexts="('taskviewer',)" id="969ed840-e6bf-11e1-8341-bc5ff4298c11" percentageComplete="100" status="1" subject="AI">
 <task actualstartdate="2012-07-14 07:49:28.170000" completiondate="2012-08-21 06:22:14.053000" id="4b07eca1-cd6f-11e1-b266-bc5ff4298c11" percentageComplete="100" status="1" subject="Fix infection AI" />
@@ -87,7 +96,7 @@ zombie/player ratio to spawn in infection mode
 </task>
 </task>
 <task actualstartdate="2012-07-14 07:46:14.529000" expandedContexts="('taskviewer',)" id="d79ca70f-cd6e-11e1-90fb-bc5ff4298c11" plannedstartdate="2012-07-14 07:46:14.529000" status="1" subject="Campaign" />
-<category categorizables="09d196a1-cd6f-11e1-aa06-bc5ff4298c11 2afec240-cd8c-11e1-b482-bc5ff4298c11 394ff1b0-cd6f-11e1-906b-bc5ff4298c11 4b07eca1-cd6f-11e1-b266-bc5ff4298c11 969ed840-e6bf-11e1-8341-bc5ff4298c11 a3b86461-cd6f-11e1-b8f0-bc5ff4298c11 a5a4ab80-e6bf-11e1-85d3-bc5ff4298c11 d2860b2e-cbfd-11e1-9e86-bc5ff4298c11" expandedContexts="('categoryviewerintaskeditor', 'categoryviewerintaskeditor1', 'categoryviewerintaskeditor2', 'categoryviewerintaskeditor3', 'categoryviewerintaskeditor4', 'categoryviewerintaskeditor5')" filtered="True" id="4ed06300-d164-11e1-8e9b-bc5ff4298c11" status="1" subject="Programming" />
+<category categorizables="09d196a1-cd6f-11e1-aa06-bc5ff4298c11 2afec240-cd8c-11e1-b482-bc5ff4298c11 394ff1b0-cd6f-11e1-906b-bc5ff4298c11 4b07eca1-cd6f-11e1-b266-bc5ff4298c11 8b37ee1e-0441-11e2-b19c-bc5ff4298c11 969ed840-e6bf-11e1-8341-bc5ff4298c11 a3b86461-cd6f-11e1-b8f0-bc5ff4298c11 a5a4ab80-e6bf-11e1-85d3-bc5ff4298c11 d2860b2e-cbfd-11e1-9e86-bc5ff4298c11" expandedContexts="('categoryviewerintaskeditor', 'categoryviewerintaskeditor1', 'categoryviewerintaskeditor2', 'categoryviewerintaskeditor3', 'categoryviewerintaskeditor4', 'categoryviewerintaskeditor5')" filtered="True" id="4ed06300-d164-11e1-8e9b-bc5ff4298c11" status="1" subject="Programming" />
 <category categorizables="1e3003c0-d562-11e1-b0d8-bc5ff4298c11 a09bd791-cd6e-11e1-8c21-bc5ff4298c11" expandedContexts="('categoryviewerintaskeditor', 'categoryviewerintaskeditor1', 'categoryviewerintaskeditor2', 'categoryviewerintaskeditor3', 'categoryviewerintaskeditor4', 'categoryviewerintaskeditor5')" filtered="True" id="60fe5140-d164-11e1-be3b-bc5ff4298c11" status="1" subject="General" />
 <category categorizables="7eb17780-d164-11e1-b525-bc5ff4298c11 7eb17781-d164-11e1-bf2e-bc5ff4298c11 7eb17782-d164-11e1-8b61-bc5ff4298c11 86e847cf-d164-11e1-8c02-bc5ff4298c11" expandedContexts="('categoryviewerintaskeditor', 'categoryviewerintaskeditor1', 'categoryviewerintaskeditor2', 'categoryviewerintaskeditor3', 'categoryviewerintaskeditor4', 'categoryviewerintaskeditor5')" filtered="True" id="7498eee1-d164-11e1-8a81-bc5ff4298c11" status="1" subject="Campaign" />
 <syncmlconfig>
