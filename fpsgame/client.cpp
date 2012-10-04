@@ -1040,7 +1040,7 @@ namespace game
             {
                 int hasmap = getint(p);
                 if(!hasmap) initmap = true; // we are the first client on this server, set map
-				showgui("playerclass");
+				//showgui("playerclass");
                 break;
             }
 
@@ -1702,14 +1702,29 @@ namespace game
     {
         ucharbuf p(data, len);
         int type = getint(p);
-		char mname[50];
-		getstring(mname, p, 50);
         data += p.length();
         len -= p.length();
         switch(type)
         {
             case N_SENDDEMO:
             {
+				string mname;
+				getstring(mname, p, MAXSTRLEN);
+				int slen = strlen(mname)+1;
+				data += slen;
+				len -= slen;
+
+				static string buf;
+				int format = -1;
+				copystring(buf, demodir);
+				if(demodir[0])
+				{
+					int len = strlen(buf);
+					if(buf[len] != '/' && buf[len] != '\\' && len+1 < (int)sizeof(buf)) { buf[len] = '/'; buf[len+1] = '\0'; }
+					const char *dir = findfile(buf, "w");
+					if(!fileexists(dir, "w")) createdir(dir);
+				}
+
                 defformatstring(fname)("%s/%d_%s.dmo", demodir, lastmillis, mname);
                 stream *demo = openrawfile(fname, "wb");
                 if(!demo) return;

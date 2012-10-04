@@ -1068,6 +1068,7 @@ int main(int argc, char **argv)
     initserver(dedicated>0, dedicated>1);  // never returns if dedicated
     ASSERT(dedicated <= 1);
     game::initclient();
+	game::loadversion();
 
     log("video: mode");
     const SDL_VideoInfo *video = SDL_GetVideoInfo();

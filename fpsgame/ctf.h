@@ -13,7 +13,7 @@ struct ctfclientmode : clientmode
     static const int BASEHEIGHT = 24;
     static const int MAXFLAGS = 20;
     static const int FLAGRADIUS = 16;
-    static const int FLAGLIMIT = 10;
+    //static const int FLAGLIMIT = 10;
     static const int MAXHOLDSPAWNS = 100;
     static const int HOLDSECS = 20;
     static const int HOLDFLAGS = 1;
@@ -285,7 +285,11 @@ struct ctfclientmode : clientmode
         int team = ctfteamflag(ci->team), score = addscore(team, 1);
         if(m_hold) spawnflag(goal);
         sendf(-1, 1, "rii9", N_SCOREFLAG, ci->clientnum, relay, relay >= 0 ? ++flags[relay].version : -1, goal, ++flags[goal].version, flags[goal].spawnindex, team, score, ci->state.flags);
-        if(score >= FLAGLIMIT) startintermission();
+        if(score >= flaglimit)
+		{
+			sendservmsgf(-1, "team %s scored %d flags", ci->team, score);
+			startintermission();
+		}
     }
 
     void takeflag(clientinfo *ci, int i, int version)
@@ -429,11 +433,6 @@ struct ctfclientmode : clientmode
                         (flagblip ? "data/hud/blip_blue_flag.png" : "data/hud/blip_blue.png") :
                         (flagblip ? "data/hud/blip_red_flag.png" : "data/hud/blip_red.png")), 3);
         game::drawblip(d, x, y, s, flagblip ? (f.owner ? f.owner->o : (f.droptime ? f.droploc : f.spawnloc)) : f.spawnloc, flagblip);
-    }
-
-    int clipconsole(int w, int h)
-    {
-        return (h*(1 + 1 + 10))/(4*10);
     }
 
     void drawhud(fpsent *d, int w, int h)
@@ -789,7 +788,7 @@ struct ctfclientmode : clientmode
         conoutf(CON_GAMEINFO, "%s scored for %s team", d==player1 ? "you" : colorname(d), team==ctfteamflag(player1->team) ? "your" : "the enemy");
         playsound(S_FLAGSCORE);
 
-        if(score >= FLAGLIMIT) conoutf(CON_GAMEINFO, "%s team captured %d flags", team==ctfteamflag(player1->team) ? "your" : "the enemy", score);
+        //if(score >= flaglimit) conoutf(CON_GAMEINFO, "%s team captured %d flags", team==ctfteamflag(player1->team) ? "your" : "the enemy", score);
     }
 
     void takeflag(fpsent *d, int i, int version)

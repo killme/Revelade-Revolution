@@ -423,6 +423,7 @@ namespace server
 	});
     SVAR(servermotd, "");
 	VAR(maxzombies, 0, 20, 100);
+	VAR(flaglimit, 0, 2, 100);
 
     void *newclientinfo() { return new clientinfo; }
     void deleteclientinfo(void *ci) { delete (clientinfo *)ci; }
@@ -574,7 +575,7 @@ namespace server
         return bots.inrange(n) ? bots[n] : smode? smode->getcinfo(n+MAXCLIENTS): NULL;
     }
 
-    bool canspawnitem(int type) { return !m_noitems && !m_noammo && ((type>=I_AMMO && type<=I_QUAD) || type==I_WEAPON); }
+    bool canspawnitem(int type) { return !m_noitems && !m_noammo && type>=I_AMMO && type<=I_QUAD; }
 
     int spawntime(int type)
     {
@@ -592,7 +593,6 @@ namespace server
             case I_GREENARMOUR:
             case I_YELLOWARMOUR: sec = 20; break;
             case I_QUAD: sec = 40+rnd(40); break;
-            case I_WEAPON: sec = np*5; break;
         }
         return sec*1000;
     }
@@ -2153,7 +2153,7 @@ namespace server
                 ci->state.lasttimeplayed = lastmillis;
 
 				const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
-                copystring(ci->team, m_oneteam? "survivors": (worst ? worst : TEAM_0), MAXTEAMLEN+1);
+                copystring(ci->team, m_oneteam? "survivor": (worst ? worst : TEAM_0), MAXTEAMLEN+1);
 
                 sendwelcome(ci);
                 if(restorescore(ci)) sendresume(ci);

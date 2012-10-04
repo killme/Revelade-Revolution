@@ -37,7 +37,7 @@ namespace game
 
     void nextweapon(int dir, bool force = false)
     {
-        if(player1->state!=CS_ALIVE) return;
+        if(player1->state!=CS_ALIVE || mainmenu) return;
         dir = (dir < 0 ? NUMWEAPS-1 : 1);
         int gun = player1->gunselect;
         loopi(NUMWEAPS)
@@ -304,6 +304,7 @@ namespace game
 
     VARP(blood, 0, 1, 1);
 	//VARP(dampartsize, 0, 125, 125);
+
     void damageeffect(int damage, fpsent *d, bool thirdperson, bool player)
     {
         vec p = d->o;
@@ -331,7 +332,7 @@ namespace game
 			else if (damage>25) color = 0xFF4B1E;
 			else if (damage<=0) color = 0x007755;
 
-			particle_textcopy(c, ds, PART_TEXT, 3000, color, m_insta? 4.0f: 3.5f+(abs(damage)/14), 8);
+			particle_textcopy(c, ds, PART_TEXT, 3000, color, m_insta? 4.0f: 3.5f+(abs(damage)/14), -8);
         }
     }
 
@@ -492,7 +493,6 @@ namespace game
 					vec to(rnd(100)-50, rnd(100)-50, rnd(100)-50);
 					to.normalize();
 					to.mul((rnd(30)+50)*expscale).add(v);
-					//particle_flying_flare(v, to, 2000, PART_EXP_FLARE, expcolor, 5.0f, 8);
 					particle_flare(v, to, 1500, PART_EXP_FLARE, expcolor, 5.0f, NULL, expgrow);
 				}
 			}
@@ -603,7 +603,7 @@ namespace game
 		{
 			damage = (float)damage * (1.f-clamp(from.dist(to)/(float)WEAP(gun,range), 0.f, 0.9f));
 		}
-		return damage*(quad ? 4 : 1)*/*WEAP(gun,numrays)**/(headshot? GUN_HEADSHOT_MUL: 1.0f);
+		return damage*(quad ? 4 : 1)*(headshot? GUN_HEADSHOT_MUL: 1.0f);
 	}
 
 	int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul)
@@ -613,7 +613,7 @@ namespace game
 		{
 			damage = int((float)damage * (1.f-min(max(distmul - 0.1f, 0.f), 1.f)));
 		}
-		return damage*(quad ? 4 : 1)*/*WEAP(gun,numrays)**/(headshot? GUN_HEADSHOT_MUL: 1.0f);
+		return damage*(quad ? 4 : 1)*(headshot? GUN_HEADSHOT_MUL: 1.0f);
 	}
 
     bool projdamage(dynent *o, projectile &p, vec &v, int qdam, bool &headshot)
@@ -755,10 +755,9 @@ namespace game
 				float ff = clamp(50.f-p.speed, 10.f, 50.f)/50.f;
 				if (p.speed > .01f && p.offsetmillis != 0 && lastmillis-p.offsetmillis >= min((int)(50.f*ff), 10))
 				{
-					//todo: use regular_particle_flame
 					if (WEAP(p.gun,projparts)[1]) regular_particle_splash(projpartpresets[WEAP(p.gun,projparts)[1]].part, projpartpresets[WEAP(p.gun,projparts)[1]].num, min((int)(800.f / ff), 500), v, projpartpresets[WEAP(p.gun,projparts)[1]].color, max((10.f * ff), 1.f), max((int)(60.f * ff), 1), projpartpresets[WEAP(p.gun,projparts)[1]].gravity);
 					if (WEAP(p.gun,projparts)[2]) regular_particle_splash(projpartpresets[WEAP(p.gun,projparts)[2]].part, projpartpresets[WEAP(p.gun,projparts)[1]].num, min((int)(800.f / ff), 500), v, projpartpresets[WEAP(p.gun,projparts)[2]].color, max((10.f * ff), 1.f), max((int)(60.f * ff), 1), projpartpresets[WEAP(p.gun,projparts)[1]].gravity);
-					//if (ff > .6f) regular_particle_flame(PART_SMOKE, v, 7, 6, 0x757065, 2, ff, 10, 400, -30);
+
 					p.offsetmillis = lastmillis;
 					adddynlight(v, WEAP(p.gun,projradius), WEAP(p.gun,color), 100);
 					if (p.local)
@@ -768,7 +767,7 @@ namespace game
 						{
 							dynent *o = iterdynents(i);
 							if (o == p.owner && (ff <= 0.7f || (p.dir.z < -0.5 && (ff >= .99f || ff <= .94f)))) continue;
-							if (o->state == CS_ALIVE && o->o.dist(p.o) < damdist && o->inwater==0 && raycube(p.o, o->o, 1.f, RAY_CLIPMAT|RAY_ALPHAPOLY) >= 0.99f) // stop burning through walls
+							if (o->state == CS_ALIVE && o->o.dist(p.o) < damdist && o->inwater==0) // (&& raycube(p.o, o->o, 1.f, RAY_CLIPMAT|RAY_ALPHAPOLY) >= 0.99f) stop burning through walls
 								setonfire(o, p.owner, p.gun);
 						}
 					}
@@ -871,27 +870,28 @@ namespace game
 		{
 			if (WEAP(gun,numrays) == 1)
 			{
+				//@todo: clean up
 				//particle_splash(PART_SPARK, d->quadmillis ? 100 : 20, 100, to, 0xFFFFFF, 0.1f);
-    //            particle_explodesplash(to, 50, PART_BULLET, 0xFFFFFF, 0.2f, 500, 8);
-    //            //particle_flare(d->muzzle, to, 500, PART_SMOKETRAIL, 0x333333, 0.01f, d, 1);
+				//particle_explodesplash(to, 50, PART_BULLET, 0xFFFFFF, 0.2f, 500, 8);
+				////particle_flare(d->muzzle, to, 500, PART_SMOKETRAIL, 0x333333, 0.01f, d, 1);
 
-    //            particle_splash(PART_SMOKE, 3, 500, to, 0x444444, 1.4f, 50, 504, NULL, 2, NULL, 1);
+				//particle_splash(PART_SMOKE, 3, 500, to, 0x444444, 1.4f, 50, 504, NULL, 2, NULL, 1);
 
-    //            vec lolwut(to);
-    //            lolwut.sub(from);
-    //            lolwut.normalize().mul(6000.0f);
+				//vec lolwut(to);
+				//lolwut.sub(from);
+				//lolwut.normalize().mul(6000.0f);
 
-    //            particle_flying_flare(from, lolwut, 500, PART_BULLET, 0xFFFFFF, 0.5f, 100);
+				//particle_flying_flare(from, lolwut, 500, PART_BULLET, 0xFFFFFF, 0.5f, 100);
 
-    //            particle_splash(PART_SMOKE, 3, 500, d->muzzle, 0x222222, 1.4f, 50, 501, NULL, 2, NULL, 2);
-    //            //particle_trail(1, 1, from, to, 1, 1, 1, true);
+				//particle_splash(PART_SMOKE, 3, 500, d->muzzle, 0x222222, 1.4f, 50, 501, NULL, 2, NULL, 2);
+				////particle_trail(1, 1, from, to, 1, 1, 1, true);
 
-                //particle_flare(d->muzzle, d->muzzle, gun==WEAP_MG ? 100 : 50, PART_MUZZLE_FLASH1, 0xFFFFFF, gun==WEAP_MG ? 3.375f : 1.875f, d);
+				//particle_flare(d->muzzle, d->muzzle, gun==WEAP_MG ? 100 : 50, PART_MUZZLE_FLASH1, 0xFFFFFF, gun==WEAP_MG ? 3.375f : 1.875f, d);
 
-				//if (WEAP(gun,projparts)[1]) partpreset(projpartpresets[WEAP(gun,projparts)[1]], hudgunorigin(gun, from, to, d), d, &to);
-				//if (WEAP(gun,projparts)[2]) partpreset(projpartpresets[WEAP(gun,projparts)[2]], hudgunorigin(gun, from, to, d), d, &to);
-				//if (WEAP(gun,projparts)[3]) partpreset(projpartpresets[WEAP(gun,projparts)[3]], to, d, NULL);
-				//adddecal(WEAP(gun,decal), to, vec(from).sub(to).normalize(), WEAP(gun,decalsize));
+				if (WEAP(gun,projparts)[1]) partpreset(projpartpresets[WEAP(gun,projparts)[1]], hudgunorigin(gun, from, to, d), d, &to);
+				if (WEAP(gun,projparts)[2]) partpreset(projpartpresets[WEAP(gun,projparts)[2]], hudgunorigin(gun, from, to, d), d, &to);
+				if (WEAP(gun,projparts)[3]) partpreset(projpartpresets[WEAP(gun,projparts)[3]], to, d, NULL);
+				adddecal(WEAP(gun,decal), to, vec(from).sub(to).normalize(), WEAP(gun,decalsize));
 			}
 			else
 			{
@@ -1353,19 +1353,21 @@ namespace game
 	ICOMMAND(getplayerclassinfo, "i", (int *i), result(getclassinfo(*i)));
 };
 
+//@todo: remove the following 2 commands before release
+
 ICOMMAND(weapattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int *a6, int *a7), {
-	WEAP(*a1, attackdelay) = *a2;
-	WEAP(*a1, kickamount) = *a3;
-	WEAP(*a1, range) = *a4;
-	WEAP(*a1, power) = *a5;
-	WEAP(*a1, damage) = *a6;
-	WEAP(*a1, numshots) = *a7;
+	WEAP(*a1,attackdelay) = *a2;
+	WEAP(*a1,kickamount) = *a3;
+	WEAP(*a1,range) = *a4;
+	WEAP(*a1,power) = *a5;
+	WEAP(*a1,damage) = *a6;
+	WEAP(*a1,numshots) = *a7;
 });
 ICOMMAND(projattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int *a6, int *a7), {
-	WEAP(*a1, projtype) = *a2;
-	WEAP(*a1, projmdl) = *a3;
-	WEAP(*a1, projspeed) = *a4;
-	WEAP(*a1, projradius) = *a5;
-	WEAP(*a1, projgravity) = *a6;
-	WEAP(*a1, projlife) = *a7;
+	WEAP(*a1,projtype) = *a2;
+	WEAP(*a1,projmdl) = *a3;
+	WEAP(*a1,projspeed) = *a4;
+	WEAP(*a1,projradius) = *a5;
+	WEAP(*a1,projgravity) = *a6;
+	WEAP(*a1,projlife) = *a7;
 });

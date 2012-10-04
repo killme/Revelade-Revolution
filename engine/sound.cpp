@@ -300,7 +300,7 @@ void checkmapsounds()
     const vector<extentity *> &ents = entities::getents();
     if(lookupmaterial(camera1->o)==MAT_WATER)
     {
-        if(waterchan==-1) waterchan = playsound(115, NULL, NULL, -1, NULL, NULL, waterchan);
+        //@todo: if(waterchan==-1) waterchan = playsound(115, NULL, NULL, -1, NULL, NULL, waterchan);
     }
     else
     {

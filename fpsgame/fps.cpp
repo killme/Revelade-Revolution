@@ -26,7 +26,8 @@ namespace game
 		thirdperson = 2;
 		tauntmillis = 250 + lastmillis;
 		
-        //@todo: player1->lasttaunt = lastmillis;
+		//@todo: either fix or remove
+        //player1->lasttaunt = lastmillis;
         //addmsg(N_TAUNT, "rc", player1);
     }
     COMMAND(taunt, "");
@@ -341,7 +342,6 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
-			if(d->inwater) d->onfire = false;
             if(d == player1 || d->ai) continue;
 
             if(d->state==CS_ALIVE)
@@ -730,8 +730,7 @@ namespace game
 
     VARP(showmodeinfo, 0, 1, 1);
 
-	//@todo: [-1] -> [0]
-	VARFP(playerclass, -1, -1, NUMPCS-1, if(player1->playerclass != playerclass) switchplayerclass(playerclass) );
+	VARFP(playerclass, 0, 0, NUMPCS-1, if(player1->playerclass != playerclass) switchplayerclass(playerclass) );
 
     void startgame()
     {
@@ -960,7 +959,7 @@ namespace game
 	bool getround() {if (dopickups){dopickups = false; return true;} return false; }
 	*/
 
-    bool needminimap() { return m_valid(gamemode)/*m_ctf || m_protect || m_hold || m_capture*/; }
+    bool needminimap() { return m_teammode /*m_ctf || m_protect || m_hold || m_capture*/; }
 
     void drawicon(int icon, float x, float y, float sz)
     {
@@ -1158,6 +1157,8 @@ namespace game
 		float aw = ammo_bar->xs * 1.9, ah = ammo_bar->ys * 1.9;
 		float ax = rw - aw, ay = rh - ah;
 
+		//@todo:
+		glColor3f(m_teammode || d->infected ?0.7:1, d->infected?1:m_teammode?0.7:1, d->infected? 0.7:1);
 		glBegin(GL_TRIANGLE_STRIP);
 		glTexCoord2f(0, 0); glVertex2f(ax	,	ay);
 		glTexCoord2f(1, 0); glVertex2f(ax+aw,	ay);
@@ -1552,12 +1553,14 @@ namespace game
 			glPopMatrix();
 			#endif
 
-			glColor4f(0.f, 0.f, 1.f, 1.f);
-			loopv(players) if (players[i] != d && isteam(players[i]->team, d->team))
+			glColor4f(1.f, 1.f, 1.f, 1.f);
+
+			settexture("data/hud/blip_blue.png");
+			loopv(players) if (players[i] != d && isteam(players[i]->team, d->team) && players[i]->state == CS_ALIVE)
 			{
 				drawblip(d, x, y, s, players[i]->o, false);
 			}
-			glColor4f(0.f, 0.f, 1.f, 1.f);
+
 			extentity *ent;
 			int lastc = 0;
 			loopv(entities::ents) if (entities::ents[i]->spawned)
@@ -1565,18 +1568,28 @@ namespace game
 				ent = entities::ents[i];
 				if (ent->type >= I_HEALTH && ent->type <= I_HEALTH4)
 				{
-					if (lastc != 1) glColor4f(0.f, 1.f, 0.f, 1.f);
+					if (lastc != 1) settexture("data/hud/blip_health.png");
 					else lastc = 1;
 				}
 				else if (ent->type >= I_AMMO && ent->type <= I_AMMO4)
 				{
-					if (lastc != 2) glColor4f(1.f, 1.f, 1.f, 1.f);
+					if (lastc != 2) settexture("data/hud/blip_ammo.png");
 					else lastc = 2;
+				}
+				else if (ent->type == I_GREENARMOUR)
+				{
+					if (lastc != 3) settexture("data/hud/blip_garmour.png");
+					else lastc = 3;
+				}
+				else if (ent->type == I_YELLOWARMOUR)
+				{
+					if (lastc != 4) settexture("data/hud/blip_yarmour.png");
+					else lastc = 4;
 				}
 				else
 				{
-					if (lastc != 3) glColor4f(1.f, .8f, .3f, 1.f);
-					else lastc = 3;
+					if (lastc != 5) settexture("data/hud/blip_quad.png");
+					else lastc = 5;
 				}
 				drawblip(d, x, y, s, ent->o, false);
 			}
@@ -1593,8 +1606,7 @@ namespace game
 
     int clipconsole(int w, int h)
     {
-        if(cmode) return cmode->clipconsole(w, h);
-        return 0;
+        return (h*(1 + 1 + 10))/(4*10);
     }
 
     VARP(teamcrosshair, 0, 1, 1);
@@ -1679,9 +1691,17 @@ namespace game
     }
 
 	FVAR(thisver, 0.0f, (float)RR_VERSION, 1e10f);
+	VAR(thispatch, 0, RR_PATCH, 1e10);
+
 	FVARP(latestver, 0.0f, 0.0f, 1e10f);
+	FVARP(latestsize, 0.0f, 0.0f, 1e10);
 	SVARP(latestlink, "");
-	ICOMMAND(newver, "fs", (float *ver, const char *link), { latestver = *ver; strcpy(latestlink, link); });
+	ICOMMAND(newver, "fsf", (float *ver, const char *link, float *fsize), { latestver = *ver; strcpy(latestlink, link); latestsize = *fsize; });
+
+	VARP(latestpatch, 0, 0, 1e10);
+	FVARP(latestpsize, 0.0f, 0.0f, 1e10);
+	SVARP(latestplink, "");
+	ICOMMAND(newpatch, "isf", (int *ver, const char *link, float *fsize), { latestpatch = *ver; strcpy(latestplink, link); latestpsize = *fsize; });
 
     bool serverinfostartcolumn(g3d_gui *g, int i)
     {
@@ -1806,5 +1826,17 @@ namespace game
     {
         execfile("auth.cfg", false);
     }
+
+	void loadversion()
+	{
+		stream *st = openfile("version.txt", "r");
+		if (!st) return;
+		string fmt;
+		st->getline(fmt, sizeof(fmt));
+		thisver = atof(fmt);
+		st->getline(fmt, sizeof(fmt));
+		thispatch = atoi(fmt);
+		st->close();
+	}
 }
 

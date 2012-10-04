@@ -462,7 +462,8 @@ namespace game
                 }
 				else
 				{
-					monsters.removeunordered(i);
+					if (bestenemy == monsters[i]) bestenemy = NULL;
+					delete monsters.removeunordered(i);
 				}
             }
 			if (monsters[i]->onfire && (lastmillis-monsters[i]->burnmillis > 4000 || monsters[i]->inwater))

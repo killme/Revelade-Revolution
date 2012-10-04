@@ -47,7 +47,6 @@ enum                            // static entity types
     ELEVATOR,                   // attr1 = angle, attr2 = idx, attr3 = tag, attr4 = speed
     FLAG,                       // attr1 = angle, attr2 = team
 	CAMERA,
-	I_WEAPON,					// attr1 = weapon
     MAXENTTYPES
 };
 
@@ -391,7 +390,8 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
 #define PROTOCOL_VERSION 261            // bump when protocol changes
 #define DEMO_VERSION 1                  // bump when demo format changes
 #define DEMO_MAGIC "REVREV_DEMO"
-#define RR_VERSION 0.8
+#define RR_VERSION 1.0
+#define RR_PATCH 0
 
 struct demoheader
 {
@@ -496,7 +496,7 @@ struct fpsstate
 
     bool canpickup(int type, int attr = 0)
     {
-        if((type<I_AMMO || type>I_QUAD) && type!=I_WEAPON) return false;
+        if(type<I_AMMO || type>I_QUAD) return false;
         itemstat &is = itemstats[type-I_AMMO];
         switch(type)
         {
@@ -509,7 +509,7 @@ struct fpsstate
             default:
 			{
 				if (infected) return false;
-				return type==I_WEAPON? ammo[attr]<GUN_AMMO_MAX(attr): hasmaxammo();
+				return hasmaxammo();
 			}
         }
     }
@@ -531,9 +531,6 @@ struct fpsstate
             case I_QUAD:
                 quadmillis = min(quadmillis+is.add, is.max);
                 break;
-			case I_WEAPON:
-				ammo[attr] += 2;
-				break;
             default:
 			{
 				const playerclassinfo &pci = playerclasses[playerclass];
@@ -727,6 +724,7 @@ struct fpsent : dynent, fpsstate
         stopattacksound();
         lastnode = -1;
 		onfire = 0;
+		irsm = 0;
     }
 };
 
@@ -780,7 +778,6 @@ namespace game
         virtual ~clientmode() {}
 
         virtual void preload() {}
-        virtual int clipconsole(int w, int h) { return 0; }
         virtual void drawhud(fpsent *d, int w, int h) {}
         virtual void rendergame() {}
         virtual void respawned(fpsent *d) {}

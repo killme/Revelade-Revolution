@@ -52,12 +52,6 @@ namespace entities
             if(e.attr2 > 0) return mapmodelname(e.attr2);
             if(e.attr2 < 0) return NULL;
         }
-		if (e.type == I_WEAPON)
-		{
-			static string mdlname;
-			formatstring(mdlname)("vwep/%s", weapons[e.attr1].file);
-			return mdlname;
-		}
         return e.type < MAXENTTYPES ? entmdlname(e.type) : NULL;
     }
 
@@ -71,9 +65,6 @@ namespace entities
                 case I_AMMO3: case I_AMMO4:
                     if(m_noammo) continue;
                     break;
-				case I_WEAPON:
-					if (m_noweapons) continue;
-					break;
                 case I_HEALTH: case I_HEALTH2: case I_HEALTH3: case I_HEALTH4: 
 				case I_GREENARMOUR: case I_YELLOWARMOUR: case I_QUAD:
                     if(m_noitems) continue;
@@ -103,17 +94,6 @@ namespace entities
                 case TELEPORT:
                     if(e.attr2 < 0) continue;
                     break;
-				case I_WEAPON:
-				{
-					e.attr1 = e.attr1%NUMWEAPS;
-					static int dynlightmillis = 0;
-					if (/*e.spawned &&*/ lastmillis-dynlightmillis>2000)
-					{
-						dynlightmillis = lastmillis;
-						adddynlight(e.o, 20, weapons[e.attr1].color, 2000, 1000, DL_EXPAND);
-					}
-                    break;
-				}
                 default:
                     if(!e.spawned || e.type < I_AMMO || e.type > I_QUAD) continue;
             }
@@ -309,7 +289,7 @@ namespace entities
     void putitems(packetbuf &p)            // puts items in network stream and also spawns them locally
     {
         putint(p, N_ITEMLIST);
-        loopv(ents) if(((ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD) || ents[i]->type==I_WEAPON) && !m_noammo)
+        loopv(ents) if(ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD && !m_noammo)
         {
             putint(p, i);
             putint(p, ents[i]->type);
@@ -322,7 +302,7 @@ namespace entities
     void spawnitems(bool force)
     {
         if(m_noitems) return;
-        loopv(ents) if(((ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD) || ents[i]->type==I_WEAPON) && !m_noammo)
+        loopv(ents) if(ents[i]->type>=I_AMMO && ents[i]->type<=I_QUAD && !m_noammo)
         {
             ents[i]->spawned = force || m_sp || !server::delayspawn(ents[i]->type);
         }
@@ -648,10 +628,6 @@ namespace entities
 				glEnd();
                 break;
             }
-			case I_WEAPON:
-                renderentring(e, 8);
-                break;
-
         }
     }
 

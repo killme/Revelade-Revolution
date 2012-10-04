@@ -1543,7 +1543,7 @@ void regular_particle_flame(int type, const vec &p, float radius, float height, 
     regularflame(type, p, radius, height, color, density, scale, speed, fade, gravity);
 }
 
-static void makeparticles(entity &e) 
+static void makeparticles(entity &e)
 {
     switch(e.attr1)
     {
@@ -1557,12 +1557,12 @@ static void makeparticles(entity &e)
             //regularsplash(PART_SMOKE, 0x897661, 50, 1, 200,  vec(e.o.x, e.o.y, e.o.z+3.0f), 2.4f, -20, 3);
             float radius = e.attr2 ? float(e.attr2)/100.0f : 1.5f,
                   height = e.attr3 ? float(e.attr3)/100.0f : radius/3;
-            regularflame(PART_FLAME, e.o, radius, height, e.attr4 ? colorfromattr(e.attr4) : 0x903020, 3, 2.0f);
-            regularflame(PART_SMOKE, vec(e.o.x, e.o.y, e.o.z + 4.0f*min(radius, height)), radius, height, 0x303020, 1, 4.0f, 100.0f, 2000.0f, -20);
+            regularflame(PART_FLAME, e.o, radius, height, e.attr4 ? colorfromattr(e.attr4) : 0x903020, 3, 2.0f, 20.f);
+            regularflame(PART_SMOKE, vec(e.o.x, e.o.y, e.o.z + 4.0f*min(radius, height)), radius, height, 0x303020, 1, 4.0f, 10.0f, 2000.0f, -20);
 
             vec occlusioncheck;
             vec pos(e.o.x, e.o.y, e.o.z+(e.attr3/14));
-            if(raycubelos(pos, camera1->o, occlusioncheck) && seglow )
+            if(raycubelos(pos, camera1->o, occlusioncheck) && seglow)
                 particle_flare(pos, pos, 1, PART_GLOW, 0x903020, (radius*8)+rndscale(5), NULL);
             break;
         }
@@ -1638,7 +1638,7 @@ static void makeparticles(entity &e)
         case 11: // flame <radius> <height> <rgb> - radius=100, height=100 is the classic size
         {
             float radius = e.attr2 ? float(e.attr2)/100.0f : 1.5f;
-            regularflame(PART_FLAME, e.o, float(e.attr2)/100.0f, float(e.attr3)/100.0f, colorfromattr(e.attr4), 3, 2.0f);
+            regularflame(PART_FLAME, e.o, float(e.attr2)/100.0f, float(e.attr3)/100.0f, colorfromattr(e.attr4), 3, 2.0f, 20.f);
             vec occlusioncheck;
             vec pos(e.o.x, e.o.y, e.o.z+(e.attr3/14));
             if(raycubelos(pos, camera1->o, occlusioncheck) && seglow )
@@ -1646,7 +1646,7 @@ static void makeparticles(entity &e)
             break;
         }
         case 12: // smoke plume <radius> <height> <rgb>
-            regularflame(PART_SMOKE, e.o, float(e.attr2)/100.0f, float(e.attr3)/100.0f, colorfromattr(e.attr4), 1, 4.0f, 100.0f, 2000.0f, -20);
+            regularflame(PART_SMOKE, e.o, float(e.attr2)/100.0f, float(e.attr3)/100.0f, colorfromattr(e.attr4), 1, 4.0f, 10.0f, 2000.0f, -20);
             break;
         case 32: //lens flares - plain/sparkle/sun/sparklesun <red> <green> <blue>
         case 33:
