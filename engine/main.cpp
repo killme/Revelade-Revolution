@@ -1,6 +1,7 @@
 // main.cpp: initialisation & main loop
 
 #include "engine.h"
+#include "../curl/curl.h"
 
 void cleanup()
 {
@@ -29,6 +30,133 @@ void quit()                     // normal exit
     cleanup();
     exit(EXIT_SUCCESS);
 }
+
+// update
+SVAR(dlname, "");
+VAR(dlprogress, 1, -1, 0);
+VAR(dlsize, 1, 0, 0);
+VAR(dlstotal, 1, 0, 0);
+VAR(dlspeed, 1, 0, 0);
+VAR(dlstatus, 1, 0, 0); // 0 = downloading/no download, 1 = successful, 2 = failed, 3 = cancelled
+FILE *dlfile;
+char dlfilepath[1000] = "";
+ICOMMAND(dlfilepath, "", (), result(dlfilepath));
+bool dlcancel;
+CURL *dlhandle = NULL;
+
+size_t downloadwritedata(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+	if (dlcancel) return 0;
+	return fwrite(ptr, size, nmemb, (FILE *)userdata);
+}
+
+float lastdlnow = 0;
+int lastdltime = 0;
+
+int downloadprog(void *a, double dltotal, double dlnow, double ultotal, double ulnow)
+{
+    dlprogress = dlnow/dltotal*100.0;
+	dlsize = dlnow/0x100000; // bytes -> megabytes
+	dlstotal = dltotal/0x100000;
+	int ticks = SDL_GetTicks();
+
+	if (ticks >= lastdltime+1000)
+	{
+		dlspeed = ((dlnow-lastdlnow)/double(ticks-lastdltime)*1.024 + dlspeed)/2.0;
+		lastdlnow = dlnow;
+		lastdltime = SDL_GetTicks();
+	}
+
+    return 0;
+}
+
+int downloadfunc(void * data)
+{
+	CURLcode ret = curl_easy_perform(dlhandle);
+
+    if (ret != 0)   //Connection problems or file doesn't exists
+    {
+        remove(dlfilepath);
+		if (dlcancel)
+		{
+			dlstatus = 3;
+			dlcancel = false;
+			showgui("dl_progress");
+		}
+		else
+		{
+			dlstatus = 2;
+			showgui("dl_progress");
+		}
+    }
+	else
+	{
+		dlstatus = 1;
+		showgui("dl_progress");
+	}
+
+	dlprogress = -1;
+	dlsize = 0;
+	dlstotal = 0;
+	dlspeed = 0;
+	lastdltime = 0;
+
+	curl_easy_cleanup(dlhandle);
+	if (dlfile) fclose(dlfile);
+
+	return 0;
+}
+
+void download(const char *url)
+{
+	if (dlprogress >= 0)
+	{
+		conoutf("\fecan't start new download while an old one is still in progres. "
+				"you must first cancel the active download or wait for it to finish.");
+		return;
+	}
+
+	dlhandle = curl_easy_init();
+	if(!dlhandle) return;
+
+	dlstatus = 0;
+
+	static const char *downloaddir = "downloads" PATHDIVS;
+	const char *dir = findfile(downloaddir, "w");
+	if(!fileexists(dir, "w")) createdir(dir);
+
+	string murl;
+	strcpy(murl, url);
+    curl_easy_setopt(dlhandle, CURLOPT_URL, murl);
+	
+	char *eurl[1000];
+	curl_easy_getinfo(dlhandle, CURLINFO_EFFECTIVE_URL, eurl);
+	for (int i = strlen(*eurl)-1, j = i; i >= 0; i--)
+	{
+		if ((*eurl)[i] == '/' || (*eurl)[i] == '\\' || i == 0)
+		{
+			strncpy(dlname, (i==0)? (*eurl): (*eurl)+i+1, j-i);
+			dlname[j-i] = '\0';
+			break;
+		}
+		else if ((*eurl)[i] == '?') j = i-1;
+	}
+
+	formatstring(dlfilepath)("%s%s", dir, dlname);
+
+	dlfile = fopen(dlfilepath, "wb");
+	curl_easy_setopt(dlhandle, CURLOPT_FOLLOWLOCATION,1);
+	curl_easy_setopt(dlhandle, CURLOPT_WRITEFUNCTION, downloadwritedata);
+	curl_easy_setopt(dlhandle, CURLOPT_WRITEDATA, dlfile);
+	curl_easy_setopt(dlhandle, CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(dlhandle, CURLOPT_PROGRESSFUNCTION, downloadprog);
+	curl_easy_setopt(dlhandle, CURLOPT_PROGRESSDATA, NULL);
+
+	SDL_CreateThread(downloadfunc, dlhandle);
+}
+
+COMMAND(download, "s");
+ICOMMAND(stopdownload, "", (), dlcancel = true);
 
 void fatal(const char *s, ...)    // failure exit
 {

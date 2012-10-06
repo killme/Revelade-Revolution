@@ -1715,7 +1715,6 @@ namespace game
 				len -= slen;
 
 				static string buf;
-				int format = -1;
 				copystring(buf, demodir);
 				if(demodir[0])
 				{

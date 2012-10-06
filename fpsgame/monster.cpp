@@ -523,7 +523,7 @@ namespace game
 	{
 		int lscore = dmround*dmround*level;
 		int tscore = max(((lastmillis-mtimestart)/20000), 1);
-		conoutf("\f2Your score is %d", max(player1->frags*lscore/tscore, 0));
+		conoutf("\f2your score is %d", max(player1->frags*lscore/tscore, 0));
 	}
 
 	void spawnsupport(int num)

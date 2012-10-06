@@ -26,6 +26,7 @@ endif
 ifeq ($(PLATFORM),Linux)
 CLIENT_LIBS+= -lrt
 endif
+CLIENT_LIBS += -lcurl
 CLIENT_OBJS= \
 	shared/crypto.o \
 	shared/geom.o \

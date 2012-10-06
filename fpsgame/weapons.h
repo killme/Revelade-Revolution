@@ -245,13 +245,13 @@ static /*const*/ struct weapinfo {
 #define WEAP_VALID(gun)				(WEAPONI(gun)>=0&&WEAPONI(gun)<=NUMWEAPS)
 #define WEAP_USABLE(gun)			(WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_PISTOL)
 
-#define WEAPONS_PER_CLASS			2
+#define WEAPONS_PER_CLASS			3
 	
 enum
 {
 	PCS_OFFENSE,
 	PCS_DEFENSE,
-	PCS_HEAVY,
+	//PCS_HEAVY,
 	PCS_STEALTH,
 	PCS_ENGINEER,
 	NUMPCS
@@ -259,15 +259,16 @@ enum
 
 static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; char* name; } playerclasses[NUMPCS] =
 {
-	// weap[0]			weap[1]				mxhlth	armourtype	armour	mxspd	name
-	{ {WEAP_SLUGSHOT,	WEAP_MORTAR},		90,		A_GREEN,	50,		80,		"Offense"},
-	{ {WEAP_SNIPER,		WEAP_GRENADIER},	80,		A_YELLOW,	60,		75,		"Defense"},
-	{ {WEAP_MG,			WEAP_ROCKETL},		110,	A_YELLOW,	70,		65,		"Heavy"},
-	{ {WEAP_FLAMEJET,	WEAP_CROSSBOW},		70,		A_GREEN,	40,		115,	"Stealth"},
-	{ {WEAP_HEALER,		WEAP_PISTOL},		60,		A_GREEN,	50,		90,		"Medic"}, // WEAP_BUILD
+	// weap[0]			weap[1]			weap[2]				mxhlth	armourtype	armour	mxspd	name
+	{ {WEAP_SLUGSHOT,	WEAP_MG,		WEAP_PISTOL},		90,		A_GREEN,	50,		80,		"Offense"},
+	//{ {WEAP_SLUGSHOT,	WEAP_MORTAR},						90,		A_GREEN,	50,		80,		"Offense"},
+	{ {WEAP_ROCKETL,	WEAP_SNIPER,	WEAP_GRENADIER,	},	80,		A_YELLOW,	60,		75,		"Defense"},
+	//{ {WEAP_MG,		WEAP_ROCKETL},						110,	A_YELLOW,	70,		65,		"Heavy"},
+	{ {WEAP_FLAMEJET,	WEAP_GRENADIER,	WEAP_CROSSBOW},		70,		A_GREEN,	40,		115,	"Stealth"},
+	{ {WEAP_HEALER,		WEAP_PISTOL,	WEAP_CROSSBOW},		60,		A_GREEN,	50,		90,		"Medic"}, // WEAP_BUILD
 };
 
-static const playerclassinfo zombiepci = { {WEAP_BITE, WEAP_BITE}, 100, A_BLUE, 0, 100, "Zombie"};
+static const playerclassinfo zombiepci = { {WEAP_BITE, WEAP_BITE, WEAP_BITE}, 100, A_BLUE, 0, 100, "Zombie"};
 
 inline bool canshootwith(int playerclass, int gun, int gamemode)
 {

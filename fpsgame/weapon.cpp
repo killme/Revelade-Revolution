@@ -1325,7 +1325,7 @@ namespace game
         }
     }
 
-	char *classinfo[NUMPCS] = { NULL, NULL, NULL, NULL, NULL };
+	char *classinfo[NUMPCS] = { NULL, NULL, NULL, NULL };
 
 	const char *getclassinfo(int c)
 	{

@@ -94,10 +94,12 @@ static inline T min(T a, T b)
 
 #define strcasecmp _stricmp
 #define PATHDIV '\\'
+#define PATHDIVS "\\"
 #else
 #define __cdecl
 #define _vsnprintf vsnprintf
 #define PATHDIV '/'
+#define PATHDIVS "/"
 #endif
 
 // easy safe strings

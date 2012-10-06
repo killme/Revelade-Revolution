@@ -1563,9 +1563,13 @@ namespace game
 
 			extentity *ent;
 			int lastc = 0;
-			loopv(entities::ents) if (entities::ents[i]->spawned)
+			float rscale = calcradarscale();
+			rscale *= rscale;
+			loopv(entities::ents)
 			{
 				ent = entities::ents[i];
+				if (!ent->spawned || ent->o.squaredist(d->o) > rscale) continue;
+
 				if (ent->type >= I_HEALTH && ent->type <= I_HEALTH4)
 				{
 					if (lastc != 1) settexture("data/hud/blip_health.png");
@@ -1591,6 +1595,7 @@ namespace game
 					if (lastc != 5) settexture("data/hud/blip_quad.png");
 					else lastc = 5;
 				}
+
 				drawblip(d, x, y, s, ent->o, false);
 			}
 		}

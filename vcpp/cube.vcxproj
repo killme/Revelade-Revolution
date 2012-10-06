@@ -126,7 +126,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>enet.lib;zdll.lib;opengl32.lib;SDL.lib;SDL_image.lib;ws2_32.lib;SDL_mixer.lib;winmm.lib;dbghelp.lib;kernel32.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>enet.lib;zdll.lib;opengl32.lib;SDL.lib;SDL_image.lib;libcurl.lib;ws2_32.lib;SDL_mixer.lib;winmm.lib;dbghelp.lib;kernel32.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>..\..\..\bin\RR_GAME.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -177,7 +177,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>enet.lib;zdll.lib;opengl32.lib;SDL.lib;SDL_image.lib;SDL_mixer.lib;ws2_32.lib;winmm.lib;dbghelp.lib;kernel32.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>enet.lib;zdll.lib;opengl32.lib;SDL.lib;SDL_image.lib;SDL_mixer.lib;libcurl.lib;ws2_32.lib;winmm.lib;dbghelp.lib;kernel32.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>..\..\..\bin\RR_GAME_debug.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

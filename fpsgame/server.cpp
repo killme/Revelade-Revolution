@@ -423,7 +423,7 @@ namespace server
 	});
     SVAR(servermotd, "");
 	VAR(maxzombies, 0, 20, 100);
-	VAR(flaglimit, 0, 2, 100);
+	VAR(flaglimit, 0, 10, 100);
 
     void *newclientinfo() { return new clientinfo; }
     void deleteclientinfo(void *ci) { delete (clientinfo *)ci; }
