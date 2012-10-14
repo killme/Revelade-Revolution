@@ -176,7 +176,7 @@ namespace game
             delay = 1000;
         }
         modelattach a[5];
-        static const char *vweps[] = {"vwep/fist", "vwep/shotg", "vwep/chaing", "vwep/rocket", "vwep/rifle", "vwep/gl", "vwep/mortar", "vwep/flameg", "vwep/healer", "vwep/cbow", "vwep/pistol"};
+        static const char *vweps[] = {"vwep/fist", "vwep/shotg", "vwep/chaing", "vwep/rocket", "vwep/rifle", "vwep/flameg", "vwep/cbow", "vwep/gl", "vwep/healer", "vwep/mortar", "vwep/pistol"};
         int ai = 0;
         if((!mdl.vwep || d->gunselect!=WEAP_FIST) && d->gunselect<=WEAP_PISTOL && !d->infected)
         {

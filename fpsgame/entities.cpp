@@ -31,7 +31,7 @@ namespace entities
         {
             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
             "ammo/ammo_lv1", "ammo/ammo_lv2", "ammo/ammo_lv3", "ammo/ammo_lv4",
-			"health", "health", "health", "health",
+			"health", "health", "health", "vwep/mortar",
 			"armor/green", "armor/yellow", "quad", "teleporter",
             NULL, NULL,
             "carrot",
@@ -62,10 +62,10 @@ namespace entities
             switch(i)
             {
                 case I_AMMO:  case I_AMMO2:
-                case I_AMMO3: case I_AMMO4:
+                case I_AMMO3: case I_AMMO4: case I_MORTAR:
                     if(m_noammo) continue;
                     break;
-                case I_HEALTH: case I_HEALTH2: case I_HEALTH3: case I_HEALTH4: 
+                case I_HEALTH: case I_HEALTH2: case I_HEALTH3:
 				case I_GREENARMOUR: case I_YELLOWARMOUR: case I_QUAD:
                     if(m_noitems) continue;
                     break;
@@ -643,7 +643,7 @@ namespace entities
         {
             "none?", "light", "mapmodel", "playerstart", "envmap", "particles", "sound", "spotlight",
             "ammo_lv1", "ammo_lv2", "ammo_lv3", "ammo_lv4",
-			"health_lv1", "health_lv2", "health_lv3", "health_lv4",
+			"health_lv1", "health_lv2", "health_lv3", "mortar",
 			"greenarmour", "yellowarmour", "quaddamage",
             "teleport", "teledest",
             "monster", "carrot", "jumppad",

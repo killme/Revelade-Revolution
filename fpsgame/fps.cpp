@@ -563,7 +563,6 @@ namespace game
     void deathstate(fpsent *d, bool restore)
     {
         d->state = CS_DEAD;
-		if(d == player1) killcamstate(1);	
         d->lastpain = lastmillis;
         if(!restore) gibeffect(max(-d->health, 0), d->vel, d);
         if(d==player1)
@@ -631,9 +630,13 @@ namespace game
 		if(d == player1)d->lastkilled = actor;
     }
 
-	VAR(killcamera,0,0,3);
-	int killcamstate(int i){ if (i==-1)return killcamera; setvar("killcamera", i); return killcamera;}
-	dynent *getkillcam(){return !followingplayer() ? player1->lastkilled  ? player1->lastkilled : player1 : followingplayer();}
+	dynent *followcam()
+	{
+		fpsent *d = followingplayer();
+		if (!d && player1->lastpain < lastmillis-1000)
+			return (player1->state == CS_DEAD && player1->lastkilled)? player1->lastkilled: player1;
+		return d;
+	}
 
     void timeupdate(int secs)
     {
@@ -1570,7 +1573,7 @@ namespace game
 				ent = entities::ents[i];
 				if (!ent->spawned || ent->o.squaredist(d->o) > rscale) continue;
 
-				if (ent->type >= I_HEALTH && ent->type <= I_HEALTH4)
+				if (ent->type >= I_HEALTH && ent->type <= I_HEALTH3)
 				{
 					if (lastc != 1) settexture("data/hud/blip_health.png");
 					else lastc = 1;
@@ -1590,10 +1593,15 @@ namespace game
 					if (lastc != 4) settexture("data/hud/blip_yarmour.png");
 					else lastc = 4;
 				}
+				else if (ent->type == I_MORTAR)
+				{
+					if (lastc != 5) settexture("data/hud/blip_red.png");
+					else lastc = 5;
+				}
 				else
 				{
-					if (lastc != 5) settexture("data/hud/blip_quad.png");
-					else lastc = 5;
+					if (lastc != 6) settexture("data/hud/blip_quad.png");
+					else lastc = 6;
 				}
 
 				drawblip(d, x, y, s, ent->o, false);

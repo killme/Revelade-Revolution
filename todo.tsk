@@ -17,28 +17,25 @@
 <task actualstartdate="2012-08-21 05:30:26.276000" icon="led_red_icon" id="2a926a40-eb38-11e1-97ac-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Add capture modes" />
 <task id="2b65ec00-f33d-11e1-b337-bc5ff4298c11" status="1" subject="Rocket projectile sway" />
 <task actualstartdate="2012-09-17 20:36:52.986000" icon="led_red_icon" id="44bb2cb0-00ee-11e2-a80f-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Add rat spawning and bying to coop survival" />
-<task actualstartdate="2012-09-01 01:57:45.057000" id="46d62d0f-f3bf-11e1-9793-bc5ff4298c11" status="1" subject="Projectile sound" />
-<task actualstartdate="2012-08-31 10:27:13.958000" id="48e88c5e-f33d-11e1-8358-bc5ff4298c11" status="1" subject="Water drops" />
+<task id="48e88c5e-f33d-11e1-8358-bc5ff4298c11" status="1" subject="Water drops" />
 <task actualstartdate="2012-08-07 04:07:49.711000" completiondate="2012-08-07 05:43:22.768000" id="4e721df0-e02c-11e1-80f1-bc5ff4298c11" percentageComplete="100" status="1" subject="Range based damage calculation" />
 <task actualstartdate="2012-08-07 04:08:26.639000" completiondate="2012-08-14 06:14:45.936000" id="6474e1f0-e02c-11e1-8204-bc5ff4298c11" percentageComplete="100" status="1" subject="Team HUD below radar" />
-<task actualstartdate="2012-09-05 15:24:07.659000" id="96c45bae-f754-11e1-9627-bc5ff4298c11" status="1" subject="Per texture material">
-<description>
-Texture material can be specified with the texture definition, different materials (wood, metal, concrete, ...) would produce different sounds, decals, particles, ... upon bullet impact or explosion, and different footstep sounds.
-</description>
-</task>
+<task actualstartdate="2012-10-09 18:03:07.866000" icon="led_red_icon" id="6f37eb9e-1222-11e2-8fbf-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Parse download header and extract filename" />
 <task actualstartdate="2012-09-07 06:32:32.235000" id="a87063ae-f89c-11e1-98b2-bc5ff4298c11" status="1" subject="Weapon charge" />
+<task actualstartdate="2012-10-09 18:04:44.378000" completiondate="2012-10-12 17:49:38.980000" icon="led_red_icon" id="a8be7ba1-1222-11e2-94bb-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Add Mortar as a pickup" />
+<task actualstartdate="2012-10-09 19:03:26.833000" icon="led_red_icon" id="dc4a9d21-122a-11e2-9115-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Arrows should stick to the wall" />
 <task actualstartdate="2012-09-05 15:33:17.627000" id="de92d0b0-f755-11e1-b42f-bc5ff4298c11" status="1" subject="Automatic map downloading from server" />
 <task actualstartdate="2012-08-31 11:21:42.381000" completiondate="2012-08-31 11:59:12.723000" id="e50a78de-f344-11e1-9f01-bc5ff4298c11" percentageComplete="100" status="1" subject="Add option for selecting male/female voice" />
 </task>
 <task actualstartdate="2012-07-14 11:16:09.828000" expandedContexts="('taskviewer',)" id="2afec240-cd8c-11e1-b482-bc5ff4298c11" status="1" subject="Bugs">
-<task actualstartdate="2012-09-17 20:49:48.254000" icon="led_red_icon" id="12d387de-00f0-11e2-a257-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Fix AI for healer weapon" />
+<task actualstartdate="2012-09-17 20:49:48.254000" icon="led_red_icon" id="12d387de-00f0-11e2-a257-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Fix AI for healer weapon (or change healer behavior)" />
 <task actualstartdate="2012-07-14 11:16:18.828000" completiondate="2012-07-14 12:30:03.191000" id="305c0cc0-cd8c-11e1-942b-bc5ff4298c11" percentageComplete="100" status="1" subject="Stealth class speed tolerance" />
 <task actualstartdate="2012-08-15 14:56:17.932000" completiondate="2012-08-23 07:14:01.673000" id="38db7cc0-e6d0-11e1-96ea-bc5ff4298c11" percentageComplete="100" status="1" subject="Fix logging" />
 <task actualstartdate="2012-08-31 10:27:48.502000" completiondate="2012-08-31 11:26:50.013000" id="5d7f8b61-f33d-11e1-84fa-bc5ff4298c11" percentageComplete="100" status="1" subject="DMSP lag" />
 <task actualstartdate="2012-10-04 17:40:12.611000" icon="led_red_icon" id="676fe930-0e31-11e2-ae28-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Survival crash bug" />
 <task actualstartdate="2012-08-15 13:53:48.507000" completiondate="2012-08-21 05:23:09.495000" id="7e06a2b0-e6c7-11e1-a225-bc5ff4298c11" percentageComplete="100" status="1" subject="Fix GUI font size" />
 <task actualstartdate="2012-09-17 01:54:45.818000" completiondate="2012-10-04 17:34:01.752000" icon="led_red_icon" id="829c79a1-0051-11e2-878e-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Send map bug" />
-<task actualstartdate="2012-09-22 06:44:32.574000" icon="led_red_icon" id="d1fda5de-0467-11e2-b915-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Fix death cam" />
+<task actualstartdate="2012-09-22 06:44:32.574000" completiondate="2012-10-12 17:50:04.011000" icon="led_red_icon" id="d1fda5de-0467-11e2-b915-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Fix death cam" />
 </task>
 <task actualstartdate="2012-07-14 07:48:58.443000" expandedContexts="('taskviewer',)" id="394ff1b0-cd6f-11e1-906b-bc5ff4298c11" status="1" subject="Global">
 <task actualstartdate="2012-07-14 07:49:18.707000" id="4563fc30-cd6f-11e1-9f9a-bc5ff4298c11" status="1" subject="Load maps from Sauerbraten" />
@@ -51,11 +48,17 @@ Texture material can be specified with the texture definition, different materia
 <task actualstartdate="2012-07-14 07:50:40.930000" id="7eb17781-d164-11e1-bf2e-bc5ff4298c11" status="1" subject="Dynamic map loading" />
 <task actualstartdate="2012-07-14 07:46:18.481000" id="7eb17782-d164-11e1-8b61-bc5ff4298c11" status="1" subject="Write campaign tutorial" />
 </task>
-<task actualstartdate="2012-09-22 02:10:32.962000" expandedContexts="('taskviewer',)" id="8b37ee1e-0441-11e2-b19c-bc5ff4298c11" status="1" subject="Realism">
+<task actualstartdate="2012-09-01 01:57:45.057000" expandedContexts="('taskviewer',)" id="8b37ee1e-0441-11e2-b19c-bc5ff4298c11" status="1" subject="Realism">
 <task actualstartdate="2012-09-22 02:14:25.840000" id="16064b00-0442-11e2-bf25-bc5ff4298c11" status="1" subject="Bullet hit sound" />
 <task actualstartdate="2012-09-22 02:14:38.632000" id="1da6598f-0442-11e2-8ea9-bc5ff4298c11" status="1" subject="More realistic sound effects" />
+<task actualstartdate="2012-09-01 01:57:45.057000" id="46d62d0f-f3bf-11e1-9793-bc5ff4298c11" status="1" subject="Projectile sound" />
 <task actualstartdate="2012-09-22 04:40:50.679000" id="8a327f80-0456-11e2-8727-bc5ff4298c11" status="1" subject="More smoke, especially muzzle" />
 <task actualstartdate="2012-09-22 02:10:39.457000" completiondate="2012-09-24 01:17:22.753000" id="8f16fd0f-0441-11e2-a032-bc5ff4298c11" percentageComplete="100" status="1" subject="New explosion effect" />
+<task actualstartdate="2012-09-05 15:24:07.659000" id="96c45bae-f754-11e1-9627-bc5ff4298c11" status="1" subject="Per texture material">
+<description>
+Texture material can be specified with the texture definition, different materials (wood, metal, concrete, ...) would produce different sounds, decals, particles, ... upon bullet impact or explosion, and different footstep sounds.
+</description>
+</task>
 <task actualstartdate="2012-09-22 02:10:53.336000" id="975cc180-0441-11e2-97f0-bc5ff4298c11" status="1" subject="Make all bullet weapons (except Sniper Rifle and Slugshot) shoot projectiles" />
 <task actualstartdate="2012-09-22 02:12:56.569000" completiondate="2012-09-24 01:17:45.034000" id="e0d09e8f-0441-11e2-9ee9-bc5ff4298c11" percentageComplete="100" status="1" subject="&quot;Matrix style&quot; bullet effects (visible waves)" />
 </task>
@@ -85,12 +88,12 @@ Texture material can be specified with the texture definition, different materia
 amount of flags you have to get to win a ctf or protect the flag game [-1, 64]. default: 10
 </description>
 </task>
-<task actualstartdate="2012-10-04 17:54:39.251000" icon="led_red_icon" id="2281dbd1-cc19-11e1-b5b7-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="timelimit">
+<task actualstartdate="2012-10-04 17:54:39.251000" completiondate="2012-10-07 17:20:42.048000" icon="led_red_icon" id="2281dbd1-cc19-11e1-b5b7-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="timelimit">
 <description>
 default time for all modes. multiplied by 1.5 for overtime
 </description>
 </task>
-<task actualstartdate="2012-07-12 15:00:49.541000" icon="led_red_icon" id="38b43b4f-cc19-11e1-9b8c-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="zombieratio">
+<task icon="led_red_icon" id="38b43b4f-cc19-11e1-9b8c-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="zombieratio">
 <description>
 zombie/player ratio to spawn in infection mode
 </description>

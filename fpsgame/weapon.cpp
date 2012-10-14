@@ -2,7 +2,6 @@
 #include "game.h"
 #include "weapons.h"
 
-VARP(instaweapon, 0, 6, 9); // game modifier
 VARP(quakemillis, 0, 400, 10000);
 
 namespace game
@@ -429,9 +428,11 @@ namespace game
 		{
 			if (dist<WEAP(gun,projradius))
 			{
-				int damage = (int)(qdam*(1-dist/GUN_EXP_DISTSCALE/WEAP(gun,projradius)));
+				//int damage = (int)(qdam*(1-dist/GUN_EXP_DISTSCALE/WEAP(gun,projradius)));
+				int damage = getdamageranged(qdam, gun, false, at->quadmillis, dist/WEAP(gun,projradius));
 				if (o==at) damage /= GUN_EXP_SELFDAMDIV;
 				hit(damage, o, at, dir, gun, dist);
+				//int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul);
 			}
 		}
 		else if (dist<WEAP(gun,projradius)) hit(qdam, o, at, v, gun, 1.0f); // fix this?
@@ -557,7 +558,7 @@ namespace game
                         pos.add(vec(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)));
                         explode(p.local, p.owner, pos, NULL, 0, gun);
                         adddecal(WEAP(gun,decal), pos, vec(p.dir).neg(), WEAP(gun,projradius));
-                        projs.remove(i);
+						projs.remove(i);
                         break;
                     }
                 }
@@ -585,14 +586,9 @@ namespace game
         }
     }
 	
-	bool getdamage(int &damage, fpsent *d, int gun, vec from, vec to)
+	bool isheadshot(dynent *d, vec from, vec to)
 	{
-		float a = (to.z - (d->o.z - d->eyeheight)) / (d->eyeheight + d->aboveeye);
-		if (a > 0.8)
-		{
-			damage *= GUN_HEADSHOT_MUL;
-			return true;
-		}
+		if ((to.z - (d->o.z - d->eyeheight)) / (d->eyeheight + d->aboveeye) > 0.8f) return true;
 		return false;
 	}
 
@@ -609,7 +605,7 @@ namespace game
 	int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul)
 	{
 		int dam = damage;
-		if (!WEAP_IS_EXPLOSIVE(gun))
+		if (WEAP_IS_EXPLOSIVE(gun))
 		{
 			damage = int((float)damage * (1.f-min(max(distmul - 0.1f, 0.f), 1.f)));
 		}
@@ -622,8 +618,9 @@ namespace game
         if(!intersect(o, p.o, v)) return false;
         projsplash(p, v, o, qdam);
         vec dir;
-        projdist(o, dir, v);
-		if (p.owner==player1 && getdamage(qdam, p.owner, p.gun, v, v)) headshot = true;
+        float dist = projdist(o, dir, v);
+		headshot = isheadshot(o, p.o, v);
+		qdam = getdamageranged(qdam, p.gun, headshot, p.owner->quadmillis, dist);
         hit(qdam, o, p.owner, dir, p.gun, 1.f, 1, headshot);
         return true;
     }
@@ -635,7 +632,7 @@ namespace game
         //projsplash(p, v, o, qdam);
         vec dir;
         projdist(o, dir, v);
-		getdamage(qdam, p.owner, p.gun, v, dir);
+		//getdamage(qdam, p.owner, p.gun, v, dir);
         hit(qdam, o, p.owner, dir, p.gun, 0);
         return true;
     }
@@ -705,7 +702,6 @@ namespace game
 				if(p.local)
 				{
 					dynent *o = intersectclosest(p.o, v, p.owner, barrier);
-					vec v2(v);
 					if (o && projdamage(o, p, v, qdam, headshot))
 					{
 						exploded = true;
@@ -1044,7 +1040,7 @@ namespace game
 			headshot = false;
 			if (qdam>0)
 			{
-				headshot = getdamage(qdam, (fpsent*)o, d->gunselect, from, to);
+				headshot = isheadshot((fpsent*)o, from, to);
 				qdam = getdamageranged(qdam, gun, false, false, from, to);
 			}
             shorten(from, to, dist);
@@ -1052,15 +1048,15 @@ namespace game
         }
     }
 
-	VARP(weaponsallowed, 0, 0, 2);
+	int allowedweaps = 0;
 
 	void shoot(fpsent *d, const vec &targ)
     {
         int prevaction = d->lastaction, attacktime = lastmillis-prevaction, gun = d->gunselect+(d->altfire?1024:0);
-		if (weaponsallowed != 0)
+		if (allowedweaps != 0)
 		{
 			gun %= 1024;
-			gun += (weaponsallowed==2)? 1024: 0;
+			gun += (allowedweaps==2)? 1024: 0;
 		}
         if(attacktime<d->gunwait || !inputenabled) return;
         d->gunwait = 0;
@@ -1355,6 +1351,7 @@ namespace game
 
 //@todo: remove the following 2 commands before release
 
+/*
 ICOMMAND(weapattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int *a6, int *a7), {
 	WEAP(*a1,attackdelay) = *a2;
 	WEAP(*a1,kickamount) = *a3;
@@ -1371,3 +1368,4 @@ ICOMMAND(projattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int 
 	WEAP(*a1,projgravity) = *a6;
 	WEAP(*a1,projlife) = *a7;
 });
+*/

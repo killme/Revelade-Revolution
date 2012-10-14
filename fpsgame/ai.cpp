@@ -405,7 +405,7 @@ namespace ai
         float score = 0;
         switch(e.type)
         {
-            case I_HEALTH: case I_HEALTH2: case I_HEALTH3: case I_HEALTH4: 
+            case I_HEALTH: case I_HEALTH2: case I_HEALTH3:
                 if(d->health < min(d->skill, 75)) score = 1e3f;
                 break;
             case I_QUAD: score = 1e3f; break;
@@ -416,6 +416,7 @@ namespace ai
                 else if(d->armour < 50) score = 1e1f;
                 break;
             }
+			case I_MORTAR: score = clamp(MORTAR_MAX_AMMO-d->ammo[WEAP_MORTAR], 0, MORTAR_MAX_AMMO)*1e2f;
             default:
             {
                 if(e.type >= I_AMMO && e.type <= I_AMMO4 && !(d->hasmaxammo()))
@@ -558,7 +559,7 @@ namespace ai
         d->ai->clearsetup();
         d->ai->reset(tryreset);
         d->ai->lastrun = lastmillis;
-        if(m_insta) d->ai->weappref = (connected)? WEAP_CROSSBOW: instaweapon;
+        if(m_insta) d->ai->weappref = WEAP_CROSSBOW;
         else
         {
         	if(forcegun >= 0 && forcegun < NUMWEAPS) d->ai->weappref = forcegun;
@@ -589,9 +590,9 @@ namespace ai
                 bool wantsitem = false;
                 switch(entities::ents[ent]->type)
                 {
-                    case I_HEALTH: case I_HEALTH2: case I_HEALTH3:
-					case I_HEALTH4: wantsitem = badhealth(d); break;
+                    case I_HEALTH: case I_HEALTH2: case I_HEALTH3: wantsitem = badhealth(d); break;
                     case I_GREENARMOUR: case I_YELLOWARMOUR: case I_QUAD: break;
+					case I_MORTAR: wantsitem = d->ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO;
                     default:
                     {
                         //itemstat &is = itemstats[entities::ents[ent]->type-I_AMMO];

@@ -31,7 +31,7 @@ enum                            // static entity types
     MAPSOUND = ET_SOUND,
     SPOTLIGHT = ET_SPOTLIGHT,
     I_AMMO, I_AMMO2, I_AMMO3, I_AMMO4,
-	I_HEALTH, I_HEALTH2, I_HEALTH3, I_HEALTH4,
+	I_HEALTH, I_HEALTH2, I_HEALTH3, I_MORTAR,
     I_GREENARMOUR, I_YELLOWARMOUR,
     I_QUAD,
     TELEPORT,                   // attr1 = idx, attr2 = model, attr3 = tag
@@ -450,7 +450,7 @@ static struct itemstat { int add, max, sound; const char *name; int icon, info; 
 	{10,    1000,   S_ITEMHEALTH,  "H1", HICON_HEALTH, 1},
     {25,    1000,   S_ITEMHEALTH,  "H2", HICON_HEALTH, 2},
     {50,    1000,   S_ITEMHEALTH,  "H3", HICON_HEALTH, 3},
-    {100,   1000,   S_ITEMHEALTH,  "H4", HICON_HEALTH, 4},
+    {2,     1000,   S_ITEMAMMO,    "MT", HICON_AMMO,   4},
 
 	{100,   100,   S_ITEMARMOUR, "GA", HICON_GREEN_ARMOUR, A_GREEN},
     {200,   200,   S_ITEMARMOUR, "YA", HICON_YELLOW_ARMOUR, A_YELLOW},
@@ -500,12 +500,13 @@ struct fpsstate
         itemstat &is = itemstats[type-I_AMMO];
         switch(type)
         {
-            case I_HEALTH: case I_HEALTH2: case I_HEALTH3: case I_HEALTH4: return health<maxhealth;
+            case I_HEALTH: case I_HEALTH2: case I_HEALTH3: return health<maxhealth;
             case I_GREENARMOUR:
                 // (100h/100g only absorbs 200 damage)
                 if(armourtype==A_YELLOW && armour>=100) return false;
             case I_YELLOWARMOUR: return !armourtype || armour<is.max;
             case I_QUAD: return quadmillis<is.max;
+			case I_MORTAR: return ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO;
             default:
 			{
 				if (infected) return false;
@@ -520,7 +521,7 @@ struct fpsstate
         itemstat &is = itemstats[type-I_AMMO];
         switch(type)
         {
-            case I_HEALTH: case I_HEALTH2: case I_HEALTH3: case I_HEALTH4:
+            case I_HEALTH: case I_HEALTH2: case I_HEALTH3:
                 health = min(health+is.add, maxhealth);
                 break;
             case I_GREENARMOUR:
@@ -531,6 +532,8 @@ struct fpsstate
             case I_QUAD:
                 quadmillis = min(quadmillis+is.add, is.max);
                 break;
+			case I_MORTAR:
+				ammo[WEAP_MORTAR] = MORTAR_MAX_AMMO;
             default:
 			{
 				const playerclassinfo &pci = playerclasses[playerclass];
@@ -850,11 +853,6 @@ namespace game
     extern void timeupdate(int timeremain);
     extern void msgsound(int n, physent *d = NULL);
     extern void drawicon(int icon, float x, float y, float sz = 120);
-	/*
-	extern bool getround();
-	extern bool didbuy();
-	extern void canbuy(int price);
-	*/
 	extern void drawroundicon(int w, int h);
     const char *mastermodecolor(int n, const char *unknown);
     const char *mastermodeicon(int n, const char *unknown);
@@ -941,15 +939,13 @@ namespace game
     extern void gunselect(int gun, fpsent *d);
     extern void avoidweapons(ai::avoidset &obstacles, float radius);
 	extern void setonfire(dynent *d, dynent *attacker, int gun, bool local = true);
+	extern bool isheadshot(dynent *d, vec from, vec to);
 	extern int getdamageranged(int damage, int gun, bool headshot, bool quad, vec from, vec to);
 	extern int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul);
 
-	extern float damage_headshot;
-	extern float damage_torsoshot;
-	extern float damage_armshot;
-	extern float damage_legshot;
 	extern ivec shotraysm[GUN_MAX_RAYS];
 	extern vec shotrays[GUN_MAX_RAYS];
+	extern int allowedweaps;
 
     // scoreboard
     struct scoregroup : teamscore

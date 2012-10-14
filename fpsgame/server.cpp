@@ -424,6 +424,8 @@ namespace server
     SVAR(servermotd, "");
 	VAR(maxzombies, 0, 20, 100);
 	VAR(flaglimit, 0, 10, 100);
+	VAR(timelimit, 0, 10, 1000);
+	VAR(allowweaps, 0, 0, 2);
 
     void *newclientinfo() { return new clientinfo; }
     void deleteclientinfo(void *ci) { delete (clientinfo *)ci; }
@@ -589,10 +591,10 @@ namespace server
 			case I_AMMO2: case I_AMMO3:
 			case I_AMMO4: sec = np*4; break;
             case I_HEALTH: case I_HEALTH2:
-			case I_HEALTH3: case I_HEALTH4: sec = np*5; break;
+			case I_HEALTH3: sec = np*5; break;
             case I_GREENARMOUR:
             case I_YELLOWARMOUR: sec = 20; break;
-            case I_QUAD: sec = 40+rnd(40); break;
+            case I_MORTAR: case I_QUAD: sec = 40+rnd(40); break;
         }
         return sec*1000;
     }
@@ -1292,6 +1294,7 @@ namespace server
         int hasmap = (m_edit && (clients.length()>1 || (ci && ci->local))) || (smapname[0] && (!m_timed || gamemillis<gamelimit || (ci && ci->state.state==CS_SPECTATOR && !ci->privilege && !ci->local) || numclients(ci ? ci->clientnum : -1, true, true, true)));
         putint(p, N_WELCOME);
         putint(p, hasmap);
+		putint(p, allowweaps);
         if(hasmap)
         {
             putint(p, N_MAPCHANGE);
@@ -1421,7 +1424,7 @@ namespace server
         mapreload = false;
         gamemode = mode;
         gamemillis = 0;
-        gamelimit = (m_overtime ? 15 : 10)*60000;
+        gamelimit = timelimit*(m_overtime? 90000: 60000);
         interm = 0;
         nextexceeded = 0;
         copystring(smapname, s);

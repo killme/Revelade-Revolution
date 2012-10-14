@@ -348,9 +348,9 @@ namespace game
     ICOMMAND(checkmaps, "", (), addmsg(N_CHECKMAPS, "r"));
 
     VARP(localmode, STARTGAMEMODE, 1, STARTGAMEMODE + NUMGAMEMODES - 1);
-    SVARP(localmap, "main");
+    SVARP(localmap, "hospital");
     VARP(lobbymode, STARTGAMEMODE, 0, STARTGAMEMODE + NUMGAMEMODES - 1);
-    SVARP(lobbymap, "main");
+    SVARP(lobbymap, "hospital");
 
     int gamemode = INT_MAX, nextmode = INT_MAX;
     string clientmap = "";
@@ -1040,6 +1040,7 @@ namespace game
             {
                 int hasmap = getint(p);
                 if(!hasmap) initmap = true; // we are the first client on this server, set map
+				allowedweaps = getint(p);
 				//showgui("playerclass");
                 break;
             }

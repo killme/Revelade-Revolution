@@ -863,6 +863,7 @@ void mousemove(int dx, int dy)
 
 int cameracap = false;
 physent *cscamera = NULL;
+VARP(killcamera, 0, 0, 3);
 
 void recomputecamera()
 {
@@ -878,81 +879,42 @@ void recomputecamera()
     }
     else
     {
-		dynent *killcam = game::getkillcam();
-		if (killcammode == 2) killcam = player;
         static physent tempcamera;
         camera1 = &tempcamera;
-        if(detachedcamera && shoulddetach)
-		{
-			if(killcammode == 0 || thirdperson == 2) camera1->o = player->o;
-		}
+        if(detachedcamera && shoulddetach) camera1->o = player->o;
         else
         {
             *camera1 = *player;
             detachedcamera = shoulddetach;
         }
         camera1->reset();
-        camera1->type = ENT_PLAYER;
+        camera1->type = ENT_CAMERA;
         camera1->collidetype = COLLIDE_AABB;
         camera1->move = -1;
         camera1->eyeheight = camera1->aboveeye = camera1->radius = camera1->xradius = camera1->yradius = 2;
-        
-        vec dir;
-        vecfromyawpitch(camera1->yaw, camera1->pitch, -1, 0, dir);
-		dir.z += thirdpersonheight;
-		if(game::collidecamera())
+		
+		if (killcamera)
 		{
-			if (killcammode == 0 || thirdperson || ((player->state == CS_ALIVE || player->state == CS_SPECTATOR) && killcam->state != CS_DEAD))
+			dynent *fcam = game::followcam();
+			if (fcam)
 			{
-				movecamera(camera1, dir, thirdpersondistance, 1);
-            	movecamera(camera1, dir, clamp(thirdpersondistance - camera1->o.dist(player->o), 0.0f, 1.0f), 0.1f);
-			}
-			else if (game::killcamstate() == 1 && killcam /*&& camera1->o.dist(killcam->o) > 30*/ && killcammode)
-			{
-				//first stage death >>> spec ignores
-				if(player->state != CS_SPECTATOR)
-				{
-					//vec to(killcam->o);
-					//float apitch,ayaw;
-					//vec killcamv(killcam->o);
-					//vec yaw(killcamv.sub(camera1->o));
-					////yaw.x = to.x - camera1->o.x;yaw.y = to.y - camera1->o.y;yaw.z = to.z - camera1->o.z;
-					//camera1->pitch = apitch = float(atan(yaw.z/sqrt((yaw.x*yaw.x)+(yaw.y*yaw.y)))*57.295779);
-					//camera1->yaw = ayaw = float(atan2(to.y- camera1->o.y, to.x - camera1->o.x)*57.295779)+270.0f;
-					//if(player == killcam) camera1->pitch = -45;
-					//vec scalr;
-					//vecfromyawpitch(ayaw, apitch, -1, 0, scalr);
-					//scalr.neg();
-					//camera1->o.add(vec(scalr).mul(7));
-					////movecamera(camera1, scalr,5, 0.1f);
-					camera1->o = killcam->o.add(vec(dir).mul(thirdpersondistance*100));
-				}
-				else
-				{
-					//spec death first time
-					if(game::killcamstate() == 1 && (player->state == CS_SPECTATOR || killcammode == 2))
-					{
-						dir.neg();
-						movecamera(camera1, dir, 5, 0.1f);
-					}
-					//death in general seconstage
-					else if(game::killcamstate() == 1)
-					{
-						game::showdeathscores();
-					}
-					game::killcamstate(2);
-					vec to(killcam->o);
-					float apitch,ayaw;
-					vec killcamv(killcam->o);
-					vec yaw(killcamv.sub(camera1->o));
-					camera1->pitch = float(atan(yaw.z/sqrt((yaw.x*yaw.x)+(yaw.y*yaw.y)))*57.295779);
-					camera1->yaw = float(atan2(to.y- camera1->o.y, to.x - camera1->o.x)*57.295779)+270.0f;
-					if(camera1->o.dist(killcam->o) < 20) camera1->pitch = (camera1->o.dist(killcam->o)*2) -80;
-				}
+				camera1->o = fcam->o;
+				if (killcamera >= 2) camera1->yaw = fcam->yaw;
+				if (killcamera == 3) camera1->pitch = fcam->pitch;
 			}
 		}
+        
+		vec dir;
+		vecfromyawpitch(camera1->yaw, camera1->pitch, -1, 0, dir);
+		dir.z += thirdpersonheight;
+		if(game::collidecamera()) 
+		{
+			movecamera(camera1, dir, thirdpersondistance, 1);
+			movecamera(camera1, dir, clamp(thirdpersondistance - camera1->o.dist(player->o), 0.0f, 1.0f), 0.1f);
+		}
 		else camera1->o.add(vec(dir).mul(thirdpersondistance));
-	}
+    }
+
     setviewcell(camera1->o);
 }
 
