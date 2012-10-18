@@ -357,6 +357,7 @@ struct listrenderer : partrenderer
         p->size = size;
         p->owner = NULL;
         p->flags = 0;
+		p->fastsplash = 0;
         return p;
     }
     

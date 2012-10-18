@@ -43,7 +43,7 @@ char dlfilepath[1000] = "";
 ICOMMAND(dlfilepath, "", (), result(dlfilepath));
 bool dlcancel;
 CURL *dlhandle = NULL;
-FILE *hdfile = NULL;
+//FILE *hdfile = NULL;
 
 size_t downloadwritedata(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -104,7 +104,7 @@ int downloadfunc(void * data)
 
 	curl_easy_cleanup(dlhandle);
 	if (dlfile) fclose(dlfile);
-	if (hdfile) fclose(hdfile);
+	//if (hdfile) fclose(hdfile);
 
 	return 0;
 }
@@ -150,9 +150,9 @@ void download(const char *url)
 	dlfile = fopen(dlfilepath, "wb");
 	if (!dlfile) conoutf("error opening file \"%s\" for saving", dlfilepath);
 
-	defformatstring(hdfn)("%sheader.txt", dir);
-	hdfile = fopen(hdfn, "w");
-	curl_easy_setopt(dlhandle, CURLOPT_WRITEHEADER, hdfile);
+	//defformatstring(hdfn)("%sheader.txt", dir);
+	//hdfile = fopen(hdfn, "w");
+	//curl_easy_setopt(dlhandle, CURLOPT_WRITEHEADER, hdfile);
 
 	curl_easy_setopt(dlhandle, CURLOPT_FOLLOWLOCATION,1);
 	curl_easy_setopt(dlhandle, CURLOPT_WRITEFUNCTION, downloadwritedata);

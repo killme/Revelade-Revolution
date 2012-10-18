@@ -85,19 +85,51 @@ namespace aiman
         return least;
 	}
 
+	char randletter(bool vowel, char exclude = 0)
+	{
+		static const int vpos[] = {0, 4, 8, 14, 20, 24};
+		char letter = rnd(26);
+		bool isv = false;
+		exclude = (exclude)? exclude-'a': 40;
+		loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
+		if (isv == vowel) return letter+'a';
+		while (isv != vowel || letter == exclude)
+		{
+			letter = (letter+1)%26;
+			isv = false;
+			loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
+		}
+		return letter+'a';
+	}
+
+	const char *generatename()
+	{
+		static const char *ntemplates[4] = { "cvcvc", "vcvc", "cvcvv", "cvcv" };
+		const char *t = ntemplates[rnd(4)];
+		static char name[6];
+		for (int i=0, l=strlen(t); i <= l; i++) name[i] = (i==l)? '\0': randletter((t[i]=='v')? true: false, (i)? name[i-1]: 0);
+		name[0] = toupper(name[0]);
+		return name;
+	}
+
 	const char *getbotname()
 	{
-		const char *name = ai::botnames[rnd(ai::botnames.length())];
-		if (bots.length() > ai::botnames.length()) return name;
-		loopv(bots)
+		if (ai::botnames.length())
 		{
-			if (bots[i] && !strcmp(bots[i]->name, name))
+			const char *name;
+			name = ai::botnames[rnd(ai::botnames.length())];
+			if (bots.length() > ai::botnames.length()) return name;
+			loopv(bots)
 			{
-				name = ai::botnames[rnd(ai::botnames.length())];
-				i = -1;
+				if (bots[i] && !strcmp(bots[i]->name, name))
+				{
+					name = ai::botnames[rnd(ai::botnames.length())];
+					i = -1;
+				}
 			}
+			return name;
 		}
-		return name;
+		return generatename();
 	}
 
 	bool addai(int skill, int limit)
@@ -124,7 +156,7 @@ namespace aiman
             }
         }
         else { cn = bots.length(); bots.add(NULL); }
-        const char *team = m_oneteam? "survivors": (m_teammode ? chooseteam() : "");
+        const char *team = m_oneteam? TEAM_0: (m_teammode ? chooseteam() : "");
         if(!bots[cn]) bots[cn] = new clientinfo;
         clientinfo *ci = bots[cn];
 		ci->clientnum = MAXCLIENTS + cn;

@@ -23,7 +23,7 @@ namespace game
     static const monstertype monstertypes[NUMMONSTERTYPES] =
     {
         { WEAP_BITE,		18, 200, 3, 80,  100, 800, 1, 12, 100, S_PAINO, S_DIE1,   "zombie bike",	"monster/nazizombiebike",	NULL},
-        { WEAP_PISTOL,		18, 200, 3, 100, 300, 400, 4, 13, 115, S_PAINE, S_DEATHE, "nazi zombie",	"monster/nazizombie",		"vwep/shotg"}, // WEAP_SLUGSHOT
+        { WEAP_PISTOL,		18, 200, 3, 100, 300, 400, 4, 13, 115, S_PAINE, S_DEATHE, "nazi zombie",	"monster/nazizombie",		"vwep/pistol"},
         { WEAP_BITE,		18, 200, 3, 100, 300, 400, 4, 12, 115, S_PAINE, S_DEATHE, "nazi zombie 2",	"monster/nazizombie2",		NULL},
         { WEAP_BITE,		20, 160, 3, 0,   100, 400, 1, 11,  90, S_PAINP, S_PIGGR2, "fast zombie",	"monster/fastzombie",		NULL},
         { WEAP_BITE,		13, 160, 3, 0,   100, 400, 1, 12,  50, S_PAINS, S_DEATHS, "female",			"monster/female",			NULL},
@@ -464,6 +464,7 @@ namespace game
 				{
 					if (bestenemy == monsters[i]) bestenemy = NULL;
 					delete monsters.removeunordered(i);
+					continue;
 				}
             }
 			if (monsters[i]->onfire && (lastmillis-monsters[i]->burnmillis > 4000 || monsters[i]->inwater))

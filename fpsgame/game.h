@@ -151,7 +151,7 @@ static const char *modesdesc[NUMMODES] =
 	NULL,
 	NULL,
 	"\fs\fbSurvival:\fr Kill as many zombies as you can.\n",
-	"\fs\fbOne team:\fr Everyone is on the same side.\n"
+	"\fs\fbOne team:\fr All players are on the same team.\n"
 };
 
 static struct gamemodeinfo
@@ -160,13 +160,13 @@ static struct gamemodeinfo
     int flags;
 } gamemodes[] =
 {
-    { "SP",					M_LOCAL | M_CLASSICSP | M_CLASSES },
-    { "DMSP",				M_LOCAL | M_DMSP | M_CLASSES },
+    { "SP",					M_LOCAL | M_CLASSICSP },
+    { "DMSP",				M_LOCAL | M_DMSP },
 
     { "demo",				M_DEMO | M_LOCAL },
-    { "ffa",				M_LOBBY | M_CLASSES },
-    { "coop edit",			M_EDIT | M_CLASSES },
-    { "teamplay",			M_TEAM | M_OVERTIME | M_CLASSES },
+    { "ffa",				M_LOBBY },
+    { "coop edit",			M_EDIT },
+    { "teamplay",			M_TEAM | M_OVERTIME },
 
     { "instagib",			M_NOITEMS | M_INSTA },
     { "instagib team",		M_NOITEMS | M_INSTA | M_TEAM | M_OVERTIME },
@@ -182,10 +182,10 @@ static struct gamemodeinfo
     { "regen capture",		M_NOITEMS | M_CAPTURE | M_REGEN | M_TEAM | M_OVERTIME },
 	*/
 
-    { "ctf",				M_CTF | M_TEAM | M_CLASSES },
+    { "ctf",				M_CTF | M_TEAM },
     { "insta ctf",			M_NOITEMS | M_INSTA | M_CTF | M_TEAM },
 
-    { "protect",			M_CTF | M_PROTECT | M_TEAM | M_CLASSES },
+    { "protect",			M_CTF | M_PROTECT | M_TEAM },
     { "insta protect",		M_NOITEMS | M_INSTA | M_CTF | M_PROTECT | M_TEAM },
 
     { "hold",				M_CTF | M_HOLD | M_TEAM | M_CLASSES },
@@ -195,9 +195,9 @@ static struct gamemodeinfo
     { "efficiency protect",	M_NOITEMS | M_EFFICIENCY | M_CTF | M_PROTECT | M_TEAM },
     { "efficiency hold",	M_NOITEMS | M_EFFICIENCY | M_CTF | M_HOLD | M_TEAM },
 
-    { "infection",			M_TEAM | M_INFECTION | M_CLASSES },
+    { "infection",			M_TEAM | M_INFECTION },
 
-    { "survival",			M_SURVIVAL | M_CLASSES | M_ONETEAM },
+    { "survival",			M_SURVIVAL | M_ONETEAM | M_OVERTIME },
 };
 
 #define STARTGAMEMODE (-3)
@@ -213,6 +213,7 @@ static struct gamemodeinfo
 #define m_noammo       (m_check(gamemode, M_NOAMMO|M_NOITEMS))
 #define m_noweapons    (m_check(gamemode, M_NOAMMO|M_NOITEMS))
 #define m_insta        (m_check(gamemode, M_INSTA))
+#define m_classes      (m_checknot(gamemode, M_INSTA))
 #define m_tactics      (m_check(gamemode, M_TACTICS))
 #define m_efficiency   (m_check(gamemode, M_EFFICIENCY))
 #define m_capture      (m_check(gamemode, M_CAPTURE))
@@ -225,6 +226,7 @@ static struct gamemodeinfo
 #define m_teammode     (m_check(gamemode, M_TEAM))
 #define m_oneteam      (m_check(gamemode, M_ONETEAM))
 #define m_overtime     (m_check(gamemode, M_OVERTIME))
+#define m_survivalb    (m_check(gamemode, M_SURVIVAL | M_DMSP))
 #define isteam(a,b)    ((m_oneteam || m_teammode) && strcmp(a, b)==0)
 
 #define m_demo         (m_check(gamemode, M_DEMO))
@@ -237,12 +239,6 @@ static struct gamemodeinfo
 #define m_sp           (m_check(gamemode, M_DMSP | M_CLASSICSP))
 #define m_dmsp         (m_check(gamemode, M_DMSP))
 #define m_classicsp    (m_check(gamemode, M_CLASSICSP))
-
-//todo: fix following
-//#define m_classes      (m_check(gamemode, M_CLASSES)) (!m_insta)
-#define m_classes      (!m_insta)
-//#define m_weapons      (!m_insta)
-#define m_weapons      (false)
 
 enum { MM_AUTH = -1, MM_OPEN = 0, MM_VETO, MM_LOCKED, MM_PRIVATE, MM_PASSWORD, MM_START = MM_AUTH };
 
@@ -347,9 +343,10 @@ enum
     N_ADDBOT, N_DELBOT, N_INITAI, N_FROMAI, N_BOTLIMIT, N_BOTBALANCE,
     N_MAPCRC, N_CHECKMAPS,
     N_SWITCHNAME, N_SWITCHMODEL, N_SWITCHTEAM, N_SWITCHCLASS, N_SETCLASS,
-	N_ONFIRE, N_BURNDAMAGE, N_SETONFIRE, N_REGENAMMO, //todo fix these
+	N_ONFIRE, N_BURNDAMAGE, N_SETONFIRE, //todo fix these
 	N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
-	N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURFINITZOMBIE,
+	N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND,
+	N_GUTS, N_BUY,
 	NUMSV
 };
 
@@ -377,9 +374,10 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_ADDBOT, 2, N_DELBOT, 1, N_INITAI, 0, N_FROMAI, 2, N_BOTLIMIT, 2, N_BOTBALANCE, 2,
     N_MAPCRC, 0, N_CHECKMAPS, 1,
     N_SWITCHNAME, 0, N_SWITCHMODEL, 2, N_SWITCHTEAM, 0, N_SWITCHCLASS, 2, N_SETCLASS, 3,
-	N_ONFIRE, 4, N_BURNDAMAGE, 4, N_SETONFIRE, 4, N_REGENAMMO, 4,
+	N_ONFIRE, 4, N_BURNDAMAGE, 4, N_SETONFIRE, 4,
 	N_INFECT, 3, N_INITINF, 0, N_RADIOTEAM, 0, N_RADIOALL, 0,
-	N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURFINITZOMBIE, 0,
+	N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURVNEWROUND, 0,
+	N_GUTS, 3, N_BUY, 0,
     -1
 };
 
@@ -553,13 +551,13 @@ struct fpsstate
         gunwait = 0;
         loopi(NUMWEAPS) ammo[i] = 0;
         ammo[WEAP_FIST] = (infected)? 0: 1;
-		guts = 0;
 		hudgun = gunselect;
     }
 
     void spawnstate(int gamemode)
     {
 		if (!m_infection) infected = false;
+		if (!m_survival) guts = 0;
 		if(m_demo)
         {
             gunselect = WEAP_FIST;
@@ -573,13 +571,6 @@ struct fpsstate
 			armour = pci.armour;
 			gunselect = infected? WEAP_FIST: playerclasses[playerclass].weap[0];
 		}
-        else if(m_weapons)
-        {
-            armour = 0;
-            health = 100;
-            gunselect = WEAP_PISTOL;
-            ammo[gunselect] = 100;
-        }
         else if(m_insta)
         {
             armour = 0;
@@ -664,7 +655,7 @@ struct fpsent : dynent, fpsstate
     float deltayaw, deltapitch, newyaw, newpitch;
     int smoothmillis;
 
-	fpsent *lastkilled;
+	fpsent *follow;
     string name, team, info;
     int playermodel;
     ai::aiinfo *ai;
@@ -676,7 +667,7 @@ struct fpsent : dynent, fpsstate
 		ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1),
 		attackchan(-1), idlesound(-1), idlechan(-1), frags(0), flags(0), deaths(0), totaldamage(0),
 		totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1),
-		muzzle(-1, -1, -1), altfire(false), wasattacking(false)
+		muzzle(-1, -1, -1), altfire(false), wasattacking(false), follow(NULL)
     {
         name[0] = team[0] = info[0] = 0;
         respawn(0);
@@ -794,6 +785,8 @@ namespace game
         virtual void removeplayer(fpsent *d) {}
         virtual void gameover() {}
         virtual bool hidefrags() { return false; }
+		virtual bool needsminimap() { return true; }
+		virtual void drawblips(fpsent *d, int w, int h, int x, int y, int s, float rscale) {}
         virtual int getteamscore(const char *team) { return 0; }
         virtual void getteamscores(vector<teamscore> &scores) {}
         virtual fpsent *getclient(int cn) { return NULL; }
@@ -862,7 +855,27 @@ namespace game
 	extern float calcradarscale();
 	extern void drawminimap(fpsent *d, float x, float y, float s);
 	extern void drawradar(float x, float y, float s);
-	void drawblip(fpsent *d, float x, float y, float s, const vec &pos, bool flagblip);
+	extern void drawblip(fpsent *d, float x, float y, float s, const vec &pos, bool flagblip);
+
+
+	enum buyables
+	{
+		BA_AMMO = 0,
+		BA_AMMOD,
+		BA_HEALTH,
+		BA_HEALTHD,
+		BA_ARMOURG,
+		BA_ARMOURY,
+		BA_QUAD,
+		BA_QUADD,
+		BA_SUPPORT,
+		BA_SUPPORTD,
+		BA_NUM
+	};
+	extern const char *buyablesnames[];
+	extern const int buyablesprices[];
+	extern void applyeffect(fpsent *d, int item);
+	extern void applyitem(fpsent *d, int item);
 
     // client
     extern bool connected, remote, demoplayback;
@@ -941,7 +954,7 @@ namespace game
 	extern void setonfire(dynent *d, dynent *attacker, int gun, bool local = true);
 	extern bool isheadshot(dynent *d, vec from, vec to);
 	extern int getdamageranged(int damage, int gun, bool headshot, bool quad, vec from, vec to);
-	extern int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul);
+	extern int getradialdamage(int damage, int gun, bool headshot, bool quad, float distmul);
 
 	extern ivec shotraysm[GUN_MAX_RAYS];
 	extern vec shotrays[GUN_MAX_RAYS];

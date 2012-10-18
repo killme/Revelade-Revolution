@@ -405,8 +405,8 @@ namespace game
     ICOMMANDS("m_insta", "i", (int *mode), { int gamemode = *mode; intret(m_insta); });
     ICOMMANDS("m_tactics", "i", (int *mode), { int gamemode = *mode; intret(m_tactics); });
     ICOMMANDS("m_efficiency", "i", (int *mode), { int gamemode = *mode; intret(m_efficiency); });
-    ICOMMANDS("m_capture", "i", (int *mode), { int gamemode = *mode; intret(m_capture); });
-    ICOMMANDS("m_regencapture", "i", (int *mode), { int gamemode = *mode; intret(m_regencapture); });
+    //ICOMMANDS("m_capture", "i", (int *mode), { int gamemode = *mode; intret(m_capture); });
+    //ICOMMANDS("m_regencapture", "i", (int *mode), { int gamemode = *mode; intret(m_regencapture); });
     ICOMMANDS("m_ctf", "i", (int *mode), { int gamemode = *mode; intret(m_ctf); });
     ICOMMANDS("m_protect", "i", (int *mode), { int gamemode = *mode; intret(m_protect); });
     ICOMMANDS("m_hold", "i", (int *mode), { int gamemode = *mode; intret(m_hold); });
@@ -418,6 +418,8 @@ namespace game
     ICOMMANDS("m_sp", "i", (int *mode), { int gamemode = *mode; intret(m_sp); });
     ICOMMANDS("m_dmsp", "i", (int *mode), { int gamemode = *mode; intret(m_dmsp); });
     ICOMMANDS("m_classicsp", "i", (int *mode), { int gamemode = *mode; intret(m_classicsp); });
+    ICOMMANDS("m_survival", "i", (int *mode), { int gamemode = *mode; intret(m_survival); });
+    ICOMMANDS("m_survivalb", "i", (int *mode), { int gamemode = *mode; intret(m_survivalb); });
 
     void changemap(const char *name, int mode) // request map change, server may ignore
     {
@@ -1612,6 +1614,31 @@ namespace game
 
 				extern void sayradio(char *s, fpsent *spe, bool rteam);
 				sayradio(text, sr, false);
+				break;
+			}
+
+			case N_GUTS:
+			{
+                fpsent *cn = getclient(getint(p));
+                int guts = getint(p);
+				if (m_survival) cn->guts = guts;
+				break;
+			}
+
+			case N_BUY:
+			{
+                fpsent *cn = getclient(getint(p));
+                int item = getint(p);
+                int guts = getint(p);
+				if (m_survival)
+				{
+					if (cn == player1)
+					{
+						player1->guts -= guts;
+						applyitem(player1, item);
+					}
+					else applyeffect(cn, item);
+				}
 				break;
 			}
 

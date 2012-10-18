@@ -237,7 +237,7 @@ namespace game
                     explode(bnc.local, bnc.owner, bnc.o, NULL, qdam, bnc.gun);
                     adddecal(WEAP(bnc.gun,decal), bnc.o, vec(0, 0, 1), WEAP(bnc.gun,projradius));
                     if(bnc.local)
-                        addmsg(N_EXPLODE, "rci5iv", bnc.owner, lastmillis-maptime, bnc.gun, bnc.id-maptime, 0, 0,
+                        addmsg(N_EXPLODE, "rci5v", bnc.owner, lastmillis-maptime, bnc.gun, bnc.id-maptime, 0,
                                 hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
                 }
                 delete bouncers.remove(i--);
@@ -429,7 +429,7 @@ namespace game
 			if (dist<WEAP(gun,projradius))
 			{
 				//int damage = (int)(qdam*(1-dist/GUN_EXP_DISTSCALE/WEAP(gun,projradius)));
-				int damage = getdamageranged(qdam, gun, false, at->quadmillis, dist/WEAP(gun,projradius));
+				int damage = getradialdamage(qdam, gun, false, at->quadmillis, dist/WEAP(gun,projradius));
 				if (o==at) damage /= GUN_EXP_SELFDAMDIV;
 				hit(damage, o, at, dir, gun, dist);
 				//int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul);
@@ -602,13 +602,10 @@ namespace game
 		return damage*(quad ? 4 : 1)*(headshot? GUN_HEADSHOT_MUL: 1.0f);
 	}
 
-	int getdamageranged(int damage, int gun, bool headshot, bool quad, float distmul)
+	int getradialdamage(int damage, int gun, bool headshot, bool quad, float distmul)
 	{
 		int dam = damage;
-		if (WEAP_IS_EXPLOSIVE(gun))
-		{
-			damage = int((float)damage * (1.f-min(max(distmul - 0.1f, 0.f), 1.f)));
-		}
+		damage = int((float)damage * (1.f-min(max(distmul - 0.1f, 0.f), 1.f)));
 		return damage*(quad ? 4 : 1)*(headshot? GUN_HEADSHOT_MUL: 1.0f);
 	}
 
@@ -620,27 +617,10 @@ namespace game
         vec dir;
         float dist = projdist(o, dir, v);
 		headshot = isheadshot(o, p.o, v);
-		qdam = getdamageranged(qdam, p.gun, headshot, p.owner->quadmillis, dist);
-        hit(qdam, o, p.owner, dir, p.gun, 1.f, 1, headshot);
+		qdam = getradialdamage(qdam, p.gun, headshot, p.owner->quadmillis, WEAP_IS_EXPLOSIVE(p.gun)? 0: p.distance/WEAP(p.gun,range));
+        hit(qdam, o, p.owner, dir, p.gun, WEAP_IS_EXPLOSIVE(p.gun)? 0.0f: p.distance, 1, headshot);
         return true;
     }
-
-    bool reflectordamage(dynent *o, projectile &p, vec &v, int qdam)
-    {
-        if(o->state!=CS_ALIVE) return false;
-        if(!intersect(o, p.o, v)) return false;
-        //projsplash(p, v, o, qdam);
-        vec dir;
-        projdist(o, dir, v);
-		//getdamage(qdam, p.owner, p.gun, v, dir);
-        hit(qdam, o, p.owner, dir, p.gun, 0);
-        return true;
-    }
-
-	void projreflect(projectile &p, vec &v)
-	{
-		
-	}
 
 	void setonfire(dynent *d, dynent *attacker, int gun, bool local)
 	{
@@ -721,7 +701,7 @@ namespace game
 				if(exploded)
 				{
 					if(p.local)
-						addmsg(N_EXPLODE, "rci5iv", p.owner, lastmillis-maptime, p.gun, p.id-maptime, WEAP_IS_EXPLOSIVE(p.gun)? (int)directhit: (int)headshot, (int)p.distance,
+						addmsg(N_EXPLODE, "rci5v", p.owner, lastmillis-maptime, p.gun, p.id-maptime, WEAP_IS_EXPLOSIVE(p.gun)? (int)directhit: (int)headshot,
 								hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
 					projs.remove(i--);
 					continue;
@@ -729,7 +709,7 @@ namespace game
 				else p.o = v;
 				break;
 			}
-			case PJ_FLAME: //todo: clean this
+			case PJ_FLAME:
 			{
 				float dspeed = p.speed * deltat;
 				p.speed -= dspeed * 0.5f;
@@ -774,60 +754,6 @@ namespace game
 				if (p.speed <= .01f && lastmillis-p.offsetmillis > 600) projs.remove(i--);
 				break;
 			}
-			case PJ_REFLECTOR: // not yet implemented
-			{
-				p.offsetmillis = max(p.offsetmillis-time, 0);
-				int qdam = WEAP(p.gun,damage)*(p.owner->quadmillis ? 4 : 1);
-				if(p.owner->type==ENT_AI) qdam /= MONSTERDAMAGEFACTOR;
-				vec v;
-				float dist = p.to.dist(p.o, v);
-				float dtime = dist*1000/p.speed;
-				if(time > dtime) dtime = time;
-				v.mul(time/dtime);
-				v.add(p.o);
-				bool hit = false;
-				//bool reflected = false;
-				hits.setsize(0);
-				if(p.local)
-				{
-					float idist = dist;
-					dynent *o = intersectclosest(p.o, v, p.owner, idist);
-					if (o && reflectordamage(o, p, v, qdam)) hit = true;
-				}
-				if(!hit)
-				{
-					if(dist<4)
-					{
-						if(p.o!=p.to) // if original target was moving, reevaluate endpoint
-						{
-							if(raycubepos(p.o, p.dir, p.to, 0, RAY_CLIPMAT|RAY_ALPHAPOLY)>=4) continue;
-						}
-						projreflect(p, v);
-						//reflected = true;
-					}
-					else
-					{
-						vec off(p.offset);
-						off.mul(p.offsetmillis/float(OFFSETMILLIS));
-						vec pos(v), pos2;
-						pos2 = vec(v).sub(vec(p.dir).normalize().mul(WEAP(p.gun,projspeed)));
-						pos.add(off);
-						pos2.add(off);
-						if (WEAP(p.gun,projparts)[1]) partpreset(projpartpresets[WEAP(p.gun,projparts)[1]], pos, p.owner, &pos2);
-						if (WEAP(p.gun,projparts)[2]) partpreset(projpartpresets[WEAP(p.gun,projparts)[2]], pos, p.owner, &pos2);
-					}
-				}
-				if(hit)
-				{
-					if(p.local)
-						addmsg(N_EXPLODE, "rci5iv", p.owner, lastmillis-maptime, p.gun, p.id-maptime, 0, (int)p.distance,
-								hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
-					projs.remove(i--);
-					continue;
-				}
-				else p.o = v;
-				break;
-			}
 			}
 			
 			if (WEAP(p.gun,projtype)&PJT_HOME)
@@ -843,7 +769,7 @@ namespace game
 				{
 					int qdam = WEAP(p.gun,damage)*(p.owner->quadmillis ? 4 : 1);
 					projsplash(p, p.o, NULL, qdam);
-					addmsg(N_EXPLODE, "rci5iv", p.owner, lastmillis-maptime, p.gun, p.id-maptime, 0, (int)p.distance,
+					addmsg(N_EXPLODE, "rci5v", p.owner, lastmillis-maptime, p.gun, p.id-maptime, 0,
 							hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
 					projs.remove(i--);
 				}
@@ -917,10 +843,6 @@ namespace game
 			newbouncer(from, up, local, id, d, BNC_GRENADE, WEAP(gun,projlife), WEAP(gun,projspeed), NULL, gun);
 		}
 		else if (WEAP_IS_FLAME(gun))
-		{
-			newprojectile(from, to, WEAP(gun,projspeed)*4, local, id, d, gun);
-		}
-		else if (WEAP_IS_REFLECTOR(gun))
 		{
 			newprojectile(from, to, WEAP(gun,projspeed)*4, local, id, d, gun);
 		}
@@ -1284,7 +1206,7 @@ namespace game
 
 			d->irsm = max(d->irsm-curtime, 0);
 
-			// todo: this should be moved to server
+			//@todo: this should be moved to server
 			// todo: use gamemillis instead of lastmillis
 			// todo: put the following block in its own function, to be used from survival mode
 			if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai) && lastmillis-d->lastburnpain >= clamp(lastmillis-d->burnmillis, 200, 1000))

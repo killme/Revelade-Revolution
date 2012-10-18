@@ -67,7 +67,7 @@ namespace server
 
     struct explodeevent : timedevent
     {
-        int id, gun, direct, traveled;
+        int id, gun, direct;
         vector<hitinfo> hits;
 
         bool keepable() const { return true; }
@@ -409,7 +409,7 @@ namespace server
 
 	VARFP(localrecorddemo, 0, 0, 2, demonextmatch = localrecorddemo != 0 );
 
-	//todo: add server vars here
+	//add server vars here
     SVAR(serverdesc, "");
     SVAR(serverpass, "");
     SVAR(adminpass, "");
@@ -470,7 +470,7 @@ namespace server
 	void sendservmsgf(int cn, const char *f, ...)
 	{
 		defvformatstring(str, f, f);
-		sendf(-1, 1, "ris", N_SERVMSG, f);
+		sendf(-1, 1, "ris", N_SERVMSG, str);
 	}
 
     void resetitems()
@@ -1043,14 +1043,13 @@ namespace server
 			N_EXPLODEFX, N_DIED, N_SPAWNSTATE, N_FORCEDEATH, N_ITEMACC, N_ITEMSPAWN, N_TIMEUP, N_CDIS,
 			N_CURRENTMASTER, N_PONG, N_RESUME, N_BASESCORE, N_BASEINFO, N_BASEREGEN, N_ANNOUNCE,
 			N_SENDDEMOLIST, N_SENDDEMO, N_DEMOPLAYBACK, N_SENDMAP, N_DROPFLAG, N_SCOREFLAG, N_RETURNFLAG,
-			N_RESETFLAG, N_INVISFLAG, N_CLIENT, N_AUTHCHAL, N_INITAI, N_SETONFIRE, N_SETCLASS, N_REGENAMMO,
-			N_INFECT };
+			N_RESETFLAG, N_INVISFLAG, N_CLIENT, N_AUTHCHAL, N_INITAI, N_SETONFIRE, N_SETCLASS,
+			N_INFECT, N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_GUTS };
         if(ci)
         {
             loopi(sizeof(servtypes)/sizeof(int)) if(type == servtypes[i]) return -1;
             if(type < N_EDITENT || type > N_EDITVAR || !m_edit) 
             {
-				//todo: review
                 if(type != N_POS && ++ci->overflow >= 250) return -2;
             }
         }
@@ -1227,7 +1226,7 @@ namespace server
 
 		if (m_infection)
 		{
-			gs.infected = (m_infection)? !rnd(2): 0;
+			gs.infected = (m_infection)? rnd(2): 0;
 			sendf(-1, 1, "ri3", N_INFECT, gs.infected? ci->clientnum: -1, !gs.infected? ci->clientnum: -1);
 		}
 
@@ -1585,6 +1584,12 @@ namespace server
         }
         if(ts.health<=0)
         {
+			if (m_survival && target->state.aitype==AI_ZOMBIE)
+			{
+				const zombietype &zt = zombietypes[((zombie*)target)->ztype];
+				actor->state.guts += zt.freq*zt.health/20;
+				sendf(actor->ownernum, 1, "ri3", N_GUTS, actor->clientnum, actor->state.guts);
+			}
             target->state.deaths++;
             if(actor!=target && isteam(actor->team, target->team)) actor->state.teamkills++;
             int fragvalue = smode ? smode->fragvalue(target, actor) : (target==actor || isteam(target->team, actor->team) ? -1 : 1);
@@ -1647,7 +1652,7 @@ namespace server
             bool dup = false;
             loopj(i) if(hits[j].target==h.target) { dup = true; break; }
             if(dup) continue;
-			int damage = game::getdamageranged(WEAP(gun,damage), gun, h.headshot, gs.quadmillis, (float)traveled/WEAP(gun,range));
+			int damage = game::getradialdamage(WEAP(gun,damage), gun, h.headshot, gs.quadmillis, h.dist/(WEAP_IS_EXPLOSIVE(gun)? WEAP(gun,projradius): WEAP(gun,range)));
             if (!WEAP_IS_EXPLOSIVE(gun)) direct = h.headshot;
             if(target==ci) damage /= GUN_EXP_SELFDAMDIV;
             dodamage(target, ci, damage, gun, h.dir, direct);
@@ -1671,8 +1676,7 @@ namespace server
 				numrays, numrays*sizeof(ivec)/sizeof(int), rays,
                 ci->ownernum);
 
-		int damage = game::getdamageranged(WEAP(gun,damage), gun, headshot, gs.quadmillis, from, to);
-		gs.shotdamage += damage;
+		int damage;
         switch(WEAPONI(gun))
         {
             case WEAP_ROCKETL: gs.rockets.add(id); break;
@@ -1685,6 +1689,9 @@ namespace server
                     hitinfo &h = hits[i];
                     clientinfo *target = getinfo(h.target);
                     if(!target || target->state.state!=CS_ALIVE || (h.lifesequence!=target->state.lifesequence && target->state.aitype != AI_ZOMBIE) || h.rays<1 || h.dist > WEAP(gun,range) + 1) continue;
+
+					damage = h.rays*game::getdamageranged(WEAP(gun,damage), gun, headshot, gs.quadmillis, from, target->state.o);
+					gs.shotdamage += damage;
 
                     totalrays += h.rays;
                     if(totalrays>maxrays) continue;
@@ -2156,7 +2163,7 @@ namespace server
                 ci->state.lasttimeplayed = lastmillis;
 
 				const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
-                copystring(ci->team, m_oneteam? "survivor": (worst ? worst : TEAM_0), MAXTEAMLEN+1);
+                copystring(ci->team, m_oneteam? TEAM_0: (worst ? worst : TEAM_0), MAXTEAMLEN+1);
 
                 sendwelcome(ci);
                 if(restorescore(ci)) sendresume(ci);
@@ -2418,7 +2425,6 @@ namespace server
                 exp->gun = getint(p);
                 exp->id = getint(p);
 				exp->direct = getint(p);
-				exp->traveled = getint(p);
                 int hits = getint(p);
                 loopk(hits)
                 {
@@ -2896,6 +2902,57 @@ namespace server
                     if(t==cq || t->state.state==CS_SPECTATOR || t->state.aitype != AI_NONE || strcmp(cq->team, t->team)) continue;
                     sendf(t->clientnum, 1, "riis", N_RADIOTEAM, cq->clientnum, text);
                 }
+				break;
+			}
+
+			case N_BUY:
+			{
+				int item = getint(p);
+				int guts = game::buyablesprices[item];
+				if (m_survival && ci->state.state==CS_ALIVE && ci->state.guts>=guts)
+				{
+					gamestate &gs = ci->state;
+					gs.guts -= guts;
+					switch (item)
+					{
+					case game::BA_AMMO:
+						{
+							const playerclassinfo &pci = playerclasses[gs.playerclass];
+							loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = min(gs.ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
+							break;
+						}
+					case game::BA_AMMOD:
+						{
+							const playerclassinfo &pci = playerclasses[gs.playerclass];
+							loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
+							break;
+						}
+
+					case game::BA_HEALTH:
+						gs.health = min(gs.health + gs.maxhealth/2, gs.maxhealth);
+						break;
+					case game::BA_HEALTHD:
+						gs.health = gs.maxhealth;
+						break;
+
+					case game::BA_ARMOURG:
+					case game::BA_ARMOURY:
+						gs.armourtype = (item==game::BA_ARMOURY)? A_YELLOW: A_GREEN;
+						gs.armour = (item==game::BA_ARMOURY)? 200: 100;
+						break;
+
+					case game::BA_QUAD:
+					case game::BA_QUADD:
+						gs.quadmillis = (item==game::BA_QUADD)? 60000: 30000;
+						break;
+
+					case game::BA_SUPPORT:
+					case game::BA_SUPPORTD:
+						//spawnsupport((item==game::BA_SUPPORTD)? 6: 3);
+						break;
+					}
+					sendf(-1, 1, "ri4", N_BUY, ci->clientnum, item, guts);
+				}
 				break;
 			}
 

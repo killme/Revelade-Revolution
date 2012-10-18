@@ -8,6 +8,8 @@
 
 #ifdef SERVMODE
 extern void addclientstate(worldstate &ws, clientinfo &ci);
+extern void cleartimedevents(clientinfo *ci);
+extern void sendspawn(clientinfo *ci);
 #endif
 
 static vector<int> surv_teleports;
@@ -26,40 +28,36 @@ struct zombietype      // see docs for how these values modify behaviour
 
 static const zombietype zombietypes[NUMZOMBIETYPES] =
 {
-    { WEAP_BITE,		18, 200, 6, 80,  100, 800, 1, 12, 100, S_PAINO, S_DIE1,   "zombie bike",	"monster/nazizombiebike",	NULL},
-    { WEAP_PISTOL,		18, 200, 6, 100, 300, 400, 4, 13, 115, S_PAINE, S_DEATHE, "nazi zombie",	"monster/nazizombie",		"vwep/shotg"}, // WEAP_SLUGSHOT
-    { WEAP_BITE,		18, 200, 6, 100, 300, 400, 4, 12, 115, S_PAINE, S_DEATHE, "nazi zombie 2",	"monster/nazizombie2",		NULL},
-    { WEAP_BITE,		20, 160, 6, 0,   100, 400, 1, 11,  90, S_PAINP, S_PIGGR2, "fast zombie",	"monster/fastzombie",		NULL},
-    { WEAP_BITE,		13, 160, 6, 0,   100, 400, 1, 12,  50, S_PAINS, S_DEATHS, "female",			"monster/female",			NULL},
-    { WEAP_BITE,		13, 160, 6, 0,   100, 400, 1,  9,  50, S_PAINS, S_DEATHS, "female 2",		"monster/female2",			NULL},
-    { WEAP_BITE,		13, 180, 6, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 1",		"monster/zombie1",			NULL},
-    { WEAP_BITE,		13, 180, 6, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 2",		"monster/zombie2",			NULL},
-    { WEAP_BITE,		13, 180, 26, 0,   100, 400, 1, 11,  75, S_PAINR, S_DEATHR, "zombie 3",		"monster/zombie3",			NULL},
-    { WEAP_BITE,		13, 180, 6, 0,   100, 400, 1, 10,  75, S_PAINR, S_DEATHR, "zombie 4",		"monster/zombie4",			NULL},
-    { WEAP_BITE,		13, 180, 6, 0,   100, 400, 1, 10,  75, S_PAINH, S_DEATHH, "zombie 5",		"monster/zombie5",			NULL},
-    { WEAP_BITE,		13, 180, 6, 0,   100, 400, 1, 12,  75, S_PAINH, S_DEATHH, "zombie 6",		"monster/zombie6",			NULL},
-    { WEAP_BITE,		13, 180, 6, 0,   100, 400, 1, 13,  75, S_PAIND, S_DEATHD, "zombie 7",		"monster/zombie7",			NULL},
-    { WEAP_BITE,		19,  40, 6, 0,   100, 400, 1,  4,  10, S_PAINR, S_DEATHR, "rat",		    "monster/rat",				NULL},
-    { WEAP_ROCKETL,		13, 600, 1, 0,   100, 400, 1, 24, 200, S_PAIND, S_DEATHD, "zombie boss",	"monster/zombieboss",		"vwep/rocket"},
+    { WEAP_BITE,		18, 150, 6, 80,  100, 800, 1, 12, 100, S_PAINO, S_DIE1,   "zombie bike",	"monster/nazizombiebike",	NULL},
+    { WEAP_PISTOL,		18, 150, 6, 100, 300, 400, 4, 13, 115, S_PAINE, S_DEATHE, "nazi zombie",	"monster/nazizombie",		"vwep/pistol"},
+    { WEAP_BITE,		18, 150, 6, 100, 300, 400, 4, 12, 115, S_PAINE, S_DEATHE, "nazi zombie 2",	"monster/nazizombie2",		NULL},
+    { WEAP_BITE,		20, 120, 6, 0,   100, 400, 1, 11,  90, S_PAINP, S_PIGGR2, "fast zombie",	"monster/fastzombie",		NULL},
+    { WEAP_BITE,		13, 120, 6, 0,   100, 400, 1, 12,  50, S_PAINS, S_DEATHS, "female",			"monster/female",			NULL},
+    { WEAP_BITE,		13, 120, 6, 0,   100, 400, 1,  9,  50, S_PAINS, S_DEATHS, "female 2",		"monster/female2",			NULL},
+    { WEAP_BITE,		13, 135, 6, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 1",		"monster/zombie1",			NULL},
+    { WEAP_BITE,		13, 135, 6, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 2",		"monster/zombie2",			NULL},
+    { WEAP_BITE,		13, 135, 6, 0,   100, 400, 1, 11,  75, S_PAINR, S_DEATHR, "zombie 3",		"monster/zombie3",			NULL},
+    { WEAP_BITE,		13, 135, 6, 0,   100, 400, 1, 10,  75, S_PAINR, S_DEATHR, "zombie 4",		"monster/zombie4",			NULL},
+    { WEAP_BITE,		13, 135, 6, 0,   100, 400, 1, 10,  75, S_PAINH, S_DEATHH, "zombie 5",		"monster/zombie5",			NULL},
+    { WEAP_BITE,		13, 135, 6, 0,   100, 400, 1, 12,  75, S_PAINH, S_DEATHH, "zombie 6",		"monster/zombie6",			NULL},
+    { WEAP_BITE,		13, 135, 6, 0,   100, 400, 1, 13,  75, S_PAIND, S_DEATHD, "zombie 7",		"monster/zombie7",			NULL},
+    { WEAP_BITE,		19,  30, 6, 0,   100, 400, 1,  4,  10, S_PAINR, S_DEATHR, "rat",		    "monster/rat",				NULL},
+    { WEAP_ROCKETL,		13, 450, 1, 0,   100, 400, 1, 24, 200, S_PAIND, S_DEATHD, "zombie boss",	"monster/zombieboss",		"vwep/rocket"},
 
-	{ WEAP_SLUGSHOT,	13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper sg","ogro",					"ogro/vwep"},
-	{ WEAP_ROCKETL,		13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper rl","ogro",					"ogro/vwep"},
+	{ WEAP_SLUGSHOT,	13, 150, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper sg","ogro",					"ogro/vwep"},
+	{ WEAP_ROCKETL,		13, 150, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper rl","ogro",					"ogro/vwep"},
 };
-
-//todo extern int physsteps;
 
 static vector<int> teleports;
 struct zombie;
 static vector<zombie *> zombies; // cn starts at 1024
 
-static int level;
 #ifndef servmode
 static bool zombiehurt;
 static vec zombiehurtpos;
 static fpsent *bestenemy;
 #endif
 
-static int csnextzombie, csspawncsremain, csnumkilled, cszombietotal, csmtimestart, csremain, csdmround, csroundtotal, csroundtime;
 static int cslastowner = -1;
 static int csnumzombies = 20;
 
@@ -129,7 +127,7 @@ static int csnumzombies = 20;
 			move = 1;
 			if (t.loyalty == 0) enemy = NULL;
 			else enemy = players[rnd(players.length())];
-			maxspeed = (float)t.speed*(4+(level*level*0.1));
+			maxspeed = (float)t.speed*4;
 			maxhealth = health = t.health;
 			armour = 0;
 			ammo[t.gun] = 10000;
@@ -173,7 +171,7 @@ static int csnumzombies = 20;
 			}
 			if(state == CS_DEAD)
 			{
-				if (d == player1 && zombietypes[ztype].freq) d->guts += (3/zombietypes[ztype].freq) * (5*maxhealth/10);
+				//if (d == player1 && zombietypes[ztype].freq) d->guts += (3/zombietypes[ztype].freq) * (5*maxhealth/10);
 
 				//lastpain = lastmillis;
 				playsound(zombietypes[ztype].diesound, &o);
@@ -215,7 +213,6 @@ static int csnumzombies = 20;
 					return;
 				}
 			}
-			//todo attack other targets
 			if(enemy->state==CS_DEAD) { enemy = zombietypes[ztype].loyalty? players[rnd(players.length())]: bestenemy; anger = 0; }
 			normalize_yaw(targetyaw);
 			if(targetyaw>yaw)             // slowly turn monster towards his target
@@ -282,7 +279,7 @@ static int csnumzombies = 20;
 					{
 						lastaction = 0;
 						attacking = true;
-						if(rnd(100) < 20*level) attacktarget = enemy->headpos();
+						if(rnd(100) < 20) attacktarget = enemy->headpos();
 						gunselect = zombietypes[ztype].gun;
 						shoot(this, attacktarget);
 						transition(M_ATTACKING, !zombietypes[ztype].loyalty, 600, 0);
@@ -358,24 +355,47 @@ struct survivalclientmode : clientmode
 
 	//static void spawnrat(vec o)
 	//{
-	//	// todo: spawn rat
+	//	//@todo: spawn rat
 	//	//zombie &z = monsters.add(new zombie(MONSTER_TYPE_RAT, rnd(360), 0, M_SEARCH, 1000, 1));
 	//	//z.o = o;
 	//	//z.newpos = o;
 	//	//z.counts = false;
 	//}
-	
-	//static void nextround(bool clear = false)
-	//{ // server
-	//	csdmround++;
-	//	csnextzombie = lastmillis+10000+ (csdmround * 1000);
-	//	csremain += cszombietotal = csspawncsremain = csroundtotal = ((level)*3) + (((csdmround-1)*(level*2)) + int(csdmround*csdmround));
-	//	conoutf(CON_GAMEINFO, "\f2Round%s clear!", (clear)? "": " not");
-	//	playsound(S_V_BASECAP);
-	//	csroundtime = 0;
 
-	//	//todo add next round message
-	//}
+	int newround(bool force = false)
+	{
+		if (force)
+		{
+			loopv(zombies) zombies[i]->state.state = CS_DEAD;
+			loopv(clients)
+			{
+				clientinfo *cq = clients[i];
+				cq->state.frags = 0;
+				if(cq->state.lastdeath)
+				{
+					flushevents(cq, cq->state.lastdeath + DEATHMILLIS);
+					cq->state.respawn();
+				}
+				cleartimedevents(cq);
+				sendspawn(cq);
+			}
+			sendf(-1, 1, "ri", N_SURVNEWROUND);
+			return lastmillis+60*1000;
+		}
+		int winner = -1, bestscore = -MAXINT;
+		loopv(clients)
+		{
+			if (winner>-2 && clients[i]->state.frags>bestscore)
+			{
+				winner = i;
+				bestscore = clients[i]->state.frags;
+			}
+			else if (clients[i]->state.frags == bestscore) winner = -2;
+		}
+		if (winner >= 0) sendservmsgf(-1, "\fythe winner is:\fg %s", clients[winner]->name);
+		else sendservmsgf(-1, "\fyround draw!");
+		return lastmillis+4000;
+	}
 
 #else
 
@@ -392,14 +412,8 @@ struct survivalclientmode : clientmode
 
     void zombiekilled(fpsent *d, fpsent *actor)
     {
-        csnumkilled++;
-        player1->frags++;
+        actor->frags++;
         ((zombie*)d)->pain(0, actor);
-        //csremain--;
-		//if(csremain == 0){
-			//csnumkilled = 0;
-			//nextround(true);
-		//}
     }
 
     void zombiepain(int damage, fpsent *d, fpsent *actor)
@@ -430,7 +444,7 @@ struct survivalclientmode : clientmode
 	//	int half = num/2;
 	//	loopi(num)
 	//	{
-	//		// todo: spawn support trooper
+	//		//@todo: spawn support trooper
 	//		//zombie *z = monsters.add(zombie((i>half)? 16: 15, rnd(360), 0, M_SEARCH, 1000, 1));
 	//		//z->counts = false;
 	//		//vec tvec(20, 0, 0);
@@ -452,13 +466,12 @@ struct survivalclientmode : clientmode
 
 	bool canspawn(clientinfo *ci, bool connecting = false)
 	{
-		return lastmillis-ci->state.lastdeath > RESPAWN_SECS;
+		return false;
+		//return lastmillis-ci->state.lastdeath > RESPAWN_SECS;
 	}
 
     void reset(bool empty)
     {
-		level = 2;
-
 		zombies.deletecontents();
 		zombies.growbuf(maxzombies);
 		loopi(maxzombies)
@@ -476,7 +489,6 @@ struct survivalclientmode : clientmode
 		loopv(zombies) if (zombies[i]->ownernum == ci->clientnum)
 		{
 			cslastowner = 0;
-			//if (clients[cslastowner]->state.aitype != AI_NONE || cslastowner != ci->clientnum) 
 			while (clients[cslastowner]->state.aitype != AI_NONE || cslastowner == ci->clientnum)
 			{
 				cslastowner = (cslastowner+1)%clients.length();
@@ -503,6 +515,11 @@ struct survivalclientmode : clientmode
         return false;
     }
 
+	bool needsminimap()
+	{
+		return true;
+	}
+
 	void update()
     {
         if(gamemillis>=gamelimit) return;
@@ -520,6 +537,29 @@ struct survivalclientmode : clientmode
 			if(curtime>0 && zi->state.quadmillis) zi->state.quadmillis = max(zi->state.quadmillis-curtime, 0);
 			flushevents(zi, gamemillis);
 		}
+
+		static int roundstartmillis = -1;
+		static int roundendmillis = -1;
+
+		if (roundstartmillis >= 0)
+		{
+			if (lastmillis >= roundstartmillis)
+			{
+				roundendmillis = newround(true);
+				roundstartmillis = -1;
+			}
+			return;
+		}
+		if (lastmillis > roundendmillis)
+		{
+			roundstartmillis = newround(false);
+			return;
+		}
+
+		if (!clients.length()) return;
+		bool alldead = true;
+		loopv(clients) if(clients[i]->state.state == CS_ALIVE) { alldead = false; break; }
+		if (alldead) roundstartmillis = newround(false);
 	}
 
 	void sendzombiestate(zombie *zi, packetbuf &p)
@@ -550,6 +590,7 @@ struct survivalclientmode : clientmode
 		loopv(zombies) if (zombies[i]->state.state == CS_ALIVE) n++;
 		putint(p, n);
         loopv(zombies) sendzombiestate(zombies[i], p);
+		if (connecting) ci->state.guts = 0;
     }
 
 	clientinfo *getcinfo(int n)
@@ -566,8 +607,6 @@ struct survivalclientmode : clientmode
 
     void setup()
     {
-		level = 2;
-
 		zombies.deletecontents();
 		zombies.growbuf(csnumzombies);
 		loopi(csnumzombies)
@@ -582,29 +621,21 @@ struct survivalclientmode : clientmode
         removetrackeddynlights();
 
         cleardynentcache();
-        csnumkilled = 0;
-        cszombietotal = 0;
-        csspawncsremain = 0;
-        csremain = 0;
-		csdmround = 1;
-		csroundtotal = 1;
         zombiehurt = false;
-		csnextzombie = csmtimestart = lastmillis+10000 +(csdmround * 1000);
-		csremain = cszombietotal = csspawncsremain = csroundtotal = ((level)*3) + (((csdmround-1)*(level*2)) + int(csdmround*csdmround*0.1));
-		csnextzombie = csmtimestart = lastmillis+10000;
-		cszombietotal = csspawncsremain = int(1.3*(level*level))+3*10;
         teleports.setsize(0);
         loopv(entities::ents) if(entities::ents[i]->type==TELEPORT) teleports.add(i);
 	}
 
     int respawnwait(fpsent *d)
     {
-        return max(0, RESPAWN_SECS-(lastmillis-d->lastpain)/1000);
+		return 1;
+        //return max(0, RESPAWN_SECS-(lastmillis-d->lastpain)/1000);
     }
 
     int respawnmillis(fpsent *d)
     {
-        return max(0, RESPAWN_SECS*1000-(lastmillis-d->lastpain));
+		return -1; // hides "spawn in xx.xx" in scoreboard
+        //return max(0, RESPAWN_SECS*1000-(lastmillis-d->lastpain));
     }
 
     const char *prefixnextmap() { return "survival_"; }
@@ -648,18 +679,6 @@ struct survivalclientmode : clientmode
 
 	void update(int curtime)
 	{
-        //if(csspawncsremain && lastmillis>csnextzombie)
-        //{
-            //if(csspawncsremain--==cszombietotal) { conoutf(CON_GAMEINFO, "\f2ROUND %d: %d zombies. Fight!", csdmround, cszombietotal); playsound(S_V_FIGHT); }
-            //csnextzombie = lastmillis+5000;
-			//todo send spawn message
-            //spawnzombie();
-        //}
-
-		//if (csspawncsremain == 0 && csremain <= 6 && csroundtime == 0) csroundtime = lastmillis;
-		//if (csroundtime && lastmillis-csroundtime > 150000) nextround();
-        
-        //if(killsendsp && cszombietotal && !csspawncsremain && csnumkilled==cszombietotal) endsp(true);
         
         bool zombiewashurt = zombiehurt;
         
@@ -670,9 +689,6 @@ struct survivalclientmode : clientmode
 				zombies[i]->zombieaction(curtime);
 				if (zombies[i]->onfire && lastmillis-zombies[i]->lastburnpain >= 1000)
 				{
-					//zombies[i]->lastburnpain = lastmillis;
-					//float mdagamemul = 1.5; // does more damage to zombies than players
-
 					zombie *d = zombies[i];
 					int damage = min(WEAP(d->burngun,damage)*1000/max(lastmillis-d->burnmillis, 1000), d->health)*(((fpsent *)d->fireattacker)->quadmillis ? 4 : 1);
 					if(d->fireattacker->type==ENT_PLAYER) ((fpsent*)d->fireattacker)->totaldamage += damage;
@@ -704,6 +720,18 @@ struct survivalclientmode : clientmode
 
 		this->sendpositions();
 	}
+
+    void drawblips(fpsent *d, int w, int h, int x, int y, int s, float rscale)
+    {
+		settexture("data/hud/blip_green.png");
+		zombie *zom;
+		loopv(zombies)
+		{
+			zom = zombies[i];
+			if (!zom->state==CS_ALIVE || zom->o.squaredist(d->o)>rscale) continue;
+			drawblip(d, x, y, s, zom->o, false);
+		}
+    }
 
 	void parsezombiestate(ucharbuf &p)
 	{
@@ -738,6 +766,13 @@ struct survivalclientmode : clientmode
 				zi = (zombie*)getclient(getint(p));
 				zi->spawn(getint(p), vec(0, 0, 0));
 				zi->ownernum = getint(p);
+				break;
+			}
+			case N_SURVNEWROUND:
+			{
+				loopv(zombies) zombies[i]->state = CS_DEAD;
+				loopv(players) players[i]->frags = 0;
+				playsound(S_V_BASECAP);
 				break;
 			}
 		}
@@ -795,6 +830,7 @@ struct survivalclientmode : clientmode
 case N_SURVINIT:
 case N_SURVREASSIGN:
 case N_SURVSPAWNSTATE:
+case N_SURVNEWROUND:
 {
 	if(cmode) survivalmode.message(type, p);
 	break;

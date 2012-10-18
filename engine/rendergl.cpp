@@ -864,6 +864,7 @@ void mousemove(int dx, int dy)
 int cameracap = false;
 physent *cscamera = NULL;
 VARP(killcamera, 0, 0, 3);
+vec lastpos;
 
 void recomputecamera()
 {
@@ -898,11 +899,16 @@ void recomputecamera()
 			dynent *fcam = game::followcam();
 			if (fcam)
 			{
-				camera1->o = fcam->o;
-				if (killcamera >= 2) camera1->yaw = fcam->yaw;
-				if (killcamera == 3) camera1->pitch = fcam->pitch;
+				if(fcam->state == CS_ALIVE || fcam->state == CS_DEAD)
+				{
+					camera1->o = fcam->o;
+					if (killcamera >= 2) camera1->yaw = fcam->yaw;
+					if (killcamera == 3) camera1->pitch = fcam->pitch;
+				}
+				else camera1->o = lastpos;
 			}
 		}
+		lastpos = vec(camera1->o);
         
 		vec dir;
 		vecfromyawpitch(camera1->yaw, camera1->pitch, -1, 0, dir);
@@ -1850,7 +1856,6 @@ ICOMMAND(fadeio, "ii", (int *dir, int *dur), {
 	fadetargetmillis = fademillisi + *dur;
 });
 
-// todo: combine fading in one function
 void drawfadet(int w, int h)
 {
 	if (lastmillis>=fadetargetmillis && fadedir != 1) { fadedir = 0; return; }

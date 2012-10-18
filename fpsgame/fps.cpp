@@ -4,6 +4,8 @@
 
 namespace game
 {
+	const float gameversion = RR_VERSION;
+
     bool intermission = false;
     int maptime = 0, maprealtime = 0, maplimit = -1;
     int respawnent = -1;
@@ -23,14 +25,14 @@ namespace game
     {
         if(player1->state!=CS_ALIVE || player1->physstate<PHYS_SLOPE) return;
         if(lastmillis-player1->lasttaunt<1500) return;
-		thirdperson = 2;
 		tauntmillis = 250 + lastmillis;
+        addmsg(N_TAUNT, "rc", player1);
 		
 		//@todo: either fix or remove
+		//thirdperson = 2;
         //player1->lasttaunt = lastmillis;
-        //addmsg(N_TAUNT, "rc", player1);
     }
-    COMMAND(taunt, "");
+	COMMAND(taunt, "");
 
     ICOMMAND(getfollow, "", (),
     {
@@ -126,76 +128,113 @@ namespace game
 	ICOMMAND(radioall, "s", (char *s), sayradio(s, NULL, false));
 	ICOMMAND(radioteam, "s", (char *s), sayradio(s, NULL, true));
 
-	enum buyables
-	{
-		BA_AMMO = 0,
-		BA_AMMOD,
-		BA_HEALTH,
-		BA_HEALTHD,
-		BA_ARMOURG,
-		BA_ARMOURY,
-		BA_QUAD,
-		BA_QUADD,
-		BA_SUPPORT,
-		BA_SUPPORTD,
-		BA_NUM
-	};
-
-	static const char* buyablesnames[BA_NUM] = { "ammo", "dammo", "health",
+	const char *buyablesnames[BA_NUM] = { "ammo", "dammo", "health",
 		"dhealth", "garmour", "yarmour", "quad", "dquad", "support", "dsupport" };
-	static const int buyablesprices[BA_NUM] = { 500, 900, 500, 900, 600, 1000,
+	const int buyablesprices[BA_NUM] = { 500, 900, 500, 900, 600, 1000,
 		1000, 1800, 2000, 3600 };
+
+	void applyeffect(fpsent *d, int item)
+	{
+		char *iname = NULL;
+		switch (item)
+		{
+		case BA_AMMO:
+		{
+			iname = "$ Ammo $";
+			break;
+		}
+		case BA_AMMOD:
+		{
+			iname = "$ Double Ammo $";
+			break;
+		}
+
+		case BA_HEALTH:
+			iname = "$ Heatlh $";
+			break;
+		case BA_HEALTHD:
+			iname = "$ Double Heatlh $";
+			break;
+
+		case BA_ARMOURG:
+		case BA_ARMOURY:
+			iname = (item==BA_ARMOURY)? "$ Yellow Armour $": "$ Green Armour $";
+			d->armourtype = (item==BA_ARMOURY)? A_YELLOW: A_GREEN;
+			d->armour = (item==BA_ARMOURY)? 200: 100;
+			break;
+
+		case BA_QUAD:
+		case BA_QUADD:
+			iname = (item==BA_QUADD)? "$ Double Quad $": "$ Quad $";
+			d->quadmillis = (item==BA_QUADD)? 60000: 30000;
+			break;
+
+		case BA_SUPPORT:
+		case BA_SUPPORTD:
+			iname = (item==BA_SUPPORTD)? "$ Double Support $": "$ Support $";
+			break;
+		}
+		particle_textcopy(d->abovehead(), iname, PART_TEXT, 3000, 0x007755, 4.0f, -8);
+	}
+
+	void applyitem(fpsent *d, int item)
+	{
+		switch (item)
+		{
+		case BA_AMMO:
+		{
+			const playerclassinfo &pci = playerclasses[d->playerclass];
+			loopi(WEAPONS_PER_CLASS) d->ammo[pci.weap[i]] = min(d->ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
+			break;
+		}
+		case BA_AMMOD:
+		{
+			const playerclassinfo &pci = playerclasses[d->playerclass];
+			loopi(WEAPONS_PER_CLASS) d->ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
+			break;
+		}
+
+		case BA_HEALTH:
+			d->health = min(d->health + d->maxhealth/2, d->maxhealth);
+			break;
+		case BA_HEALTHD:
+			d->health = d->maxhealth;
+			break;
+
+		case BA_ARMOURG:
+		case BA_ARMOURY:
+			d->armourtype = (item==BA_ARMOURY)? A_YELLOW: A_GREEN;
+			d->armour = (item==BA_ARMOURY)? 200: 100;
+			break;
+
+		case BA_QUAD:
+		case BA_QUADD:
+			d->quadmillis = (item==BA_QUADD)? 60000: 30000;
+			break;
+
+		case BA_SUPPORT:
+		case BA_SUPPORTD:
+			if (M_DMSP) spawnsupport((item==BA_SUPPORTD)? 6: 3);
+			break;
+		}
+	}
 
 	void buy(char *s)
 	{
-		if (player1->state != CS_ALIVE || intermission || !m_dmsp) return;
+		if (player1->state != CS_ALIVE || intermission || !m_survivalb) return;
 
 		loopi(BA_NUM) if (!strcmp(buyablesnames[i], s))
 		{
 			if (player1->guts < buyablesprices[i])
 			{
 				conoutf(CON_INFO, "\f2not enough gut points to buy item");
-				break;
+				//break;
 			}
-			player1->guts -= buyablesprices[i];
-			switch (i)
+			if (m_survival) addmsg(N_BUY, "ri", /*player1,*/ i);
+			else
 			{
-			case BA_AMMO:
-				{
-					const playerclassinfo &pci = playerclasses[playerclass];
-					loopi(WEAPONS_PER_CLASS) player1->ammo[pci.weap[i]] = min(player1->ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
-					break;
-				}
-			case BA_AMMOD:
-				{
-					const playerclassinfo &pci = playerclasses[playerclass];
-					loopi(WEAPONS_PER_CLASS) player1->ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
-					break;
-				}
-
-			case BA_HEALTH:
-				player1->health = min(player1->health + player1->maxhealth/2, player1->maxhealth);
-				break;
-			case BA_HEALTHD:
-				player1->health = player1->maxhealth;
-				break;
-
-			case BA_ARMOURG:
-			case BA_ARMOURY:
-				player1->armourtype = (i==BA_ARMOURY)? A_YELLOW: A_GREEN;
-				player1->armour = (i==BA_ARMOURY)? 200: 100;
-				break;
-
-			case BA_QUAD:
-			case BA_QUADD:
-				player1->quadmillis = (i==BA_QUADD)? 60000: 30000;
-				break;
-
-			case BA_SUPPORT:
-			case BA_SUPPORTD:
-				// spawn ai support troopers
-				spawnsupport((i==BA_SUPPORTD)? 6: 3);
-				break;
+				applyitem(player1, i); // DMSP
+				player1->guts -= buyablesprices[i];
 			}
 			break;
 		}
@@ -470,7 +509,7 @@ namespace game
 
     VARP(spawnwait, 0, 2000, 5000);
 
-    void respawn()
+    bool respawn()
     {
         if(player1->state==CS_DEAD)
         {
@@ -479,29 +518,47 @@ namespace game
             if(wait>0)
             {
                 lastspawnattempt = lastmillis;
-                return;
+                return false;
             }
-            if(lastmillis < player1->lastpain + spawnwait) return;
+            if(lastmillis < player1->lastpain + spawnwait) return false;
 			resetfade();
 			extern int hudgun;
 			hudgun = 1;
-            if(m_dmsp) { changemap(clientmap, gamemode); return; }    // if we die in SP we try the same map again
+            if(m_dmsp) { changemap(clientmap, gamemode); return true; }    // if we die in SP we try the same map again
             respawnself();
             if(m_classicsp)
             {
                 conoutf(CON_GAMEINFO, "\f2You wasted another life! The monsters stole your armour and some ammo...");
                 loopi(NUMWEAPS) if(i!=WEAP_PISTOL && (player1->ammo[i] = savedammo[i]) > 5) player1->ammo[i] = max(player1->ammo[i]/3, 5);
             }
+			return true;
         }
     }
 
     // inputs
 
+	int nextchasee(int last)
+	{
+		int ret = last;
+		for (int i=1, l=players.length(); i<l; i++)
+		{
+			ret = (last+i)%l;
+			if (players[ret]->state==CS_ALIVE) return ret;
+		}
+		return last;
+	}
+
     void doattack(bool on, bool altfire)
     {
         if(intermission) return;
 		player1->altfire = altfire;
-        if((player1->attacking = on)) respawn();
+        if((player1->attacking = on) && !respawn())
+		{
+			static int cpo = 0;
+			cpo = nextchasee(cpo);
+			player1->follow = players[cpo];
+			return;
+		}
     }
 
     bool canjump()
@@ -627,14 +684,15 @@ namespace game
         deathstate(d);
 		if (cmode && d->aitype == AI_ZOMBIE) cmode->zombiekilled(d, actor);
 		ai::killed(d, actor);
-		if(d == player1)d->lastkilled = actor;
+		if(d == player1) d->follow = actor;
     }
 
 	dynent *followcam()
 	{
 		fpsent *d = followingplayer();
-		if (!d && player1->lastpain < lastmillis-1000)
-			return (player1->state == CS_DEAD && player1->lastkilled)? player1->lastkilled: player1;
+		fpsent *follow = player1->follow;
+		if (!d && player1->lastpain < lastmillis-1000 && d != player1)
+			return (player1->state==CS_DEAD && follow && follow->state>=CS_ALIVE && follow->state<=CS_SPECTATOR)? follow: player1;
 		return d;
 	}
 
@@ -934,35 +992,7 @@ namespace game
     }
     ICOMMAND(kill, "", (), suicide(player1));
 
-	/*
-	int isbuying = 0, sprice = 0, cantbuymillis;
-	bool trybuy = false, isnear = false;
-	string type = "Door";
-
-	ICOMMAND(buyitem, "D", (int *down), { trybuy = (*down!=0); trybuy = (lastmillis>=cantbuymillis); } );
-
-	void canbuy(int price)
-	{
-		if(isbuying != 2) isbuying = 1;
-		isnear = true;
-		sprice = price;
-	}
-
-	bool didbuy()
-	{
-		if(trybuy && player1->guts < sprice)
-		{
-			isbuying = 2;
-			trybuy = false;
-			cantbuymillis = lastmillis+1000;
-		}
-		return trybuy;
-	}
-
-	bool getround() {if (dopickups){dopickups = false; return true;} return false; }
-	*/
-
-    bool needminimap() { return m_teammode /*m_ctf || m_protect || m_hold || m_capture*/; }
+    bool needminimap() { return (cmode)? cmode->needsminimap(): m_teammode /*m_ctf || m_protect || m_hold || m_capture*/; }
 
     void drawicon(int icon, float x, float y, float sz)
     {
@@ -1160,8 +1190,7 @@ namespace game
 		float aw = ammo_bar->xs * 1.9, ah = ammo_bar->ys * 1.9;
 		float ax = rw - aw, ay = rh - ah;
 
-		//@todo:
-		glColor3f(m_teammode || d->infected ?0.7:1, d->infected?1:m_teammode?0.7:1, d->infected? 0.7:1);
+		glColor3f((m_teammode||d->infected)? 0.7: 1, d->infected? 1: (m_teammode? 0.7: 1), d->infected? 0.7: 1);
 		glBegin(GL_TRIANGLE_STRIP);
 		glTexCoord2f(0, 0); glVertex2f(ax	,	ay);
 		glTexCoord2f(1, 0); glVertex2f(ax+aw,	ay);
@@ -1332,34 +1361,16 @@ namespace game
 
     void drawhudicons(fpsent *d, int w, int h)
 	{
-		//todo: this function needs some cleaning up
         if(d->state!=CS_DEAD)
         {
 			// draw guts
-			if(m_dmsp)
+			if(m_survivalb)
 			{
 				int tw, th;
+				//@todo: consider making the G in "Guts" lowercase
 				defformatstring(guts)("\f1Guts: \f3%d", hudplayer()->guts);
 				text_bounds(guts, tw, th);
 				draw_text(guts, w*1800/h - 420, 1350);
-				/*
-				if(isbuying > 0 && isnear)
-				{
-					int tw, th;
-					defformatstring(buytext)( "%s cost %d guts, press r to buy", type, sprice);
-					text_bounds(buytext, tw, th);
-					draw_text(buytext, int(((w*1800/h)*0.5) - (tw*0.5)), 1650 - (th*11));
-					int millis = cantbuymillis - lastmillis - 1;
-					int alpha;
-					if (millis >= 500) alpha = 500 - (millis % 500);
-					else alpha = millis % 500;
-					//conoutf("millis: %d millismod: %d anwser: %d", millis , millis % 100, alpha);
-					if(isbuying == 2 && millis > 0) draw_text("you do not have enough guts",int(((w*1800/h)*0.5) - (tw*0.5)), 1650 - (th*9.7), 150, 7, 7, alpha*0.255);
-					//conoutf("can buy");
-					else isbuying = 0;
-					isnear = false;
-				}
-				*/
 			}
 
 			// draw ammo
@@ -1517,6 +1528,11 @@ namespace game
     void gameplayhud(int w, int h)
     {
         fpsent *d = hudplayer();
+		if (d->state == CS_DEAD)
+		{
+			fpsent *t = (fpsent *)followcam();
+			if (t) d = t;
+		}
 
         glPushMatrix();
         glScalef(h/1800.0f, h/1800.0f, 1);
@@ -1606,6 +1622,8 @@ namespace game
 
 				drawblip(d, x, y, s, ent->o, false);
 			}
+
+			if (cmode) cmode->drawblips(d, w, h, x, y, s, rscale);
 		}
 
         if(d->state!=CS_EDITING)

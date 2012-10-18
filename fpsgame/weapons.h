@@ -119,7 +119,7 @@ enum projtypes
 	PJ_BOUNCER,
 	PJ_PROJECTILE,
 	PJ_FLAME,
-	PJ_REFLECTOR, // combines PJ_RAY and PJ_PROJECTILE
+	PJ_STUB,
 	PJ_SPECIAL, // sniper rifle IR scope
 
 	PJT_HOME		= 1<<8,
@@ -144,8 +144,7 @@ static const char * const barreldebrismodels[] = { "barreldebris/debris01", "bar
 // a negative 'numrays' denotes random offsetting
 // projparts[] =  muzzle, trail_1, trail_2, explosion
 // todo: implement 'projlife'
-//@todo: uncomment const
-static /*const*/ struct weapinfo {
+static const struct weapinfo {
 	short sound, looping, icon, attackdelay, kickamount, range, power, damage, numrays, offset, numshots,
 		projtype, projmdl, projspeed, projradius, projgravity, projlife, decal; float decalsize, muzzlelightsize, quakemul; vec color; char projparts[4];
 	short sound2, looping2, icon2, attackdelay2, kickamount2, range2, power2, damage2, numrays2, offset2, numshots2, // altfire
@@ -238,7 +237,6 @@ static /*const*/ struct weapinfo {
 #define WEAP_IS_BOUNCER(gun)		(WEAP_PROJTYPE(gun)==PJ_BOUNCER)
 #define WEAP_IS_PROJECTILE(gun)		(WEAP_PROJTYPE(gun)==PJ_PROJECTILE)
 #define WEAP_IS_FLAME(gun)			(WEAP_PROJTYPE(gun)==PJ_FLAME)
-#define WEAP_IS_REFLECTOR(gun)		(WEAP_PROJTYPE(gun)==PJ_REFLECTOR)
 #define WEAP_IS_SPECIAL(gun)		(WEAP_PROJTYPE(gun)==PJ_SPECIAL)
 
 #define WEAP_VALID(gun)				(WEAPONI(gun)>=0&&WEAPONI(gun)<=NUMWEAPS)

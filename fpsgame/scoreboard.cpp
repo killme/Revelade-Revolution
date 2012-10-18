@@ -152,11 +152,12 @@ namespace game
         if(paused || ispaused()) { g.separator(); g.text("paused", 0xFFFF80); }
         g.poplist();
 
-        if(player1->state==CS_DEAD)
+		extern int spawnwait;
+		int spawnms = float(cmode? cmode->respawnmillis(player1): spawnwait-float(lastmillis-player1->lastpain))/1000.f;
+        if(player1->state==CS_DEAD && spawnms>0)
 		{
 			//g.separator();
-			extern int spawnwait;
-			g.titlef("spawn in %.1f", 0xFFFF80, NULL, max(float(cmode? cmode->respawnmillis(player1): spawnwait-float(lastmillis-player1->lastpain))/1000.f, 0.f));
+			g.titlef("spawn in %.1f", 0xFFFF80, NULL, spawnms);
 		}
 
         g.separator();

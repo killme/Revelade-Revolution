@@ -24,6 +24,8 @@ namespace entities
 
 namespace game
 {
+	extern const float gameversion;
+
     extern void parseoptions(vector<const char *> &args);
 
     extern void gamedisconnect(bool cleanup);

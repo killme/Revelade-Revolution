@@ -418,8 +418,7 @@ void ircprocess(ircnet *n, char *user[3], int g, int numargs, char *w[])
                             ircprintf(n, 4, g ? w[g+1] : NULL, "\fr%s requests: %s %s", user[0], q, r);
 
                             if(!strcasecmp(q, "VERSION"))
-                                ircsend(n, "NOTICE %s :\vVERSION %s V%s", user[0], "Revelade Revolution", "1.0");
-							//todo: add version defines
+                                ircsend(n, "NOTICE %s :\vVERSION %s V%.2f", user[0], "Revelade Revolution", game::gameversion);
                             else if(!strcasecmp(q, "PING")) // eh, echo back
                                 ircsend(n, "NOTICE %s :\vPING %s\v", user[0], r);
                         }
