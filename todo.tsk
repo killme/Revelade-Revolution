@@ -4,7 +4,7 @@
 <tasks>
 <task actualstartdate="2012-07-14 07:47:38.762000" expandedContexts="('taskviewer',)" id="09d196a1-cd6f-11e1-aa06-bc5ff4298c11" status="1" subject="Client-Server">
 <task actualstartdate="2012-07-14 07:47:47.154000" id="0ed21b21-cd6f-11e1-a1cd-bc5ff4298c11" status="1" subject="Server side anti-cheat ray checking" />
-<task actualstartdate="2012-07-14 07:48:02.786000" id="18235c21-cd6f-11e1-b79d-bc5ff4298c11" status="1" subject="Server side fire damage checking" />
+<task actualstartdate="2012-07-14 07:48:02.786000" completiondate="2012-10-19 14:50:26.558000" id="18235c21-cd6f-11e1-b79d-bc5ff4298c11" percentageComplete="100" status="1" subject="Server side fire damage checking" />
 </task>
 <task actualstartdate="2012-07-24 10:35:18.780000" expandedContexts="('taskviewer',)" id="1e3003c0-d562-11e1-b0d8-bc5ff4298c11" status="1" subject="General">
 <task actualstartdate="2012-09-08 15:37:58.359000" id="05248580-f9b2-11e1-a2b4-bc5ff4298c11" status="1" subject="Chatbot" />
@@ -16,7 +16,7 @@
 <task actualstartdate="2012-07-24 10:35:26.244000" completiondate="2012-09-24 01:17:10.025000" icon="led_red_icon" id="22a2ee40-d562-11e1-b4dc-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Add blips for players and pickups" />
 <task icon="led_red_icon" id="2a926a40-eb38-11e1-97ac-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Add capture modes" />
 <task id="2b65ec00-f33d-11e1-b337-bc5ff4298c11" status="1" subject="Rocket projectile sway" />
-<task actualstartdate="2012-09-17 20:36:52.986000" icon="led_red_icon" id="44bb2cb0-00ee-11e2-a80f-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Add bying to coop survival">
+<task actualstartdate="2012-09-17 20:36:52.986000" completiondate="2012-10-18 21:42:00.725000" icon="led_red_icon" id="44bb2cb0-00ee-11e2-a80f-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Add bying to coop survival">
 <description>
 Removed "rat spawning and ". It's no longer necessary.
 </description>
@@ -24,12 +24,11 @@ Removed "rat spawning and ". It's no longer necessary.
 <task id="48e88c5e-f33d-11e1-8358-bc5ff4298c11" status="1" subject="Water drops" />
 <task actualstartdate="2012-08-07 04:07:49.711000" completiondate="2012-08-07 05:43:22.768000" id="4e721df0-e02c-11e1-80f1-bc5ff4298c11" percentageComplete="100" status="1" subject="Range based damage calculation" />
 <task actualstartdate="2012-08-07 04:08:26.639000" completiondate="2012-08-14 06:14:45.936000" id="6474e1f0-e02c-11e1-8204-bc5ff4298c11" percentageComplete="100" status="1" subject="Team HUD below radar" />
-<task icon="led_red_icon" id="6f37eb9e-1222-11e2-8fbf-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Parse download header and extract filename" />
+<task actualstartdate="2012-10-20 18:30:00.895000" completiondate="2012-10-21 10:45:27.944000" icon="led_red_icon" id="6f37eb9e-1222-11e2-8fbf-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Parse download header and extract filename" />
 <task actualstartdate="2012-10-15 00:02:46.747000" completiondate="2012-10-17 23:56:46.840000" icon="led_red_icon" id="814c9ab0-1642-11e2-ac68-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Add radial damage variable to explosions" />
 <task actualstartdate="2012-09-07 06:32:32.235000" id="a87063ae-f89c-11e1-98b2-bc5ff4298c11" status="1" subject="Weapon charge" />
 <task completiondate="2012-10-16 18:11:29.852000" icon="led_red_icon" id="a89362f0-1612-11e2-92f1-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Make coop survival a death-match game" />
 <task actualstartdate="2012-10-09 18:04:44.378000" completiondate="2012-10-12 17:49:38.980000" icon="led_red_icon" id="a8be7ba1-1222-11e2-94bb-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Add Mortar as a pickup" />
-<task actualstartdate="2012-10-09 19:03:26.833000" icon="led_red_icon" id="dc4a9d21-122a-11e2-9115-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Arrows should stick to the wall" />
 <task actualstartdate="2012-09-05 15:33:17.627000" id="de92d0b0-f755-11e1-b42f-bc5ff4298c11" status="1" subject="Automatic map downloading from server" />
 <task actualstartdate="2012-08-31 11:21:42.381000" completiondate="2012-08-31 11:59:12.723000" id="e50a78de-f344-11e1-9f01-bc5ff4298c11" percentageComplete="100" status="1" subject="Add option for selecting male/female voice" />
 </task>
@@ -82,11 +81,13 @@ Texture material can be specified with the texture definition, different materia
 <task expandedContexts="('taskviewer',)" id="b6110191-cd6e-11e1-9af6-bc5ff4298c11" status="1" subject="Remove backup maps" />
 </task>
 <task actualstartdate="2012-07-14 07:51:56.966000" expandedContexts="('taskviewer',)" id="a3b86461-cd6f-11e1-b8f0-bc5ff4298c11" status="1" subject="Tweaks">
+<task actualstartdate="2012-10-21 14:54:17.280000" id="0a9eb400-1b76-11e2-96b0-bc5ff4298c11" status="1" subject="Display amount of guts earned or lost when guts change" />
 <task actualstartdate="2012-08-05 11:03:38.977000" completiondate="2012-08-05 11:18:49.581000" id="108a7d0f-ded4-11e1-8968-bc5ff4298c11" percentageComplete="100" status="1" subject="Optimize motion blur" />
 <task actualstartdate="2012-08-07 04:07:14.728000" completiondate="2012-08-07 04:07:36.833000" expandedContexts="('taskviewer',)" id="39982280-e02c-11e1-be44-bc5ff4298c11" percentageComplete="100" status="1" subject="Zombie models for infected players" />
 <task actualstartdate="2012-07-14 07:52:09.186000" completiondate="2012-08-23 07:14:08.548000" id="ab012b30-cd6f-11e1-9271-bc5ff4298c11" percentageComplete="100" status="1" subject="Gunwait/reload animation time" />
 <task actualstartdate="2012-07-14 07:52:39.501000" completiondate="2012-08-02 04:52:20.236000" id="bd12b7cf-cd6f-11e1-bb1f-bc5ff4298c11" percentageComplete="100" status="1" subject="Incinirated lava message" />
 <task id="c40a2a4f-cd6f-11e1-90c7-bc5ff4298c11" status="1" subject="One loading bar pass" />
+<task actualstartdate="2012-10-09 19:03:26.833000" icon="led_red_icon" id="dc4a9d21-122a-11e2-9115-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Arrows stick to walls" />
 </task>
 <task actualstartdate="2012-07-12 11:44:41.698000" expandedContexts="('taskviewer',)" id="d2860b2e-cbfd-11e1-9e86-bc5ff4298c11" status="1" subject="Server vars">
 <task actualstartdate="2012-07-12 14:59:24.021000" completiondate="2012-10-04 17:54:50.283000" icon="led_red_icon" id="05baea4f-cc19-11e1-8252-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="flagstowin (flaglimit)">

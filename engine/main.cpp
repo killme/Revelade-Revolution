@@ -39,11 +39,13 @@ VAR(dlstotal, 1, 0, 0);
 VAR(dlspeed, 1, 0, 0);
 VAR(dlstatus, 1, 0, 0); // 0 = downloading/no download, 1 = successful, 2 = failed, 3 = cancelled
 FILE *dlfile;
-char dlfilepath[1000] = "";
-ICOMMAND(dlfilepath, "", (), result(dlfilepath));
+FILE *hdfile = NULL;
+string dlfilepath = "";
+string downloaddirpath = "";
+string hdfilename = "";
 bool dlcancel;
 CURL *dlhandle = NULL;
-//FILE *hdfile = NULL;
+ICOMMAND(dlfilepath, "", (), result(dlfilepath));
 
 size_t downloadwritedata(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -71,6 +73,45 @@ int downloadprog(void *a, double dltotal, double dlnow, double ultotal, double u
     return 0;
 }
 
+char *parsehdname(char *header)
+{
+	char *fnp = strstr(header, "filename");
+	if (!fnp) return NULL;
+	bool found = false, found2 = false;
+	char fchar = '\0', *res = NULL;
+	while (*++fnp)
+	{
+		if (*fnp=='\n' || *fnp=='\r')
+		{
+			*fnp = '\0';
+			if (!fchar || fchar=='\n') found2 = true;
+			break;
+		}
+		if (found)
+		{
+			if (fchar && *fnp==fchar)
+			{
+				*fnp = '\0';
+				found2 = true;
+				break;
+			}
+			else if (!fchar && *fnp=='"' || *fnp=='\'')
+			{
+				res = fnp+1;
+				fchar = *fnp;
+			}
+			else if (!fchar && *fnp!=' ')
+			{
+				res = fnp;
+				fchar = '\n';
+			}
+		}
+		else if (*fnp=='=') found = true;
+	}
+	if (found2) return res;
+	return NULL;
+}
+
 int downloadfunc(void * data)
 {
 	CURLcode ret = curl_easy_perform(dlhandle);
@@ -92,6 +133,26 @@ int downloadfunc(void * data)
     }
 	else
 	{
+		fseek(hdfile, 0, SEEK_END);
+		int hdsize = ftell(hdfile);
+		rewind(hdfile);
+		char *header = new char[hdsize];
+		fread(header, 1, hdsize, hdfile);
+		const char *hdfname = parsehdname(header);
+		if (hdfname)
+		{
+			if (hdfile)
+			{
+				fclose(hdfile);
+				dlfile = NULL;
+				remove(hdfilename);
+			}
+			defformatstring(newfilename)("%s%s", downloaddirpath, hdfname);
+			if (fileexists(newfilename, "r")) remove(newfilename);
+			rename(dlfilepath, newfilename);
+			strcpy(dlfilepath, newfilename);
+		}
+		delete[] header;
 		dlstatus = 1;
 		showgui("dl_progress");
 	}
@@ -103,8 +164,17 @@ int downloadfunc(void * data)
 	lastdltime = 0;
 
 	curl_easy_cleanup(dlhandle);
-	if (dlfile) fclose(dlfile);
-	//if (hdfile) fclose(hdfile);
+	if (dlfile)
+	{
+		fclose(dlfile);
+		dlfile = NULL;
+	}
+	if (hdfile)
+	{
+		fclose(hdfile);
+		hdfile = NULL;
+		remove(hdfilename);
+	}
 
 	return 0;
 }
@@ -124,8 +194,8 @@ void download(const char *url)
 	dlstatus = 0;
 
 	static const char *downloaddir = "downloads" PATHDIVS;
-	const char *dir = findfile(downloaddir, "w");
-	if(!fileexists(dir, "w")) createdir(dir);
+	strcpy(downloaddirpath, findfile(downloaddir, "w"));
+	if(!fileexists(downloaddirpath, "w")) createdir(downloaddirpath);
 
 	string murl;
 	strcpy(murl, url);
@@ -144,15 +214,15 @@ void download(const char *url)
 		else if ((*eurl)[i] == '?') j = i-1;
 	}
 
-	if (dlname && dlname[0]) formatstring(dlfilepath)("%s%s", dir, dlname);
-	else formatstring(dlfilepath)("%stemp_%d", dir, lastmillis);
+	if (dlname && dlname[0]) formatstring(dlfilepath)("%s%s", downloaddirpath, dlname);
+	else formatstring(dlfilepath)("%stemp_%d", downloaddirpath, lastmillis);
 
 	dlfile = fopen(dlfilepath, "wb");
 	if (!dlfile) conoutf("error opening file \"%s\" for saving", dlfilepath);
 
-	//defformatstring(hdfn)("%sheader.txt", dir);
-	//hdfile = fopen(hdfn, "w");
-	//curl_easy_setopt(dlhandle, CURLOPT_WRITEHEADER, hdfile);
+	formatstring(hdfilename)("%s", findfile("header.txt", "w"));
+	hdfile = fopen(hdfilename, "w+");
+	curl_easy_setopt(dlhandle, CURLOPT_WRITEHEADER, hdfile);
 
 	curl_easy_setopt(dlhandle, CURLOPT_FOLLOWLOCATION,1);
 	curl_easy_setopt(dlhandle, CURLOPT_WRITEFUNCTION, downloadwritedata);

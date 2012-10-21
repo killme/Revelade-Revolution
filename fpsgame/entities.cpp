@@ -31,7 +31,7 @@ namespace entities
         {
             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
             "ammo/ammo_lv1", "ammo/ammo_lv2", "ammo/ammo_lv3", "ammo/ammo_lv4",
-			"health", "health", "health", "vwep/mortar",
+			"health", "health", "health", "ammo/mortar",
 			"armor/green", "armor/yellow", "quad", "teleporter",
             NULL, NULL,
             "carrot",
@@ -189,7 +189,7 @@ namespace entities
             e = findentity(TELEDEST, e+1);
             if(e==beenhere || e<0) { conoutf(CON_WARN, "no teleport destination for tag %d", tag); return; }
             if(beenhere<0) beenhere = e;
-            if(ents[e]->attr1==tag)
+            if(ents[e]->attr2==tag)
             {
                 teleporteffects(d, n, e, true);
                 d->o = ents[e]->o;

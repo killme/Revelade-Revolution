@@ -192,7 +192,7 @@ namespace game
             particle_splash(pp.part, pp.num, pp.fade, pos, pp.color, pp.size, pp.radius, pp.gravity, 1.0f, false);
 			break;
 		case PT_TRAIL:
-            particle_trail(pp.part, pp.fade, pos, *to, pp.color, pp.size, pp.gravity);
+            particle_trail(pp.part, pp.fade, pos, *to, pp.color, pp.size, pp.gravity, false, pp.radius);
 			break;
 		case PT_FLARE:
 			particle_flare(pos, *to, pp.fade, pp.part, pp.color, pp.size, owner);
@@ -622,7 +622,7 @@ namespace game
         return true;
     }
 
-	void setonfire(dynent *d, dynent *attacker, int gun, bool local)
+	void setonfire(dynent *d, dynent *attacker, int gun, bool local, int projid)
 	{
 		if (!d || !attacker || WEAP(gun,damage)==0) return;
 		if (!local && (attacker == player1 || ((fpsent*)attacker)->ai)) return;
@@ -635,7 +635,7 @@ namespace game
 
 		if (local && (attacker->type == ENT_PLAYER || ((fpsent*)attacker)->ai))
 		{
-			addmsg(N_ONFIRE, "ri3", ((fpsent*)attacker)->clientnum, ((fpsent*)d)->clientnum, gun);
+			addmsg(N_ONFIRE, "ri5", ((fpsent*)attacker)->clientnum, ((fpsent*)d)->clientnum, gun, projid, 1);
 		}
 	}
 
@@ -744,7 +744,7 @@ namespace game
 							dynent *o = iterdynents(i);
 							if (o == p.owner && (ff <= 0.7f || (p.dir.z < -0.5 && (ff >= .99f || ff <= .94f)))) continue;
 							if (o->state == CS_ALIVE && o->o.dist(p.o) < damdist && o->inwater==0) // (&& raycube(p.o, o->o, 1.f, RAY_CLIPMAT|RAY_ALPHAPOLY) >= 0.99f) stop burning through walls
-								setonfire(o, p.owner, p.gun);
+								setonfire(o, p.owner, p.gun, true, p.id-maptime);
 						}
 					}
 				}
@@ -1204,27 +1204,37 @@ namespace game
         {
             fpsent *d = players[i];
 
-			d->irsm = max(d->irsm-curtime, 0);
-
-			//@todo: this should be moved to server
-			// todo: use gamemillis instead of lastmillis
-			// todo: put the following block in its own function, to be used from survival mode
-			if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai) && lastmillis-d->lastburnpain >= clamp(lastmillis-d->burnmillis, 200, 1000))
-			{
-				int damage = min(WEAP(d->burngun,damage)*1000/max(lastmillis-d->burnmillis, 1000), d->health)*(((fpsent *)d->fireattacker)->quadmillis ? 4 : 1);
-				if(d->fireattacker->type==ENT_PLAYER) ((fpsent*)d->fireattacker)->totaldamage += damage;
-				d->lastburnpain = lastmillis;
-
-				addmsg(N_BURNDAMAGE, "riii", ((fpsent*)d->fireattacker)->clientnum, d->clientnum, damage);
-				extern int hitsound;
-				if(d != player1 && d->fireattacker == player1 && hitsound && lasthit != lastmillis) playsound(S_HIT);
-			}
-			if (d->onfire && (lastmillis-d->burnmillis > 4000 || d->inwater)) d->onfire = false;
+			if (d->irsm) d->irsm = max(d->irsm-curtime, 0);
 
             checkattacksound(d, d==following);
             checkidlesound(d, d==following);
+
+			if (d->onfire && d->inwater && (d==player1 || d->ai))
+			{
+				player1->onfire = false;
+				addmsg(N_ONFIRE, "ri5", d->clientnum, d->clientnum, 0, 0, 0);
+			}
+
+			if (m_dmsp)
+			{
+				// todo: put the following block in its own function, to be used from survival mode
+				if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai) && lastmillis-d->lastburnpain >= clamp(lastmillis-d->burnmillis, 200, 1000))
+				{
+					int damage = min(WEAP(d->burngun,damage)*1000/max(lastmillis-d->burnmillis, 1000), d->health)*(((fpsent *)d->fireattacker)->quadmillis ? 4 : 1);
+					if(d->fireattacker->type==ENT_PLAYER) ((fpsent*)d->fireattacker)->totaldamage += damage;
+					d->lastburnpain = lastmillis;
+
+					extern int hitsound;
+					if(d != player1 && d->fireattacker == player1 && hitsound && lasthit != lastmillis) playsound(S_HIT);
+
+					if (damage > 0) damage = min(damage, d->health+d->armour);
+					else damage = max(damage, d->health-d->maxhealth);
+					if(d->state == CS_ALIVE && d != player1) d->lastpain = lastmillis;
+					damaged(damage, d, (fpsent *)d->fireattacker, true, WEAP_FLAMEJET);
+				}
+				if (d->onfire && (lastmillis-d->burnmillis > 4000 || d->inwater)) d->onfire = false;
+			}
         }
-		if (player1->onfire && player1->inwater) player1->onfire = false;
 		if (!hudplayer()->onfire) setisburning(false);
     }
 

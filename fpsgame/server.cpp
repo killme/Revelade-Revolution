@@ -115,6 +115,12 @@ namespace server
             }
             return false;
         }
+
+		bool check(int val)
+		{
+            loopi(numprojs) if(projs[i]==val) return true;
+            return false;
+		}
     };
 
     struct gamestate : fpsstate
@@ -123,7 +129,7 @@ namespace server
         int state, editstate;
         int lastdeath, lastspawn, lifesequence;
         int lastshot;
-        projectilestate<32> rockets, grenades;
+        projectilestate<32> rockets, grenades, flames;
         int frags, flags, deaths, teamkills, shotdamage, damage;
         int lasttimeplayed, timeplayed;
         float effectiveness;
@@ -164,6 +170,7 @@ namespace server
             lastdeath = 0;
             lastspawn = -1;
             lastshot = 0;
+			onfire = false;
         }
 
         void reassign()
@@ -1681,6 +1688,10 @@ namespace server
         {
             case WEAP_ROCKETL: gs.rockets.add(id); break;
             case WEAP_GRENADIER: gs.grenades.add(id); break;
+			case WEAP_FLAMEJET:
+				{
+				gs.flames.add(id); break;
+				}
             default:
             {
                 int totalrays = 0, maxrays = WEAP(gun,numrays);
@@ -1827,6 +1838,23 @@ namespace server
             interm = -1;
             checkvotes(true);
         }
+
+		loopv(clients) if (clients[i]->state.onfire)
+		{
+			gamestate &gs = clients[i]->state;
+			int burnmillis = gamemillis-gs.burnmillis;
+			if (gs.state == CS_ALIVE && gamemillis-gs.lastburnpain >= clamp(burnmillis, 200, 1000))
+			{
+				int damage = min(WEAP(WEAP_FLAMEJET,damage)*1000/max(burnmillis, 1000), gs.health)*(gs.fireattacker->state.quadmillis? 4: 1);
+				dodamage(clients[i], gs.fireattacker, damage, WEAP_FLAMEJET);
+				gs.lastburnpain = gamemillis;
+			}
+			if (burnmillis > 4000)
+			{
+				gs.onfire = false;
+				sendf(-1, 1, "ri5", N_SETONFIRE, clients[i]->state.fireattacker->clientnum, clients[i]->clientnum, WEAP_FLAMEJET, 0);
+			}
+		}
     }
 
     struct crcinfo
@@ -2861,26 +2889,23 @@ namespace server
 				int cattacker = getint(p);
 				int cvictim = getint(p);
 				int gun = getint(p);
-				// todo: get projectile id
-				//clientinfo *catt = getinfo(cvictim);
-				//conoutf("N_ONFIRE <- %d", cvictim);
-				//if(catt->state.state == CS_ALIVE)
-				//{
-				//catt->state.onfire = true;
-				//catt->state.lastburnpain = 0;
-				//catt->state.burnmillis = lastmillis;
-				//catt->state.fireattacker = catt;
-				sendf(-1, 1, "riiii", N_SETONFIRE, cattacker, cvictim, gun);
-				//}
-				break;
-			}
-
-			case N_BURNDAMAGE:
-			{
-				int cattacker = getint(p);
-				int cvictim = getint(p);
-				int damage = getint(p);
-				dodamage(getinfo(cvictim), getinfo(cattacker), damage, WEAP_FLAMEJET);
+				int id = getint(p);
+				int on = getint(p);
+				clientinfo *ti = getinfo(cattacker);
+				clientinfo *vi = getinfo(cvictim);
+				if(on && ti && vi && ti->state.state==CS_ALIVE && vi->state.state==CS_ALIVE && (ti==cq || ti->ownernum==cq->clientnum) && vi->state.burnmillis<(gamemillis-200))
+				{
+					vi->state.onfire = true;
+					vi->state.lastburnpain = 0;
+					vi->state.burnmillis = gamemillis;
+					vi->state.fireattacker = ti;
+					sendf(-1, 1, "ri5", N_SETONFIRE, cattacker, cvictim, gun, 1);
+				}
+				else if (!on && vi && (vi==cq || vi->ownernum==cq->clientnum))
+				{
+					vi->state.onfire = false;
+					sendf(-1, 1, "ri5", N_SETONFIRE, cvictim, cvictim, gun, 0);
+				}
 				break;
 			}
 

@@ -41,6 +41,7 @@ namespace ai
 
     bool canmove(fpsent *d)
     {
+		//return false;
         return aicanmove && d->state != CS_DEAD && !intermission;
     }
 

@@ -343,9 +343,9 @@ enum
     N_ADDBOT, N_DELBOT, N_INITAI, N_FROMAI, N_BOTLIMIT, N_BOTBALANCE,
     N_MAPCRC, N_CHECKMAPS,
     N_SWITCHNAME, N_SWITCHMODEL, N_SWITCHTEAM, N_SWITCHCLASS, N_SETCLASS,
-	N_ONFIRE, N_BURNDAMAGE, N_SETONFIRE, //todo fix these
+	N_ONFIRE, N_SETONFIRE,
 	N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
-	N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND,
+	N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_SURVROUNDOVER,
 	N_GUTS, N_BUY,
 	NUMSV
 };
@@ -374,9 +374,9 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_ADDBOT, 2, N_DELBOT, 1, N_INITAI, 0, N_FROMAI, 2, N_BOTLIMIT, 2, N_BOTBALANCE, 2,
     N_MAPCRC, 0, N_CHECKMAPS, 1,
     N_SWITCHNAME, 0, N_SWITCHMODEL, 2, N_SWITCHTEAM, 0, N_SWITCHCLASS, 2, N_SETCLASS, 3,
-	N_ONFIRE, 4, N_BURNDAMAGE, 4, N_SETONFIRE, 4,
+	N_ONFIRE, 0/*4*/, N_SETONFIRE, 0/*4*/,
 	N_INFECT, 3, N_INITINF, 0, N_RADIOTEAM, 0, N_RADIOALL, 0,
-	N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURVNEWROUND, 0,
+	N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURVNEWROUND, 0, N_SURVROUNDOVER, 2,
 	N_GUTS, 3, N_BUY, 0,
     -1
 };
@@ -385,7 +385,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
 #define RR_SERVER_PORT 28785
 #define RR_SERVINFO_PORT 28786
 #define RR_MASTER_PORT 28787
-#define PROTOCOL_VERSION 261            // bump when protocol changes
+#define PROTOCOL_VERSION 262            // bump when protocol changes
 #define DEMO_VERSION 1                  // bump when demo format changes
 #define DEMO_MAGIC "REVREV_DEMO"
 #define RR_VERSION 1.0
@@ -951,7 +951,7 @@ namespace game
     extern void updateweapons(int curtime);
     extern void gunselect(int gun, fpsent *d);
     extern void avoidweapons(ai::avoidset &obstacles, float radius);
-	extern void setonfire(dynent *d, dynent *attacker, int gun, bool local = true);
+	extern void setonfire(dynent *d, dynent *attacker, int gun, bool local = true, int projid = -1);
 	extern bool isheadshot(dynent *d, vec from, vec to);
 	extern int getdamageranged(int damage, int gun, bool headshot, bool quad, vec from, vec to);
 	extern int getradialdamage(int damage, int gun, bool headshot, bool quad, float distmul);

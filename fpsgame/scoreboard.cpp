@@ -153,8 +153,8 @@ namespace game
         g.poplist();
 
 		extern int spawnwait;
-		int spawnms = float(cmode? cmode->respawnmillis(player1): spawnwait-float(lastmillis-player1->lastpain))/1000.f;
-        if(player1->state==CS_DEAD && spawnms>0)
+		float spawnms = float(cmode? cmode->respawnmillis(player1): spawnwait-float(lastmillis-player1->lastpain))/1000.f;
+        if(player1->state==CS_DEAD && spawnms>0.f)
 		{
 			//g.separator();
 			g.titlef("spawn in %.1f", 0xFFFF80, NULL, spawnms);

@@ -79,9 +79,45 @@ Section "Desktop Shortcut" SecDTShortcut
 
 SectionEnd
 
+Function CheckVCRedist
+	ReadRegDword $R0 HKLM "SOFTWARE\Wow6432Node\Microsoft\DevDiv\VC\Servicing\10.0\RED\1033" "SPName"
+	${If} $R0 == "RTM"
+		return
+	${Else}
+		ReadRegDword $R0 HKLM "SOFTWARE\Microsoft\DevDiv\VC\Servicing\10.0\RED\1033" "SPName"
+		${If} $R0 == "RTM"
+			return
+		${Else}
+			StrCpy $R0 "-1"
+		${EndIf}
+	${EndIf}
+FunctionEnd
+
+Function CheckAndInstallVcRedist
+	SetDetailsPrint textonly
+	DetailPrint "Installing Visual C++ Redistributable..."
+	SetDetailsPrint listonly
+	Call CheckVCRedist
+	${If} $R0 == "-1"
+		SetOutPath '$TEMP'
+		SetOverwrite on
+		File 'vcredist_x86.exe'
+		ExecWait '$TEMP\vcredist_x86.exe /q:a /c:"VCREDI~1.EXE /q:a /c:""msiexec /i vcredist.msi /qb"" "'
+		;ExecWait '"$TEMP\vcredist_x86.exe" /norestart'
+		;ExecWait '"$TEMP\vcredist_x86.exe" /qb'
+		Delete "$TEMP\vcredist_x86.exe"
+	${EndIf}
+FunctionEnd
+
 Section -post
 
+  Call CheckAndInstallVcRedist
+
   WriteUninstaller $INSTDIR\uninst-rr.exe
+  
+  SetDetailsPrint textonly
+  DetailPrint "Adding registry keys..."
+  SetDetailsPrint listonly
   SetDetailsPrint both
   
   WriteRegStr HKLM "Software\ReveladeRevolution" "InstallLocation" $INSTDIR

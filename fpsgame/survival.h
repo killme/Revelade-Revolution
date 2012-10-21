@@ -10,6 +10,7 @@
 extern void addclientstate(worldstate &ws, clientinfo &ci);
 extern void cleartimedevents(clientinfo *ci);
 extern void sendspawn(clientinfo *ci);
+extern void dodamage(clientinfo *target, clientinfo *actor, int damage, int gun, const vec &hitpush, bool special);
 #endif
 
 static vector<int> surv_teleports;
@@ -385,15 +386,14 @@ struct survivalclientmode : clientmode
 		int winner = -1, bestscore = -MAXINT;
 		loopv(clients)
 		{
-			if (winner>-2 && clients[i]->state.frags>bestscore)
+			if (/*winner>-2 &&*/ clients[i]->state.frags>bestscore)
 			{
 				winner = i;
 				bestscore = clients[i]->state.frags;
 			}
 			else if (clients[i]->state.frags == bestscore) winner = -2;
 		}
-		if (winner >= 0) sendservmsgf(-1, "\fythe winner is:\fg %s", clients[winner]->name);
-		else sendservmsgf(-1, "\fyround draw!");
+		sendf(-1, 1, "ri2", N_SURVROUNDOVER, (winner<0)? -1: clients[winner]->clientnum);
 		return lastmillis+4000;
 	}
 
@@ -536,6 +536,21 @@ struct survivalclientmode : clientmode
 			zombie *zi = zombies[i];
 			if(curtime>0 && zi->state.quadmillis) zi->state.quadmillis = max(zi->state.quadmillis-curtime, 0);
 			flushevents(zi, gamemillis);
+
+			gamestate &gs = zombies[i]->state;
+			if (!gs.onfire) continue;
+			int burnmillis = gamemillis-gs.burnmillis;
+			if (gs.state == CS_ALIVE && gamemillis-gs.lastburnpain >= clamp(burnmillis, 200, 1000))
+			{
+				int damage = min(WEAP(WEAP_FLAMEJET,damage)*1000/max(burnmillis, 1000), gs.health)*(gs.fireattacker->state.quadmillis? 4: 1);
+				dodamage(zombies[i], gs.fireattacker, damage, WEAP_FLAMEJET, vec(0, 0, 0), false);
+				gs.lastburnpain = gamemillis;
+			}
+			if (burnmillis > 4000)
+			{
+				gs.onfire = false;
+				sendf(-1, 1, "ri5", N_SETONFIRE, zombies[i]->state.fireattacker->clientnum, zombies[i]->clientnum, WEAP_FLAMEJET, 0);
+			}
 		}
 
 		static int roundstartmillis = -1;
@@ -687,15 +702,6 @@ struct survivalclientmode : clientmode
             if(zombies[i]->state==CS_ALIVE && zombies[i]->ownernum == player1->clientnum)
 			{
 				zombies[i]->zombieaction(curtime);
-				if (zombies[i]->onfire && lastmillis-zombies[i]->lastburnpain >= 1000)
-				{
-					zombie *d = zombies[i];
-					int damage = min(WEAP(d->burngun,damage)*1000/max(lastmillis-d->burnmillis, 1000), d->health)*(((fpsent *)d->fireattacker)->quadmillis ? 4 : 1);
-					if(d->fireattacker->type==ENT_PLAYER) ((fpsent*)d->fireattacker)->totaldamage += damage;
-					d->lastburnpain = lastmillis;
-					addmsg(N_BURNDAMAGE, "riii", ((fpsent*)d->fireattacker)->clientnum, d->clientnum, damage);
-					zombies[i]->pain(damage, (fpsent*)d->fireattacker);
-				}
 			}
             else if(zombies[i]->state==CS_DEAD)
             {
@@ -710,9 +716,10 @@ struct survivalclientmode : clientmode
 				if (smoothmove && zombies[i]->smoothmillis>0) game::predictplayer(zombies[i], true);
 				else moveplayer(zombies[i], 1, true);
 			}
-			if (zombies[i]->onfire && (lastmillis-zombies[i]->burnmillis > 4000 || zombies[i]->inwater))
+			if (zombies[i]->onfire && zombies[i]->inwater)
 			{
 				zombies[i]->onfire = false;
+				addmsg(N_ONFIRE, "ri5", zombies[i]->clientnum, zombies[i]->clientnum, 0, 0, 0);
 			}
         }
         
@@ -772,7 +779,22 @@ struct survivalclientmode : clientmode
 			{
 				loopv(zombies) zombies[i]->state = CS_DEAD;
 				loopv(players) players[i]->frags = 0;
-				playsound(S_V_BASECAP);
+				break;
+			}
+			case N_SURVROUNDOVER:
+			{
+				int pl = getint(p);
+				fpsent *winner = NULL;
+				if (pl>=0 && (winner=game::getclient(pl)))
+				{
+					conoutf("\fgthe winner is:\fg %s", winner->name);
+					playsound(S_V_BASECAP); // "round over"
+				}
+				else
+				{
+					conoutf("\fground draw!");
+					playsound(S_V_FIGHT); // "round draw"
+				}
 				break;
 			}
 		}
@@ -831,6 +853,7 @@ case N_SURVINIT:
 case N_SURVREASSIGN:
 case N_SURVSPAWNSTATE:
 case N_SURVNEWROUND:
+case N_SURVROUNDOVER:
 {
 	if(cmode) survivalmode.message(type, p);
 	break;

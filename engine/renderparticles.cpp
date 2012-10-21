@@ -1261,7 +1261,7 @@ void particle_splash(int type, int num, int fade, const vec &p, int color, float
 
 VARP(maxtrail, 1, 500, 10000);
 
-void particle_trail(int type, int fade, const vec &s, const vec &e, int color, float size, int gravity, bool bubbles)
+void particle_trail(int type, int fade, const vec &s, const vec &e, int color, float size, int gravity, bool bubbles, int radius)
 {
     if(!canaddparticles()) return;
     vec v;
@@ -1272,7 +1272,7 @@ void particle_trail(int type, int fade, const vec &s, const vec &e, int color, f
     loopi(steps)
     {
         p.add(v);
-        vec tmp = vec(float(rnd(11)-5), float(rnd(11)-5), float(rnd(11)-5));
+        vec tmp = vec(float((rnd(11)-5)*radius)/100.f, float((rnd(11)-5)*radius)/100.f, float((rnd(11)-5)*radius)/100.f);
         if(lookupmaterial(p)==MAT_WATER && (bubbles || type==PART_SMOKE))
             newparticle(p, tmp, rnd(250)+250, PART_BUBBLE, 0xFFFFFF, 0.1f, 500);
         else if(!bubbles && lookupmaterial(p)==MAT_WATER && type==PART_SMOKE)

@@ -1599,9 +1599,11 @@ namespace game
                 int cattacker = getint(p);
                 int cvictim = getint(p);
                 int gun = getint(p);
+                int on = getint(p);
                 fpsent *fatt = getclient(cattacker);
                 fpsent *fvic = getclient(cvictim);
-				setonfire(fvic, fatt, gun, false);
+				if (on) setonfire(fvic, fatt, gun, false);
+				else fvic->onfire = false;
 				break;
 			}
 

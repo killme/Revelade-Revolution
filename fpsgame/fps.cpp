@@ -540,12 +540,13 @@ namespace game
 	int nextchasee(int last)
 	{
 		int ret = last;
-		for (int i=1, l=players.length(); i<l; i++)
+		int l = players.length();
+		for (int i=1; i<l; i++)
 		{
 			ret = (last+i)%l;
 			if (players[ret]->state==CS_ALIVE) return ret;
 		}
-		return last;
+		return last%l;
 	}
 
     void doattack(bool on, bool altfire)
@@ -624,7 +625,7 @@ namespace game
         if(!restore) gibeffect(max(-d->health, 0), d->vel, d);
         if(d==player1)
         {
-            //if(deathscore) showscores(true);
+            if(deathscore) showscores(true);
             disablezoom();
             if(!restore) loopi(NUMWEAPS) savedammo[i] = player1->ammo[i];
             d->attacking = false;
