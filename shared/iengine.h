@@ -205,6 +205,7 @@ extern vec worldpos, camdir, camright, camup;
 
 extern int zoom;
 extern int cameracap;
+extern int killcamera;
 
 extern void disablezoom();
 

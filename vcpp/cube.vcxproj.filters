@@ -168,6 +168,9 @@
     <ClInclude Include="..\fpsgame\survival.h">
       <Filter>FPS</Filter>
     </ClInclude>
+    <ClInclude Include="..\shared\version.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\engine\pch.cpp">

@@ -24,8 +24,6 @@ namespace entities
 
 namespace game
 {
-	extern const float gameversion;
-
     extern void parseoptions(vector<const char *> &args);
 
     extern void gamedisconnect(bool cleanup);
@@ -49,6 +47,7 @@ namespace game
     extern const char *savedservers();
     extern void loadconfigs();
 	extern void loadversion();
+	extern const char *getentname(dynent *d);
 
     extern void updateworld();
     extern void initclient();
@@ -94,8 +93,8 @@ namespace game
     extern void serverinfoendcolumn(g3d_gui *g, int i);
     extern bool serverinfoentry(g3d_gui *g, int i, const char *name, int port, const char *desc, const char *map, int ping, const vector<int> &attr, int np);
     extern bool needminimap();
-} 
- 
+}
+
 namespace server
 {
     extern void *newclientinfo();

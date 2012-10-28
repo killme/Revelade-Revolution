@@ -4,8 +4,6 @@
 
 namespace game
 {
-	const float gameversion = RR_VERSION;
-
     bool intermission = false;
     int maptime = 0, maprealtime = 0, maplimit = -1;
     int respawnent = -1;
@@ -27,7 +25,7 @@ namespace game
         if(lastmillis-player1->lasttaunt<1500) return;
 		tauntmillis = 250 + lastmillis;
         addmsg(N_TAUNT, "rc", player1);
-		
+
 		//@todo: either fix or remove
 		//thirdperson = 2;
         //player1->lasttaunt = lastmillis;
@@ -135,7 +133,7 @@ namespace game
 
 	void applyeffect(fpsent *d, int item)
 	{
-		char *iname = NULL;
+		const char *iname = NULL;
 		switch (item)
 		{
 		case BA_AMMO:
@@ -248,7 +246,6 @@ namespace game
 		if(m_dmsp)
 		{
 			entities::resettriggers();
-			player1->guts = 0;
 		}
         if(m_classicsp)
         {
@@ -256,6 +253,7 @@ namespace game
             clearmonsters();                 // all monsters back at their spawns for editing
             entities::resettriggers();
         }
+		player1->guts = 0;
         clearprojectiles();
         clearbouncers();
     }
@@ -533,6 +531,7 @@ namespace game
             }
 			return true;
         }
+		return false;
     }
 
     // inputs
@@ -553,7 +552,7 @@ namespace game
     {
         if(intermission) return;
 		player1->altfire = altfire;
-        if((player1->attacking = on) && !respawn())
+        if((player1->attacking = on) && !respawn() && killcamera)
 		{
 			static int cpo = 0;
 			cpo = nextchasee(cpo);
@@ -813,9 +812,10 @@ namespace game
             d->deaths = 0;
             d->totaldamage = 0;
             d->totalshots = 0;
-            //d->maxhealth = 100;
             d->lifesequence = -1;
             d->respawned = d->suicided = -2;
+			d->guts = 0;
+			if (m_oneteam) strcpy(d->team, TEAM_0);
         }
 
         setclientmode();
@@ -1360,6 +1360,8 @@ namespace game
 		settextscale(1.f);
 	}
 
+	int lastguts=0, lastgutschangemillis=0, lastgutschange=0;
+
     void drawhudicons(fpsent *d, int w, int h)
 	{
         if(d->state!=CS_DEAD)
@@ -1367,11 +1369,24 @@ namespace game
 			// draw guts
 			if(m_survivalb)
 			{
-				int tw, th;
+				//int tw, th;
+				//text_bounds(gutss, tw, th);
+				int guts = (d==player1)? d->guts: lastguts;
 				//@todo: consider making the G in "Guts" lowercase
-				defformatstring(guts)("\f1Guts: \f3%d", hudplayer()->guts);
-				text_bounds(guts, tw, th);
-				draw_text(guts, w*1800/h - 420, 1350);
+				defformatstring(gutss)("\f1Guts: \f3%d", guts);
+				draw_text(gutss, w*1800/h - 420, 1350);
+
+				if (guts != lastguts)
+				{
+					lastgutschange = guts-lastguts;
+					lastgutschangemillis = lastmillis;
+				}
+				if (lastgutschange && lastmillis-lastgutschangemillis<2550)
+				{
+					formatstring(gutss)(lastgutschange>0? "\fg+%d": "\fe%d", lastgutschange);
+					draw_text(gutss, w*1800/h - 262, 1300, 255, 255, 255, 255-((lastmillis-lastgutschangemillis)/10));
+				}
+				lastguts = guts;
 			}
 
 			// draw ammo
@@ -1722,18 +1737,22 @@ namespace game
 #endif
     }
 
-	FVAR(thisver, 0.0f, (float)RR_VERSION, 1e10f);
-	VAR(thispatch, 0, RR_PATCH, 1e10);
+#include "version.h"
+
+	FVAR(thisver, 0.0f, (float)RR_VERSION_VAL, 1e10f);
+	VAR(thispatch, 0, RR_VER_PATCH, 1e10);
 
 	FVARP(latestver, 0.0f, 0.0f, 1e10f);
 	FVARP(latestsize, 0.0f, 0.0f, 1e10);
 	SVARP(latestlink, "");
-	ICOMMAND(newver, "fsf", (float *ver, const char *link, float *fsize), { latestver = *ver; strcpy(latestlink, link); latestsize = *fsize; });
+	SVARP(latestfilename, "");
+	ICOMMAND(newver, "fsfs", (float *ver, const char *link, float *fsize, const char *filename), { latestver = *ver; strcpy(latestlink, link); latestsize = *fsize; strcpy(latestfilename, filename); });
 
 	VARP(latestpatch, 0, 0, 1e10);
 	FVARP(latestpsize, 0.0f, 0.0f, 1e10);
 	SVARP(latestplink, "");
-	ICOMMAND(newpatch, "isf", (int *ver, const char *link, float *fsize), { latestpatch = *ver; strcpy(latestplink, link); latestpsize = *fsize; });
+	SVARP(latestpfilename, "");
+	ICOMMAND(newpatch, "isfs", (int *ver, const char *link, float *fsize, const char *filename), { latestpatch = *ver; strcpy(latestplink, link); latestpsize = *fsize; strcpy(latestpfilename, filename); });
 
     bool serverinfostartcolumn(g3d_gui *g, int i)
     {
@@ -1869,6 +1888,11 @@ namespace game
 		st->getline(fmt, sizeof(fmt));
 		thispatch = atoi(fmt);
 		st->close();
+	}
+
+	const char *getentname(dynent *d) // debugging helper function
+	{
+		return (d->type==ENT_PLAYER)? ((fpsent*)d)->name: "n/a";
 	}
 }
 

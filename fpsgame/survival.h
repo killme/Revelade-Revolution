@@ -371,9 +371,17 @@ struct survivalclientmode : clientmode
 			loopv(clients)
 			{
 				clientinfo *cq = clients[i];
+				if (cq->state.state==CS_DEAD && cq->state.teamkilled)
+				{
+					cq->state.teamkilled = false;
+					cq->state.teamshooter = false;
+					sendservmsgf(1, "\fe%s will not spawn this round because of teamkilling", cq->name);
+					continue;
+				}
 				cq->state.frags = 0;
 				if(cq->state.lastdeath)
 				{
+					cq->state.state = CS_ALIVE;
 					flushevents(cq, cq->state.lastdeath + DEATHMILLIS);
 					cq->state.respawn();
 				}
@@ -383,16 +391,18 @@ struct survivalclientmode : clientmode
 			sendf(-1, 1, "ri", N_SURVNEWROUND);
 			return lastmillis+60*1000;
 		}
-		int winner = -1, bestscore = -MAXINT;
+
+		int winner = -1, bestscore = -0xFFFF;
 		loopv(clients)
 		{
-			if (/*winner>-2 &&*/ clients[i]->state.frags>bestscore)
+			if (clients[i]->state.frags > bestscore)
 			{
 				winner = i;
 				bestscore = clients[i]->state.frags;
 			}
-			else if (clients[i]->state.frags == bestscore) winner = -2;
+			else if (clients[i]->state.frags == bestscore) winner = -1;
 		}
+
 		sendf(-1, 1, "ri2", N_SURVROUNDOVER, (winner<0)? -1: clients[winner]->clientnum);
 		return lastmillis+4000;
 	}
@@ -788,12 +798,12 @@ struct survivalclientmode : clientmode
 				if (pl>=0 && (winner=game::getclient(pl)))
 				{
 					conoutf("\fgthe winner is:\fg %s", winner->name);
-					playsound(S_V_BASECAP); // "round over"
+					playsound(S_V_ROUNDOVER); // "round over"
 				}
 				else
 				{
 					conoutf("\fground draw!");
-					playsound(S_V_FIGHT); // "round draw"
+					playsound(S_V_ROUNDDRAW); // "round draw"
 				}
 				break;
 			}

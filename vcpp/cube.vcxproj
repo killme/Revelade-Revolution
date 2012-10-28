@@ -86,6 +86,7 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">RR_GAME_debug</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">RR_GAME_profile</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">RR_GAME</TargetName>
+    <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -146,6 +147,10 @@
     <PostBuildEvent>
       <Command>copy release\sauerbraten.pdb ..\..</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>perl autoversion.pl</Command>
+      <Message>Running autoversion script</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -193,6 +198,16 @@
     <Manifest>
       <AdditionalManifestFiles>dpiaware.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+    </CustomBuildStep>
+    <PreBuildEvent>
+      <Command>perl autoversion.pl</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Running autoversion script</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">
     <Midl>
@@ -285,6 +300,7 @@
     <ClInclude Include="..\shared\geom.h" />
     <ClInclude Include="..\shared\iengine.h" />
     <ClInclude Include="..\shared\igame.h" />
+    <ClInclude Include="..\shared\version.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\shared\tools.h" />
     <ClInclude Include="..\fpsgame\ai.h" />

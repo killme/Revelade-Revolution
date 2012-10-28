@@ -1,5 +1,6 @@
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
+!include "x64.nsh"
 
 !define VERSION 1.0
 !define VERSIONMAJOR 1
@@ -60,7 +61,7 @@ Section "Start Menu Shortcuts" SecSMShortcuts
   SetOutPath $INSTDIR
   
   CreateDirectory "$SMPROGRAMS\Revelade Revolution\"
-  CreateShortCut "$SMPROGRAMS\Revelade Revolution\Revelade Revolution.lnk" "$INSTDIR\bin\RR_GAME.exe" '"-q$$HOME\My Games\Revelade Revolution" -glog.txt -r %*'
+  CreateShortCut "$SMPROGRAMS\Revelade Revolution\Revelade Revolution.lnk" "$INSTDIR\bin\RR_GAME.exe" '"-q$$HOME\My Games\Revelade Revolution" -r %*'
   CreateShortCut "$SMPROGRAMS\Revelade Revolution\Readme.lnk" "$INSTDIR\Readme.txt"
   CreateShortCut "$SMPROGRAMS\Revelade Revolution\Uninstall.lnk" "$INSTDIR\uninst-rr.exe"
 
@@ -75,7 +76,7 @@ Section "Desktop Shortcut" SecDTShortcut
   SectionIn 1
   SetOutPath $INSTDIR
 
-  CreateShortCut "$DESKTOP\Revelade Revolution.lnk" "$INSTDIR\bin\RR_GAME.exe" '"-q$$HOME\My Games\Revelade Revolution" -glog.txt -r %*'
+  CreateShortCut "$DESKTOP\Revelade Revolution.lnk" "$INSTDIR\bin\RR_GAME.exe" '"-q$$HOME\My Games\Revelade Revolution" -r %*'
 
 SectionEnd
 
@@ -98,14 +99,19 @@ Function CheckAndInstallVcRedist
 	DetailPrint "Installing Visual C++ Redistributable..."
 	SetDetailsPrint listonly
 	Call CheckVCRedist
+	
 	${If} $R0 == "-1"
 		SetOutPath '$TEMP'
 		SetOverwrite on
 		File 'vcredist_x86.exe'
-		ExecWait '$TEMP\vcredist_x86.exe /q:a /c:"VCREDI~1.EXE /q:a /c:""msiexec /i vcredist.msi /qb"" "'
-		;ExecWait '"$TEMP\vcredist_x86.exe" /norestart'
-		;ExecWait '"$TEMP\vcredist_x86.exe" /qb'
+		File 'vcredist_x64.exe'
+		${If} ${RunningX64}
+			ExecWait '$TEMP\vcredist_x64.exe /q:a /c:"VCREDI~1.EXE /q:a /c:""msiexec /i vcredist.msi /qb"" "'
+		${Else}
+			ExecWait '$TEMP\vcredist_x86.exe /q:a /c:"VCREDI~1.EXE /q:a /c:""msiexec /i vcredist.msi /qb"" "'
+		${EndIf}
 		Delete "$TEMP\vcredist_x86.exe"
+		Delete "$TEMP\vcredist_x64.exe"
 	${EndIf}
 FunctionEnd
 

@@ -2416,8 +2416,8 @@ void gl_drawhud(int w, int h, bool drawch)
                 int nextfps[3];
                 getfps(nextfps[0], nextfps[1], nextfps[2]);
                 loopi(3) if(prevfps[i]==curfps[i]) curfps[i] = nextfps[i];
-                if(showfpsrange) draw_textf("fps %d+%d-%d", conw-7*FONTH, conh-FONTH*3/2 - (1340*h/1800), curfps[0], curfps[1], curfps[2]);
-                else draw_textf("fps %d", conw-5*FONTH, conh-FONTH*3/2 - (1340*h/1800), curfps[0]);
+                if(showfpsrange) draw_textf("fps %d+%d-%d", conw-7*FONTH, conh-FONTH*6/2 - (1340*h/1800), curfps[0], curfps[1], curfps[2]);
+                else draw_textf("fps %d", conw-5*FONTH, conh-FONTH*6/2 - (1340*h/1800), curfps[0]);
                 roffset += FONTH;
             }
 
@@ -2435,7 +2435,7 @@ void gl_drawhud(int w, int h, bool drawch)
                     const char *src = &buf[!wallclock24 && buf[0]=='0' ? 1 : 0];
                     while(*src) *dst++ = tolower(*src++);
                     *dst++ = '\0'; 
-                    draw_text(buf, conw-5*FONTH, conh-FONTH*3/2-roffset - (1340*h/1800));
+                    draw_text(buf, conw-5*FONTH, conh-FONTH*6/2-roffset - (1340*h/1800));
                     roffset += FONTH;
                 }
             }
@@ -2512,6 +2512,14 @@ void gl_drawhud(int w, int h, bool drawch)
     abovehud -= rendercommand(FONTH/2, abovehud - FONTH/2, conw-FONTH);
     extern int fullconsole;
     if(!hidehud || fullconsole) renderconsole(conw, conh, abovehud - FONTH/2);
+
+	if (mainmenu)
+	{
+#include "version.h"
+		draw_textf("\faversion %s", 10, conh-(FONTH*2), RR_VERSION_STRING);
+		draw_textf("\fadate %s", 10, conh-(FONTH), RR_VERSION_DATE);
+	}
+
     glPopMatrix();
 
     if (drawch) drawcrosshair(w, h);

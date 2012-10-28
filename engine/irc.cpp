@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "textedit.h"
+#include "version.h"
 
 #ifdef IRC
 vector<ircnet *> ircnets;
@@ -418,7 +419,7 @@ void ircprocess(ircnet *n, char *user[3], int g, int numargs, char *w[])
                             ircprintf(n, 4, g ? w[g+1] : NULL, "\fr%s requests: %s %s", user[0], q, r);
 
                             if(!strcasecmp(q, "VERSION"))
-                                ircsend(n, "NOTICE %s :\vVERSION %s V%.2f", user[0], "Revelade Revolution", game::gameversion);
+                                ircsend(n, "NOTICE %s :\vVERSION %s V%d.%d", user[0], "Revelade Revolution", RR_VER_MAJOR, RR_VER_MINOR);
                             else if(!strcasecmp(q, "PING")) // eh, echo back
                                 ircsend(n, "NOTICE %s :\vPING %s\v", user[0], r);
                         }

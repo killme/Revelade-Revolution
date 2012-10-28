@@ -7,17 +7,17 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="default">
-				<Option output="..\..\bin\RR_GAME.exe" prefix_auto="0" extension_auto="0" />
-				<Option working_dir="..\..\" />
+				<Option output="..\..\..\bin\RR_GAME.exe" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="L:\ReveladeRevolution\ReveladeRevolution" />
 				<Option object_output=".objs\default" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Option parameters="-t0 -w640 -h480 -qhome" />
 				<Compiler>
+					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
 					<Add option="-Wall" />
 					<Add option="-fsigned-char" />
-					<Add option="-fomit-frame-pointer" />
 					<Add directory="..\enet\include" />
 					<Add directory="..\include" />
 					<Add directory="..\engine" />
@@ -37,12 +37,16 @@
 					<Add library="enet" />
 					<Add library="ws2_32" />
 					<Add library="winmm" />
+					<Add library="libcurl" />
 					<Add directory="..\lib" />
 				</Linker>
+				<ExtraCommands>
+					<Add before="perl autoversion.pl" />
+				</ExtraCommands>
 			</Target>
 			<Target title="debug">
-				<Option output="..\..\bin\RR_GAME.exe" prefix_auto="0" extension_auto="0" />
-				<Option working_dir="..\..\" />
+				<Option output="..\..\..\bin\RR_GAME.exe" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="L:\ReveladeRevolution\ReveladeRevolution" />
 				<Option object_output=".objs\debug" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -69,8 +73,12 @@
 					<Add library="enet" />
 					<Add library="ws2_32" />
 					<Add library="winmm" />
+					<Add library="libcurl" />
 					<Add directory="..\lib" />
 				</Linker>
+				<ExtraCommands>
+					<Add before="perl autoversion.pl" />
+				</ExtraCommands>
 			</Target>
 			<Target title="server">
 				<Option output="..\..\bin\RR-server.exe" prefix_auto="0" extension_auto="0" />
@@ -81,10 +89,10 @@
 				<Option parameters="-t0 -w640 -h480 -qhome" />
 				<Option projectResourceIncludeDirsRelation="1" />
 				<Compiler>
+					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
 					<Add option="-Wall" />
 					<Add option="-fsigned-char" />
-					<Add option="-fomit-frame-pointer" />
 					<Add option="-DSTANDALONE" />
 					<Add directory="..\enet\include" />
 					<Add directory="..\include" />
@@ -193,7 +201,6 @@
 			<Option target="debug" />
 		</Unit>
 		<Unit filename="..\engine\engine.h">
-			<Option compile="1" />
 			<Option weight="0" />
 			<Option target="default" />
 			<Option target="debug" />
@@ -214,7 +221,10 @@
 			<Option target="default" />
 			<Option target="debug" />
 		</Unit>
-		<Unit filename="..\engine\irc.cpp" />
+		<Unit filename="..\engine\irc.cpp">
+			<Option target="default" />
+			<Option target="debug" />
+		</Unit>
 		<Unit filename="..\engine\irc.h" />
 		<Unit filename="..\engine\lensflare.h">
 			<Option target="default" />

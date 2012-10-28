@@ -420,6 +420,7 @@ namespace game
     ICOMMANDS("m_classicsp", "i", (int *mode), { int gamemode = *mode; intret(m_classicsp); });
     ICOMMANDS("m_survival", "i", (int *mode), { int gamemode = *mode; intret(m_survival); });
     ICOMMANDS("m_survivalb", "i", (int *mode), { int gamemode = *mode; intret(m_survivalb); });
+    ICOMMANDS("m_oneteam", "i", (int *mode), { int gamemode = *mode; intret(m_oneteam); });
 
     void changemap(const char *name, int mode) // request map change, server may ignore
     {
@@ -991,6 +992,7 @@ namespace game
             else d->quadmillis = getint(p);
         }
         d->lifesequence = getint(p);
+		d->guts = getint(p);
         d->health = getint(p);
         d->maxhealth = getint(p);
         d->armour = getint(p);

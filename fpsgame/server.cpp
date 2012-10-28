@@ -134,7 +134,7 @@ namespace server
         int lasttimeplayed, timeplayed;
         float effectiveness;
 		int lastburnpain, burnmillis;
-		bool onfire;
+		bool onfire, teamkilled, teamshooter;
 		struct clientinfo *fireattacker;
 
         gamestate() : state(CS_DEAD), editstate(CS_DEAD), onfire(0) {}
@@ -159,6 +159,7 @@ namespace server
             timeplayed = 0;
             effectiveness = 0;
             frags = flags = deaths = teamkills = shotdamage = damage = 0;
+			teamkilled = teamshooter = false;
 
             respawn();
         }
@@ -1205,6 +1206,7 @@ namespace server
     void sendstate(gamestate &gs, T &p)
     {
         putint(p, gs.lifesequence);
+        putint(p, gs.guts);
         putint(p, gs.health);
         putint(p, gs.maxhealth);
         putint(p, gs.armour);
@@ -1245,7 +1247,7 @@ namespace server
     {
         gamestate &gs = ci->state;
         spawnstate(ci);
-        sendf(ci->ownernum, 1, "rii8v", N_SPAWNSTATE, ci->clientnum, gs.lifesequence,
+        sendf(ci->ownernum, 1, "ri2i8v", N_SPAWNSTATE, ci->clientnum, gs.lifesequence, gs.guts,
             gs.health, gs.maxhealth,
             gs.armour, gs.armourtype,
             gs.playerclass, gs.gunselect, WEAP_PISTOL-WEAP_SLUGSHOT+1, &gs.ammo[WEAP_SLUGSHOT]);
@@ -1342,6 +1344,7 @@ namespace server
             putint(p, ci->clientnum);
             sendstring(ci->team, p);
             putint(p, -1);
+			conoutf("%s -> %s", ci->name, ci->team);
         }
         if(ci && (m_demo || m_mp(gamemode)) && ci->state.state!=CS_SPECTATOR)
         {
@@ -1405,12 +1408,13 @@ namespace server
     void sendresume(clientinfo *ci)
     {
         gamestate &gs = ci->state;
-        sendf(-1, 1, "ri3i9ivi", N_RESUME, ci->clientnum,
+        sendf(-1, 1, "ri3i9i2vi", N_RESUME, ci->clientnum,
             gs.state, gs.frags, gs.flags, gs.quadmillis,
-            gs.lifesequence,
+            gs.lifesequence, gs.guts,
             gs.health, gs.maxhealth,
             gs.armour, gs.armourtype,
-            gs.playerclass, gs.gunselect, WEAP_PISTOL-WEAP_SLUGSHOT+1, &gs.ammo[WEAP_SLUGSHOT], -1);
+            gs.playerclass, gs.gunselect,
+			WEAP_PISTOL-WEAP_SLUGSHOT+1, &gs.ammo[WEAP_SLUGSHOT], -1);
     }
 
     void sendinitclient(clientinfo *ci)
@@ -1441,14 +1445,16 @@ namespace server
         {
             clientinfo *ci = clients[i];
             ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
+			ci->state.guts = 0;
         }
 
         if(!m_mp(gamemode)) kicknonlocalclients(DISC_PRIVATE);
 
         if(m_teammode) autoteam();
+		else if (m_oneteam) loopv(clients) strcpy(clients[i]->team, TEAM_0);
 
-        if(m_capture) smode = &capturemode; else
-		if(m_ctf) smode = &ctfmode;
+        if(m_capture) smode = &capturemode;
+		else if(m_ctf) smode = &ctfmode;
         else if(m_infection) smode = &infectionmode;
         else if(m_survival) smode = &survivalmode;
         else smode = NULL;
@@ -1589,16 +1595,26 @@ namespace server
             sendf(ts.health<=0 ? -1 : target->ownernum, 1, "ri7", N_HITPUSH, target->clientnum, gun, damage, v.x, v.y, v.z);
             target->setpushed();
         }
+		if (m_survivalb && actor!=target && isteam(actor->team, target->team)) actor->state.teamshooter = true;
         if(ts.health<=0)
         {
 			if (m_survival && target->state.aitype==AI_ZOMBIE)
 			{
 				const zombietype &zt = zombietypes[((zombie*)target)->ztype];
-				actor->state.guts += zt.freq*zt.health/20;
+				actor->state.guts += zt.health/zt.freq*2;
 				sendf(actor->ownernum, 1, "ri3", N_GUTS, actor->clientnum, actor->state.guts);
 			}
             target->state.deaths++;
-            if(actor!=target && isteam(actor->team, target->team)) actor->state.teamkills++;
+            if(actor!=target && isteam(actor->team, target->team))
+			{
+				actor->state.teamkills++;
+				if (!target->state.teamshooter)
+				{
+					actor->state.teamkilled = true;
+					actor->state.guts -= 700;
+					sendf(actor->ownernum, 1, "ri3", N_GUTS, actor->clientnum, actor->state.guts);
+				}
+			}
             int fragvalue = smode ? smode->fragvalue(target, actor) : (target==actor || isteam(target->team, actor->team) ? -1 : 1);
             actor->state.frags += fragvalue;
             if(fragvalue>0)
@@ -2191,7 +2207,7 @@ namespace server
                 ci->state.lasttimeplayed = lastmillis;
 
 				const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
-                copystring(ci->team, m_oneteam? TEAM_0: (worst ? worst : TEAM_0), MAXTEAMLEN+1);
+                copystring(ci->team, worst ? worst : TEAM_0, MAXTEAMLEN+1);
 
                 sendwelcome(ci);
                 if(restorescore(ci)) sendresume(ci);

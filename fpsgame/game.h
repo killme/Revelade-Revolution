@@ -303,6 +303,7 @@ enum
     S_V_BOOST, S_V_BOOST10,
     S_V_QUAD, S_V_QUAD10,
     S_V_RESPAWNPOINT,
+	S_V_ROUNDOVER, S_V_ROUNDDRAW,
 
 	// ctf
     S_FLAGPICKUP,
@@ -388,8 +389,6 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
 #define PROTOCOL_VERSION 262            // bump when protocol changes
 #define DEMO_VERSION 1                  // bump when demo format changes
 #define DEMO_MAGIC "REVREV_DEMO"
-#define RR_VERSION 1.0
-#define RR_PATCH 0
 
 struct demoheader
 {

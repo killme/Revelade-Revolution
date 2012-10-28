@@ -2,6 +2,7 @@
 
 #include "engine.h"
 #include "../curl/curl.h"
+#include "version.h"
 
 void cleanup()
 {
@@ -38,7 +39,7 @@ VAR(dlsize, 1, 0, 0);
 VAR(dlstotal, 1, 0, 0);
 VAR(dlspeed, 1, 0, 0);
 VAR(dlstatus, 1, 0, 0); // 0 = downloading/no download, 1 = successful, 2 = failed, 3 = cancelled
-FILE *dlfile;
+FILE *dlfile = NULL;
 FILE *hdfile = NULL;
 string dlfilepath = "";
 string downloaddirpath = "";
@@ -133,26 +134,27 @@ int downloadfunc(void * data)
     }
 	else
 	{
-		fseek(hdfile, 0, SEEK_END);
-		int hdsize = ftell(hdfile);
-		rewind(hdfile);
-		char *header = new char[hdsize];
-		fread(header, 1, hdsize, hdfile);
-		const char *hdfname = parsehdname(header);
-		if (hdfname)
+		if (hdfile)
 		{
-			if (hdfile)
+			fseek(hdfile, 0, SEEK_END);
+			int hdsize = ftell(hdfile);
+			rewind(hdfile);
+			char *header = new char[hdsize];
+			fread(header, 1, hdsize, hdfile);
+			const char *hdfname = parsehdname(header);
+			if (hdfname)
 			{
 				fclose(hdfile);
-				dlfile = NULL;
+				hdfile = NULL;
 				remove(hdfilename);
+
+				defformatstring(newfilename)("%s%s", downloaddirpath, hdfname);
+				if (fileexists(newfilename, "r")) remove(newfilename);
+				rename(dlfilepath, newfilename);
+				strcpy(dlfilepath, newfilename);
 			}
-			defformatstring(newfilename)("%s%s", downloaddirpath, hdfname);
-			if (fileexists(newfilename, "r")) remove(newfilename);
-			rename(dlfilepath, newfilename);
-			strcpy(dlfilepath, newfilename);
+			delete[] header;
 		}
-		delete[] header;
 		dlstatus = 1;
 		showgui("dl_progress");
 	}
@@ -179,7 +181,7 @@ int downloadfunc(void * data)
 	return 0;
 }
 
-void download(const char *url)
+void download(const char *url, const char *filename)
 {
 	if (dlprogress >= 0)
 	{
@@ -200,29 +202,40 @@ void download(const char *url)
 	string murl;
 	strcpy(murl, url);
     curl_easy_setopt(dlhandle, CURLOPT_URL, murl);
-	
-	char *eurl[1000];
-	curl_easy_getinfo(dlhandle, CURLINFO_EFFECTIVE_URL, eurl);
-	for (int j = strlen(*eurl), i = j-1; i >= 0; i--)
+
+	if (!filename || filename[0]=='\0')
 	{
-		if ((*eurl)[i] == '/' || (*eurl)[i] == '\\' || i == 0)
+		char *eurl[1000];
+		curl_easy_getinfo(dlhandle, CURLINFO_EFFECTIVE_URL, eurl);
+		for (int j = strlen(*eurl), i = j-1; i >= 0; i--)
 		{
-			strncpy(dlname, (i==0)? (*eurl): (*eurl)+i+1, j-i);
-			dlname[j-i] = '\0';
-			break;
+			if ((*eurl)[i] == '/' || (*eurl)[i] == '\\' || i == 0)
+			{
+				strncpy(dlname, (i==0)? (*eurl): (*eurl)+i+1, j-i);
+				dlname[j-i] = '\0';
+				break;
+			}
+			else if ((*eurl)[i] == '?') j = i-1;
 		}
-		else if ((*eurl)[i] == '?') j = i-1;
 	}
+	else strcpy(dlname, filename);
 
 	if (dlname && dlname[0]) formatstring(dlfilepath)("%s%s", downloaddirpath, dlname);
 	else formatstring(dlfilepath)("%stemp_%d", downloaddirpath, lastmillis);
 
 	dlfile = fopen(dlfilepath, "wb");
-	if (!dlfile) conoutf("error opening file \"%s\" for saving", dlfilepath);
+	if (!dlfile)
+	{
+		conoutf("error opening file \"%s\" for saving", dlfilepath);
+		return;
+	}
 
-	formatstring(hdfilename)("%s", findfile("header.txt", "w"));
-	hdfile = fopen(hdfilename, "w+");
-	curl_easy_setopt(dlhandle, CURLOPT_WRITEHEADER, hdfile);
+	if (!filename || filename[0]=='\0')
+	{
+		formatstring(hdfilename)("%s", findfile("header.txt", "w"));
+		hdfile = fopen(hdfilename, "w+");
+		if (hdfile) curl_easy_setopt(dlhandle, CURLOPT_WRITEHEADER, hdfile);
+	}
 
 	curl_easy_setopt(dlhandle, CURLOPT_FOLLOWLOCATION,1);
 	curl_easy_setopt(dlhandle, CURLOPT_WRITEFUNCTION, downloadwritedata);
@@ -234,7 +247,7 @@ void download(const char *url)
 	SDL_CreateThread(downloadfunc, dlhandle);
 }
 
-COMMAND(download, "s");
+COMMAND(download, "ss");
 ICOMMAND(stopdownload, "", (), dlcancel = true);
 
 void fatal(const char *s, ...)    // failure exit
@@ -1205,16 +1218,14 @@ int main(int argc, char **argv)
 			case 'r': doinit = false;
         }
     }
-//#ifndef _DEBUG
 	if (doinit) execfile("init.cfg", false);
-//#endif
     for(int i = 1; i<argc; i++)
     {
         if(argv[i][0]=='-') switch(argv[i][1])
         {
-            case 'g': ///*log("Setting log file", &argv[i][2]);*/ setlogfile(&argv[i][2]); break;
+            case 'g': //*log("Setting log file", &argv[i][2]);*/ setlogfile(&argv[i][2]); break;
 				break;
-            case 'q': /*printf("Using home directory: %s\n", &argv[i][2]);*/ sethomedir(&argv[i][2]); break;
+            case 'q': sethomedir(&argv[i][2]); break;
             case 'k': printf("Adding package directory: %s\n", &argv[i][2]); addpackagedir(&argv[i][2]); break;
             case 'r': execfile(argv[i][2] ? &argv[i][2] : "init.cfg", false); restoredinits = true; break;
             case 'd': dedicated = atoi(&argv[i][2]); if(dedicated<=0) dedicated = 2; break;
@@ -1288,9 +1299,12 @@ int main(int argc, char **argv)
     setupscreen(usedcolorbits, useddepthbits, usedfsaa);
 
     log("video: misc");
-    SDL_WM_SetCaption("Revelade Revolution", NULL);
+	defformatstring(windowtitle)("Revelade Revolution V%d.%d", RR_VER_MAJOR, RR_VER_MINOR);
+    SDL_WM_SetCaption(windowtitle, NULL);
     keyrepeat(false);
     SDL_ShowCursor(0);
+
+	conoutf(CON_INIT, "Revelade Revolution %s - %s", RR_VERSION_STRING, RR_VERSION_DATE);
 
     log("gl");
     gl_checkextensions();

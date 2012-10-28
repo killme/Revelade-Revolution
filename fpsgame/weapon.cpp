@@ -504,7 +504,7 @@ namespace game
 
 				particle_splash(PART_PLASMA_SOFT, 1, -fade, v, color, WEAP(gun,projradius)/2.f+4.f, 150, 0.5, true);
 				particle_fireball(v, WEAP(gun,projradius)/2.f, PART_EXPLOSION, fade, color, WEAP(gun,projradius)/3.f);
-				particle_splash(PART_SPARK, 70, fade*1.5f, v, color, 0.75f, 1, WEAP(gun,projradius)/2.f, 1000.f);
+				particle_splash(PART_SPARK, 70, fade*1.5f, v, color, 0.75f, WEAP(gun,projradius)/2.f, 1000.f);
 			}
 
 			vec initcolor(WEAP(gun,color));
@@ -594,7 +594,6 @@ namespace game
 
 	int getdamageranged(int damage, int gun, bool headshot, bool quad, vec from, vec to)
 	{
-		int dam = damage;
 		if (!WEAP_IS_EXPLOSIVE(gun) && WEAP(gun,range)>20)
 		{
 			damage = (float)damage * (1.f-clamp(from.dist(to)/(float)WEAP(gun,range), 0.f, 0.9f));
@@ -604,7 +603,6 @@ namespace game
 
 	int getradialdamage(int damage, int gun, bool headshot, bool quad, float distmul)
 	{
-		int dam = damage;
 		damage = int((float)damage * (1.f-min(max(distmul - 0.1f, 0.f), 1.f)));
 		return damage*(quad ? 4 : 1)*(headshot? GUN_HEADSHOT_MUL: 1.0f);
 	}
@@ -615,7 +613,6 @@ namespace game
         if(!intersect(o, p.o, v)) return false;
         projsplash(p, v, o, qdam);
         vec dir;
-        float dist = projdist(o, dir, v);
 		headshot = isheadshot(o, p.o, v);
 		qdam = getradialdamage(qdam, p.gun, headshot, p.owner->quadmillis, WEAP_IS_EXPLOSIVE(p.gun)? 0: p.distance/WEAP(p.gun,range));
         hit(qdam, o, p.owner, dir, p.gun, WEAP_IS_EXPLOSIVE(p.gun)? 0.0f: p.distance, 1, headshot);
