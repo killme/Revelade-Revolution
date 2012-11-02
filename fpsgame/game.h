@@ -386,7 +386,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
 #define RR_SERVER_PORT 28785
 #define RR_SERVINFO_PORT 28786
 #define RR_MASTER_PORT 28787
-#define PROTOCOL_VERSION 262            // bump when protocol changes
+#define PROTOCOL_VERSION 263            // bump when protocol changes
 #define DEMO_VERSION 1                  // bump when demo format changes
 #define DEMO_MAGIC "REVREV_DEMO"
 

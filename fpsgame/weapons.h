@@ -258,12 +258,11 @@ enum
 static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; char* name; } playerclasses[NUMPCS] =
 {
 	// weap[0]			weap[1]			weap[2]				mxhlth	armourtype	armour	mxspd	name
-	{ {WEAP_SLUGSHOT,	WEAP_MG,		WEAP_PISTOL},		90,		A_GREEN,	50,		80,		"Offense"},
-	//{ {WEAP_SLUGSHOT,	WEAP_MORTAR},						90,		A_GREEN,	50,		80,		"Offense"},
-	{ {WEAP_ROCKETL,	WEAP_SNIPER,	WEAP_GRENADIER,	},	80,		A_YELLOW,	60,		75,		"Defense"},
+	{ {WEAP_SLUGSHOT,	WEAP_MG,		WEAP_GRENADIER},	90,		A_GREEN,	50,		80,		"Offense"},
+	{ {WEAP_ROCKETL,	WEAP_SNIPER,	WEAP_PISTOL},		80,		A_YELLOW,	60,		75,		"Defense"},
 	//{ {WEAP_MG,		WEAP_ROCKETL},						110,	A_YELLOW,	70,		65,		"Heavy"},
-	{ {WEAP_FLAMEJET,	WEAP_GRENADIER,	WEAP_CROSSBOW},		70,		A_GREEN,	40,		115,	"Stealth"},
-	{ {WEAP_CROSSBOW,	WEAP_HEALER,	WEAP_PISTOL},		60,		A_GREEN,	50,		90,		"Medic"}, // WEAP_BUILD
+	{ {WEAP_FLAMEJET,	WEAP_GRENADIER,	WEAP_CROSSBOW},		70,		A_BLUE,		25,		115,	"Stealth"},
+	{ {WEAP_CROSSBOW,	WEAP_HEALER,	WEAP_PISTOL},		60,		A_GREEN,	50,		100,	"Medic"}, // WEAP_BUILD
 };
 
 static const playerclassinfo zombiepci = { {WEAP_BITE, WEAP_BITE, WEAP_BITE}, 100, A_BLUE, 0, 100, "Zombie"};

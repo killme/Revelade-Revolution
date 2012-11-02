@@ -789,24 +789,6 @@ namespace game
 		{
 			if (WEAP(gun,numrays) == 1)
 			{
-				//@todo: clean up
-				//particle_splash(PART_SPARK, d->quadmillis ? 100 : 20, 100, to, 0xFFFFFF, 0.1f);
-				//particle_explodesplash(to, 50, PART_BULLET, 0xFFFFFF, 0.2f, 500, 8);
-				////particle_flare(d->muzzle, to, 500, PART_SMOKETRAIL, 0x333333, 0.01f, d, 1);
-
-				//particle_splash(PART_SMOKE, 3, 500, to, 0x444444, 1.4f, 50, 504, NULL, 2, NULL, 1);
-
-				//vec lolwut(to);
-				//lolwut.sub(from);
-				//lolwut.normalize().mul(6000.0f);
-
-				//particle_flying_flare(from, lolwut, 500, PART_BULLET, 0xFFFFFF, 0.5f, 100);
-
-				//particle_splash(PART_SMOKE, 3, 500, d->muzzle, 0x222222, 1.4f, 50, 501, NULL, 2, NULL, 2);
-				////particle_trail(1, 1, from, to, 1, 1, 1, true);
-
-				//particle_flare(d->muzzle, d->muzzle, gun==WEAP_MG ? 100 : 50, PART_MUZZLE_FLASH1, 0xFFFFFF, gun==WEAP_MG ? 3.375f : 1.875f, d);
-
 				if (WEAP(gun,projparts)[1]) partpreset(projpartpresets[WEAP(gun,projparts)[1]], hudgunorigin(gun, from, to, d), d, &to);
 				if (WEAP(gun,projparts)[2]) partpreset(projpartpresets[WEAP(gun,projparts)[2]], hudgunorigin(gun, from, to, d), d, &to);
 				if (WEAP(gun,projparts)[3]) partpreset(projpartpresets[WEAP(gun,projparts)[3]], to, d, NULL);
@@ -1214,7 +1196,6 @@ namespace game
 
 			if (m_dmsp)
 			{
-				// todo: put the following block in its own function, to be used from survival mode
 				if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai) && lastmillis-d->lastburnpain >= clamp(lastmillis-d->burnmillis, 200, 1000))
 				{
 					int damage = min(WEAP(d->burngun,damage)*1000/max(lastmillis-d->burnmillis, 1000), d->health)*(((fpsent *)d->fireattacker)->quadmillis ? 4 : 1);

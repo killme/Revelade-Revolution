@@ -226,9 +226,9 @@ namespace game
 			if (player1->guts < buyablesprices[i])
 			{
 				conoutf(CON_INFO, "\f2not enough gut points to buy item");
-				//break;
+				break;
 			}
-			if (m_survival) addmsg(N_BUY, "ri", /*player1,*/ i);
+			if (m_survival) addmsg(N_BUY, "ri", player1, i);
 			else
 			{
 				applyitem(player1, i); // DMSP
@@ -276,6 +276,7 @@ namespace game
     void respawnself()
     {
         if(paused || ispaused()) return;
+		resetdamagescreen();
         if(m_mp(gamemode))
         {
             if(player1->respawned!=player1->lifesequence)

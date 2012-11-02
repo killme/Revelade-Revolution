@@ -2948,9 +2948,12 @@ namespace server
 
 			case N_BUY:
 			{
+				int buyer = getint(p);
 				int item = getint(p);
 				int guts = game::buyablesprices[item];
-				if (m_survival && ci->state.state==CS_ALIVE && ci->state.guts>=guts)
+				clientinfo *br = getinfo(buyer);
+				if (m_survival && (ci->clientnum==buyer || ci->ownernum==buyer) &&
+					br->state.state==CS_ALIVE && br->state.guts>=guts)
 				{
 					gamestate &gs = ci->state;
 					gs.guts -= guts;

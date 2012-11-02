@@ -212,6 +212,7 @@ extern void disablezoom();
 extern vec calcavatarpos(const vec &pos, float dist);
 
 extern void damageblend(int n);
+extern void resetdamagescreen();
 extern void setisburning(bool isburning, bool force = false);
 extern void damagecompass(int n, const vec &loc);
 

@@ -1,3 +1,11 @@
+Revelade Revolution source code
+
+This code is based on Sauerbraten and is under the same license, ZLIB.
+
+
+Original Sauerbraten readme
+===========================
+
 Sauerbraten source code license, usage, and documentation.
 
 You may use the Sauerbraten source code if you abide by the ZLIB license

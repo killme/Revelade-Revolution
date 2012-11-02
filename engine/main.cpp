@@ -1,7 +1,7 @@
 // main.cpp: initialisation & main loop
 
 #include "engine.h"
-#include "../curl/curl.h"
+#include "curl/curl.h"
 #include "version.h"
 
 void cleanup()

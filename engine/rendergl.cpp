@@ -2112,6 +2112,12 @@ void damageblend(int n)
     damageblendmillis += clamp(n, damagescreenmin, damagescreenmax)*damagescreenfactor;
 }
 
+void resetdamagescreen()
+{
+    if(!damagescreen) return;
+	damageblendmillis = min(lastmillis+damagescreenmin, damageblendmillis);
+}
+
 void drawdamagescreen(int w, int h)
 {
     if(lastmillis >= damageblendmillis) return;
