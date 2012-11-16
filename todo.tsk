@@ -36,7 +36,7 @@ Removed "rat spawning and ". It's no longer necessary.
 </task>
 <task actualstartdate="2012-07-14 11:16:09.828000" expandedContexts="('taskviewer',)" id="2afec240-cd8c-11e1-b482-bc5ff4298c11" status="1" subject="Bugs">
 <task actualstartdate="2012-09-17 20:49:48.254000" icon="led_red_icon" id="12d387de-00f0-11e2-a257-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Fix AI for healer weapon (or change healer behavior)" />
-<task actualstartdate="2012-10-25 23:39:40.762000" icon="led_red_icon" id="19bb53a1-1ee4-11e2-8127-bc5ff4298c11" selectedIcon="led_red_icon" status="1" subject="Heap corruption happens sometimes when updating from master" />
+<task actualstartdate="2012-10-25 23:39:40.762000" completiondate="2012-11-11 23:32:40.527000" icon="led_red_icon" id="19bb53a1-1ee4-11e2-8127-bc5ff4298c11" percentageComplete="100" selectedIcon="led_red_icon" status="1" subject="Heap corruption happens sometimes when updating from master" />
 <task actualstartdate="2012-07-14 11:16:18.828000" completiondate="2012-07-14 12:30:03.191000" id="305c0cc0-cd8c-11e1-942b-bc5ff4298c11" percentageComplete="100" status="1" subject="Stealth class speed tolerance" />
 <task actualstartdate="2012-08-15 14:56:17.932000" completiondate="2012-08-23 07:14:01.673000" id="38db7cc0-e6d0-11e1-96ea-bc5ff4298c11" percentageComplete="100" status="1" subject="Fix logging" />
 <task actualstartdate="2012-08-31 10:27:48.502000" completiondate="2012-08-31 11:26:50.013000" id="5d7f8b61-f33d-11e1-84fa-bc5ff4298c11" percentageComplete="100" status="1" subject="DMSP lag" />

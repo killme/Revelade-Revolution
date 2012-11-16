@@ -184,6 +184,14 @@ char *svariable(const char *name, const char *cur, char **storage, void (*fun)()
     return v.val.s;
 }
 
+char *bsvariable(const char *name, const char *cur, char **storage, void (*fun)(), int flags)
+{
+    if(!idents) idents = new identtable;
+    ident v(ID_SVAR, name, newstring(cur, BIGSTRLEN), storage, (void *)fun, flags);
+    idents->access(name, v);
+    return v.val.s;
+}
+
 #define _GETVAR(id, vartype, name, retval) \
     ident *id = idents->access(name); \
     if(!id || id->type!=vartype) return retval;

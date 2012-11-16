@@ -94,30 +94,7 @@ Function CheckVCRedist
 	${EndIf}
 FunctionEnd
 
-Function CheckAndInstallVcRedist
-	SetDetailsPrint textonly
-	DetailPrint "Installing Visual C++ Redistributable..."
-	SetDetailsPrint listonly
-	Call CheckVCRedist
-	
-	${If} $R0 == "-1"
-		SetOutPath '$TEMP'
-		SetOverwrite on
-		File 'vcredist_x86.exe'
-		File 'vcredist_x64.exe'
-		${If} ${RunningX64}
-			ExecWait '$TEMP\vcredist_x64.exe /q:a /c:"VCREDI~1.EXE /q:a /c:""msiexec /i vcredist.msi /qb"" "'
-		${Else}
-			ExecWait '$TEMP\vcredist_x86.exe /q:a /c:"VCREDI~1.EXE /q:a /c:""msiexec /i vcredist.msi /qb"" "'
-		${EndIf}
-		Delete "$TEMP\vcredist_x86.exe"
-		Delete "$TEMP\vcredist_x64.exe"
-	${EndIf}
-FunctionEnd
-
 Section -post
-
-  Call CheckAndInstallVcRedist
 
   WriteUninstaller $INSTDIR\uninst-rr.exe
   

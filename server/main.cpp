@@ -19,10 +19,6 @@ void cleanup()
     SDL_Quit();
 }
 
-VAR(unpackatexit, 0, 0, 1);
-VARP(deletepackage, 0, 1, 1);
-BSVAR(dlfilepath, "");
-
 void quit()                     // normal exit
 {
     extern void writeinitcfg();
@@ -33,30 +29,24 @@ void quit()                     // normal exit
     localdisconnect();
     writecfg();
     cleanup();
-	if (unpackatexit)
-	{
-		//@todo: write in a portable way
-		defformatstring(pt)("start \"\" %s %s\"-s%s\"", path(newstring("bin/updater")), deletepackage? "-r ": "", dlfilepath);
-		system(pt);
-	}
     exit(EXIT_SUCCESS);
 }
 
 // update
+SVAR(dlname, "");
 VAR(dlprogress, 1, -1, 0);
 VAR(dlsize, 1, 0, 0);
 VAR(dlstotal, 1, 0, 0);
 VAR(dlspeed, 1, 0, 0);
 VAR(dlstatus, 1, 0, 0); // 0 = downloading/no download, 1 = successful, 2 = failed, 3 = cancelled
-VAR(dlinstallable, 1, 0, 0);
 FILE *dlfile = NULL;
 FILE *hdfile = NULL;
-string dlname = "";
+string dlfilepath = "";
 string downloaddirpath = "";
 string hdfilename = "";
 bool dlcancel;
 CURL *dlhandle = NULL;
-ICOMMAND(dlname, "", (), result(dlname));
+ICOMMAND(dlfilepath, "", (), result(dlfilepath));
 
 size_t downloadwritedata(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -191,7 +181,7 @@ int downloadfunc(void * data)
 	return 0;
 }
 
-void download(const char *url, const char *filename, int *isupdate)
+void download(const char *url, const char *filename)
 {
 	if (dlprogress >= 0)
 	{
@@ -204,7 +194,6 @@ void download(const char *url, const char *filename, int *isupdate)
 	if(!dlhandle) return;
 
 	dlstatus = 0;
-	dlinstallable = *isupdate;
 
 	static const char *downloaddir = "downloads" PATHDIVS;
 	strcpy(downloaddirpath, findfile(downloaddir, "w"));
@@ -231,7 +220,7 @@ void download(const char *url, const char *filename, int *isupdate)
 	}
 	else strcpy(dlname, filename);
 
-	if (dlname[0]) formatstring(dlfilepath)("%s%s", downloaddirpath, dlname);
+	if (dlname && dlname[0]) formatstring(dlfilepath)("%s%s", downloaddirpath, dlname);
 	else formatstring(dlfilepath)("%stemp_%d", downloaddirpath, lastmillis);
 
 	dlfile = fopen(dlfilepath, "wb");
@@ -258,39 +247,7 @@ void download(const char *url, const char *filename, int *isupdate)
 	SDL_CreateThread(downloadfunc, dlhandle);
 }
 
-void downloadinstall(const char *url, const char *filename)
-{
-	static const char *downloaddir = "downloads" PATHDIVS;
-	strcpy(downloaddirpath, findfile(downloaddir, "w"));
-	if(!fileexists(downloaddirpath, "w")) createdir(downloaddirpath);
-
-	if (!filename || !filename[0])
-	{
-		char eurl[1000];
-		strcpy(eurl, url);
-		for (int j = strlen(eurl), i = j-1; i >= 0; i--)
-		{
-			if (eurl[i] == '/' || eurl[i] == '\\' || i == 0)
-			{
-				strncpy(dlname, (i==0)? eurl: eurl+i+1, j-i);
-				dlname[j-i] = '\0';
-				break;
-			}
-			else if (eurl[i] == '?') j = i-1;
-		}
-	}
-	else strcpy(dlname, filename);
-
-	if (dlname[0]) formatstring(dlfilepath)("%s%s", downloaddirpath, dlname);
-	else formatstring(dlfilepath)("%stemp_%d", downloaddirpath, lastmillis);
-
-	defformatstring(pt)("start \"\" %s \"-s%s\" \"-u%s\" -r", path(newstring("bin/updater")), dlfilepath, url);
-	system(pt);
-	exit(EXIT_SUCCESS);
-}
-
-COMMAND(download, "ssi");
-COMMAND(downloadinstall, "ss");
+COMMAND(download, "ss");
 ICOMMAND(stopdownload, "", (), dlcancel = true);
 
 void fatal(const char *s, ...)    // failure exit

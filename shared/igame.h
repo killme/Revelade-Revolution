@@ -46,7 +46,6 @@ namespace game
     extern const char *autoexec();
     extern const char *savedservers();
     extern void loadconfigs();
-	extern void loadversion();
 	extern const char *getentname(dynent *d);
 
     extern void updateworld();

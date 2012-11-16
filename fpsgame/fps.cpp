@@ -1740,18 +1740,18 @@ namespace game
 
 #include "version.h"
 
-	FVAR(thisver, 0.0f, (float)RR_VERSION_VAL, 1e10f);
-	VAR(thispatch, 0, RR_VER_PATCH, 1e10);
+	FVAR(thisver, 1.f, (float)RR_VERSION_VAL, 0.f);
+	VAR(thispatch, 1, RR_VER_PATCH, 0);
 
 	FVARP(latestver, 0.0f, 0.0f, 1e10f);
 	FVARP(latestsize, 0.0f, 0.0f, 1e10);
-	SVARP(latestlink, "");
+	BSVARP(latestlink, "");
 	SVARP(latestfilename, "");
 	ICOMMAND(newver, "fsfs", (float *ver, const char *link, float *fsize, const char *filename), { latestver = *ver; strcpy(latestlink, link); latestsize = *fsize; strcpy(latestfilename, filename); });
 
 	VARP(latestpatch, 0, 0, 1e10);
 	FVARP(latestpsize, 0.0f, 0.0f, 1e10);
-	SVARP(latestplink, "");
+	BSVARP(latestplink, "");
 	SVARP(latestpfilename, "");
 	ICOMMAND(newpatch, "isfs", (int *ver, const char *link, float *fsize, const char *filename), { latestpatch = *ver; strcpy(latestplink, link); latestpsize = *fsize; strcpy(latestpfilename, filename); });
 
@@ -1879,21 +1879,30 @@ namespace game
         execfile("auth.cfg", false);
     }
 
-	void loadversion()
-	{
-		stream *st = openfile("version.txt", "r");
-		if (!st) return;
-		string fmt;
-		st->getline(fmt, sizeof(fmt));
-		thisver = atof(fmt);
-		st->getline(fmt, sizeof(fmt));
-		thispatch = atoi(fmt);
-		st->close();
-	}
-
 	const char *getentname(dynent *d) // debugging helper function
 	{
 		return (d->type==ENT_PLAYER)? ((fpsent*)d)->name: "n/a";
 	}
+
+	//SVAR(curmaps, "");
+
+	//void genmaplist()
+	//{
+	//	char *maplist = curmaps;
+	//	string curmap;
+	//	while (*maplist)
+	//	{
+	//		int len = 0;
+	//		while (maplist[len] != ' ' && maplist[len] != '\0') len++;
+	//		strncpy(curmap, maplist, len);
+	//		curmap[len] = '\0';
+	//		maplist += len;
+	//		if (*maplist) maplist += 1;
+
+	//		cgui->text("\fgmaps: ", 0xFFFFFF);
+	//		conoutf("%s", curmap);
+	//	}
+	//}
+	//COMMAND(genmaplist, "");
 }
 

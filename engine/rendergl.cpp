@@ -2515,16 +2515,16 @@ void gl_drawhud(int w, int h, bool drawch)
 
     glPushMatrix();
     glScalef(conscale, conscale, 1);
-    abovehud -= rendercommand(FONTH/2, abovehud - FONTH/2, conw-FONTH);
-    extern int fullconsole;
-    if(!hidehud || fullconsole) renderconsole(conw, conh, abovehud - FONTH/2);
-
 	if (mainmenu)
 	{
 #include "version.h"
 		draw_textf("\faversion %s", 10, conh-(FONTH*2), RR_VERSION_STRING);
 		draw_textf("\fadate %s", 10, conh-(FONTH), RR_VERSION_DATE);
 	}
+
+    abovehud -= rendercommand(FONTH/2, abovehud - FONTH/2, conw-FONTH);
+    extern int fullconsole;
+    if(!hidehud || fullconsole) renderconsole(conw, conh, abovehud - FONTH/2);
 
     glPopMatrix();
 

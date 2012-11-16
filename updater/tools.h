@@ -105,9 +105,7 @@ static inline T min(T a, T b)
 // easy safe strings
 
 #define MAXSTRLEN 260
-#define BIGSTRLEN 1000
 typedef char string[MAXSTRLEN];
-typedef char bigstring[BIGSTRLEN];
 #define mkstring(d) string d; d[0] = 0;
 
 inline void vformatstring(char *d, const char *fmt, va_list v, int len = MAXSTRLEN) { _vsnprintf(d, len, fmt, v); d[len-1] = 0; }
@@ -933,10 +931,6 @@ struct stream
     template<class T> T get() { T n; return read(&n, sizeof(n)) == sizeof(n) ? n : 0; }
     template<class T> T getlil() { return lilswap(get<T>()); }
     template<class T> T getbig() { return bigswap(get<T>()); }
-
-#ifndef STANDALONE
-    SDL_RWops *rwops();
-#endif
 };
 
 enum

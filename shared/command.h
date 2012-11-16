@@ -165,6 +165,11 @@ static inline float parsefloat(const char *s)
 #define SVARFP(name, cur, body) _SVARF(name, name, cur, body, IDF_PERSIST)
 #define SVARFR(name, cur, body) _SVARF(name, name, cur, body, IDF_OVERRIDE)
 
+#define _BSVAR(name, global, cur, persist) char *global = bsvariable(#name, cur, &global, NULL, persist)
+#define BSVAR(name, cur) _BSVAR(name, name, cur, 0)
+#define BSVARP(name, cur) _BSVAR(name, name, cur, IDF_PERSIST)
+
+
 // new style macros, have the body inline, and allow binds to happen anywhere, even inside class constructors, and access the surrounding class
 #define _CCOMMAND(idtype, tv, n, g, proto, b) \
     struct _ccmd_##n : ident \
