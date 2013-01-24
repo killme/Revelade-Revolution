@@ -531,6 +531,7 @@ struct fpsstate
                 break;
 			case I_MORTAR:
 				ammo[WEAP_MORTAR] = MORTAR_MAX_AMMO;
+				break;
             default:
 			{
 				const playerclassinfo &pci = playerclasses[playerclass];

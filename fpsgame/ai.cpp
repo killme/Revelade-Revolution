@@ -417,7 +417,7 @@ namespace ai
                 else if(d->armour < 50) score = 1e1f;
                 break;
             }
-			case I_MORTAR: score = clamp(MORTAR_MAX_AMMO-d->ammo[WEAP_MORTAR], 0, MORTAR_MAX_AMMO)*1e2f;
+			case I_MORTAR: score = clamp(MORTAR_MAX_AMMO-d->ammo[WEAP_MORTAR], 0, MORTAR_MAX_AMMO)*1e2f; break;
             default:
             {
                 if(e.type >= I_AMMO && e.type <= I_AMMO4 && !(d->hasmaxammo()))
@@ -593,7 +593,7 @@ namespace ai
                 {
                     case I_HEALTH: case I_HEALTH2: case I_HEALTH3: wantsitem = badhealth(d); break;
                     case I_GREENARMOUR: case I_YELLOWARMOUR: case I_QUAD: break;
-					case I_MORTAR: wantsitem = d->ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO;
+					case I_MORTAR: wantsitem = d->ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO; break;
                     default:
                     {
                         //itemstat &is = itemstats[entities::ents[ent]->type-I_AMMO];

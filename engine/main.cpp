@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "curl/curl.h"
 #include "version.h"
+#include "joystick.h"
 
 void cleanup()
 {
@@ -1109,7 +1110,9 @@ void checkinput()
                 lastbut = event.button.button;
                 break;
         }
+		joystick::process_event(&event);
     }
+	joystick::move();
 }
 
 void swapbuffers()
@@ -1329,6 +1332,7 @@ int main(int argc, char **argv)
     initserver(dedicated>0, dedicated>1);  // never returns if dedicated
     ASSERT(dedicated <= 1);
     game::initclient();
+	joystick::init();
 
     log("video: mode");
     const SDL_VideoInfo *video = SDL_GetVideoInfo();

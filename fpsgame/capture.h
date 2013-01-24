@@ -262,7 +262,7 @@ struct captureclientmode : clientmode
         if(!m_capture || m_regencapture) return;
         loopv(bases)
         {
-            baseinfo &b = bases[i];
+            //baseinfo &b = bases[i];
 			// todo-shell
             //if(b.ammotype>0 && b.ammotype<=I_CARTRIDGES-I_SHELLS+1 && insidebase(b, player1->feetpos()) && player1->hasmaxammo(b.ammotype-1+I_SHELLS)) return;
         }
@@ -285,7 +285,7 @@ struct captureclientmode : clientmode
         vec o = d->feetpos();
         loopv(bases)
         {
-            baseinfo &b = bases[i];
+            //baseinfo &b = bases[i];
 			// todo-shell
             //if(b.ammotype>0 && b.ammotype<=I_CARTRIDGES-I_SHELLS+1 && insidebase(b, d->feetpos()) && !strcmp(b.owner, d->team) && b.o.dist(o) < 12)
             //{
@@ -776,7 +776,7 @@ struct captureclientmode : clientmode
         if(m_noitems || notgotbases || ci->state.state!=CS_ALIVE || !ci->team[0]) return;
         loopv(bases)
         {
-            baseinfo &b = bases[i];
+            //baseinfo &b = bases[i];
 			// todo-shell
             //if(b.ammotype>0 && b.ammotype<=I_CARTRIDGES-I_SHELLS+1 && insidebase(b, ci->state.o) && !ci->state.hasmaxammo(b.ammotype-1+I_SHELLS) && b.takeammo(ci->team))
             //{
@@ -882,7 +882,7 @@ struct captureclientmode : clientmode
                 }
                 else
                 {
-                    int ammo = b.capturetime/AMMOSECS - (b.capturetime-t)/AMMOSECS;
+                    //int ammo = b.capturetime/AMMOSECS - (b.capturetime-t)/AMMOSECS;
                     //if(ammo && b.addammo(ammo)) sendbaseinfo(i); // todo-shell
                 }
             }

@@ -191,7 +191,7 @@ struct dynent : physent                         // animated characters, or chara
 	int onfire, burnmillis, lastburnpain, burngun, irsm;
 	dynent *fireattacker;
 
-    dynent() : ragdoll(NULL), query(NULL), occluded(0), lastrendered(0), onfire(0), lastburnpain(0), irsm(0)
+    dynent() : ragdoll(NULL), query(NULL), occluded(0), lastrendered(0), onfire(0), lastburnpain(0), irsm(0), burnmillis(0)
     { 
         reset(); 
     }
@@ -214,6 +214,7 @@ struct dynent : physent                         // animated characters, or chara
     {
         physent::reset();
         stopmoving();
+		burnmillis = 0;
     }
 
     vec abovehead() { return vec(o).add(vec(0, 0, aboveeye+4)); }

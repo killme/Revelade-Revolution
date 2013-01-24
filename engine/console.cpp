@@ -178,7 +178,7 @@ struct keym
     ~keym() { DELETEA(name); loopi(NUMACTIONS) DELETEA(actions[i]); }
 };
 
-hashtable<int, keym> keyms(128);
+hashtable<int, keym> keyms(512);
 
 void keymap(int *code, char *key)
 {
@@ -199,13 +199,15 @@ const char *getkeyname(int code)
     keym *km = keyms.access(code);
     return km ? km->name : NULL;
 }
+ICOMMAND(getkeyname, "i", (int *code), {result(getkeyname(*code));});
 
-void searchbinds(char *action, int type)
+void searchbinds(char *action, int type, char *cap)
 {
     vector<char> names;
+	int capl = (cap)? strlen(cap): 0;
     enumerate(keyms, keym, km,
     {
-        if(!strcmp(km.actions[type], action))
+        if(!strcmp(km.actions[type], action) && (!capl || strncmp(km.name, cap, capl)))
         {
             if(names.length()) names.add(' ');
             names.put(km.name, strlen(km.name));
@@ -250,9 +252,9 @@ ICOMMAND(editbind, "ss", (char *key, char *action), bindkey(key, action, keym::A
 ICOMMAND(getbind,     "s", (char *key), getbind(key, keym::ACTION_DEFAULT));
 ICOMMAND(getspecbind, "s", (char *key), getbind(key, keym::ACTION_SPECTATOR));
 ICOMMAND(geteditbind, "s", (char *key), getbind(key, keym::ACTION_EDITING));
-ICOMMAND(searchbinds,     "s", (char *action), searchbinds(action, keym::ACTION_DEFAULT));
-ICOMMAND(searchspecbinds, "s", (char *action), searchbinds(action, keym::ACTION_SPECTATOR));
-ICOMMAND(searcheditbinds, "s", (char *action), searchbinds(action, keym::ACTION_EDITING));
+ICOMMAND(searchbinds,     "ss", (char *action, char *cap), searchbinds(action, keym::ACTION_DEFAULT, cap));
+ICOMMAND(searchspecbinds, "ss", (char *action, char *cap), searchbinds(action, keym::ACTION_SPECTATOR, cap));
+ICOMMAND(searcheditbinds, "ss", (char *action, char *cap), searchbinds(action, keym::ACTION_EDITING, cap));
 
 void inputcommand(char *init, char *action = NULL, char *prompt = NULL) // turns input to the command line on or off
 {

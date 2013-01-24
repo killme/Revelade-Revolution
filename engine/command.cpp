@@ -1135,6 +1135,10 @@ ICOMMAND(||, "V", (char **args, int *numargs),
     intret(val);
 });
 
+//ICOMMAND(ceil, "i", (int *a), intret(ceil(*a)));
+ICOMMAND(ceilf, "f", (float *a), floatret(ceilf(*a)));
+//ICOMMAND(floor, "i", (int *a), intret(floor(*a)));
+ICOMMAND(floorf, "f", (float *a), floatret(floorf(*a)));
 ICOMMAND(div, "ii", (int *a, int *b), intret(*b ? *a / *b : 0));
 ICOMMAND(mod, "ii", (int *a, int *b), intret(*b ? *a % *b : 0));
 ICOMMAND(divf, "ff", (float *a, float *b), floatret(*b ? *a / *b : 0));

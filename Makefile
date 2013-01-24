@@ -1,7 +1,8 @@
 CXXFLAGS= -O3 -fomit-frame-pointer
 override CXXFLAGS+= -Wall -fsigned-char
 
-PLATFORM= $(shell uname -s)
+PLATFORM= "windows"
+#$(shell uname -s)
 PLATFORM_PREFIX= native
 
 INCLUDES= -Ishared -Iengine -Ifpsgame -Ienet/include -Iinclude
@@ -15,7 +16,7 @@ endif
 
 MV=mv
 
-ifneq (,$(findstring MINGW,$(PLATFORM)))
+ifeq (,$(findstring MINGW,$(PLATFORM)))
 WINDRES= windres
 CLIENT_INCLUDES= $(INCLUDES) -Iinclude
 CLIENT_LIBS= -mwindows -Llib -lSDL -lSDL_image -lSDL_mixer -lzdll -lopengl32 -lenet -lws2_32 -lwinmm
@@ -45,6 +46,7 @@ CLIENT_OBJS= \
 	engine/dynlight.o \
 	engine/glare.o \
 	engine/grass.o \
+	engine/irc.o \
 	engine/lightmap.o \
 	engine/main.o \
 	engine/material.o \
@@ -82,12 +84,12 @@ CLIENT_OBJS= \
 	fpsgame/server.o \
 	fpsgame/waypoint.o \
 	fpsgame/weapon.o
-ifneq (,$(findstring MINGW,$(PLATFORM)))
+ifeq (,$(findstring MINGW,$(PLATFORM)))
 CLIENT_OBJS+= vcpp/SDL_win32_main.o
 endif
 CLIENT_PCH= shared/cube.h.gch engine/engine.h.gch fpsgame/game.h.gch
 
-ifneq (,$(findstring MINGW,$(PLATFORM)))
+ifeq (,$(findstring MINGW,$(PLATFORM)))
 SERVER_INCLUDES= -DSTANDALONE $(INCLUDES) -Iinclude
 SERVER_LIBS= -Llib -lzdll -lenet -lws2_32 -lwinmm
 else
@@ -115,7 +117,11 @@ endif
 
 default: all
 
-all: client server
+all: client
+#server
+
+debug: client_debug
+#server
 
 enet/Makefile:
 	
@@ -124,7 +130,8 @@ libenet: enet/Makefile
 clean-enet: enet/Makefile
 
 clean:
-	-$(RM) $(CLIENT_PCH) $(CLIENT_OBJS) $(SERVER_OBJS) $(MASTER_OBJS) sauer_client sauer_server sauer_master
+	-perl "E:\Program Files\ReveladeRevolution\data\src_\rm.pl" "$(CLIENT_PCH) $(CLIENT_OBJS)"
+# $(SERVER_OBJS) $(MASTER_OBJS) sauer_client sauer_server sauer_master
 
 %.h.gch: %.h
 	$(CXX) $(CXXFLAGS) -o $@ $(subst .h.gch,.h,$@)
@@ -140,13 +147,13 @@ $(filter fpsgame/%,$(CLIENT_OBJS)): $(filter fpsgame/%,$(CLIENT_PCH))
 $(SERVER_OBJS): CXXFLAGS += $(SERVER_INCLUDES)
 $(filter-out $(SERVER_OBJS),$(MASTER_OBJS)): CXXFLAGS += $(SERVER_INCLUDES)
 
-ifneq (,$(findstring MINGW,$(PLATFORM)))
+ifeq (,$(findstring MINGW,$(PLATFORM)))
 vcpp/%.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $(subst .o,.c,$@) 
 
 client: $(CLIENT_OBJS)
 	$(WINDRES) -I vcpp -i vcpp/mingw.rc -J rc -o vcpp/mingw.res -O coff 
-	$(CXX) $(CXXFLAGS) -o ../bin/rr_GAME.exe vcpp/mingw.res $(CLIENT_OBJS) $(CLIENT_LIBS)
+	$(CXX) $(CXXFLAGS) -o ../../bin/RR_GAME.exe vcpp/mingw.res $(CLIENT_OBJS) $(CLIENT_LIBS)
 
 server: $(SERVER_OBJS)
 	$(CXX) $(CXXFLAGS) -o ../bin/rr_server.exe $(SERVER_OBJS) $(SERVER_LIBS)

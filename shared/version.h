@@ -3,9 +3,9 @@
 
 #define RR_VER_MAJOR		1
 #define RR_VER_MINOR		0
-#define RR_VER_PATCH		5
-#define RR_VER_BUILD		79
+#define RR_VER_PATCH		6
+#define RR_VER_BUILD		113
 
 #define RR_VERSION_VAL		1.0
-#define RR_VERSION_STRING	"1.0.5.79"
-#define RR_VERSION_DATE		"14-11-2012"
+#define RR_VERSION_STRING	"1.0.6.113"
+#define RR_VERSION_DATE		"20-01-2013"

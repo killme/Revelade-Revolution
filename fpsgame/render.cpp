@@ -346,6 +346,11 @@ namespace game
 			if (fmillis>=(hudgunfade/2.f)) d->hudgun = d->gunselect;
 		}
 		float hfade = min(((float)abs(fmillis-(hudgunfade/2.f)))/(hudgunfade/2.f), 1.f);
+		if (fmillis>hudgunfade)
+		{
+			hudgun = 1;
+			hfade = 1.f;
+		}
 
         const playermodelinfo &mdl = getplayermodelinfo(d);
         defformatstring(gunname)("%s/%s", hudgunsdir[0] ? hudgunsdir : mdl.hudguns, weapons[d->hudgun].file);

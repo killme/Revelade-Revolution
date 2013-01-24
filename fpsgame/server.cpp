@@ -137,7 +137,7 @@ namespace server
 		bool onfire, teamkilled, teamshooter;
 		struct clientinfo *fireattacker;
 
-        gamestate() : state(CS_DEAD), editstate(CS_DEAD), onfire(0) {}
+        gamestate() : state(CS_DEAD), editstate(CS_DEAD), burnmillis(0), onfire(false) {}
 
         bool isalive(int gamemillis)
         {
@@ -160,6 +160,7 @@ namespace server
             effectiveness = 0;
             frags = flags = deaths = teamkills = shotdamage = damage = 0;
 			teamkilled = teamshooter = false;
+			burnmillis = 0;
 
             respawn();
         }
@@ -1389,7 +1390,7 @@ namespace server
             putint(p, -1);
             welcomeinitclient(p, ci ? ci->clientnum : -1);
         }
-        if(smode) smode->initclient(ci, p, true);
+        if(ci && smode) smode->initclient(ci, p, true);
         return 1;
     }
 
@@ -1696,7 +1697,7 @@ namespace server
         sendf(-1, 1, "rii9ivx", N_SHOTFX, ci->clientnum, gun, id,
                 int(from.x*DMF), int(from.y*DMF), int(from.z*DMF),
                 int(to.x*DMF), int(to.y*DMF), int(to.z*DMF),
-				numrays, numrays*sizeof(ivec)/sizeof(int), rays,
+				numrays, numrays*sizeof(ivec)/sizeof(int), &rays,
                 ci->ownernum);
 
 		int damage;

@@ -622,8 +622,10 @@ namespace game
 	void setonfire(dynent *d, dynent *attacker, int gun, bool local, int projid)
 	{
 		if (!d || !attacker || WEAP(gun,damage)==0) return;
-		if (!local && (attacker == player1 || ((fpsent*)attacker)->ai)) return;
+		//if (!local && (attacker == player1 || ((fpsent*)attacker)->ai)) return;
 
+		// the following code was commented to keep the server and client in sync ("see N_SETONFIRE" in "client.h")
+		// you can remove this code if you want to
 		d->onfire = 1;
 		d->burnmillis = lastmillis;
 		d->fireattacker = attacker;
@@ -631,9 +633,7 @@ namespace game
 		if (d == hudplayer()) setisburning(true);
 
 		if (local && (attacker->type == ENT_PLAYER || ((fpsent*)attacker)->ai))
-		{
 			addmsg(N_ONFIRE, "ri5", ((fpsent*)attacker)->clientnum, ((fpsent*)d)->clientnum, gun, projid, 1);
-		}
 	}
 
     void updateprojectiles(int time)

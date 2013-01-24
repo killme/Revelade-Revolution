@@ -131,6 +131,7 @@ enum
 extern void conoutf(const char *s, ...);
 extern void conoutf(int type, const char *s, ...);
 extern void conoutfv(int type, const char *fmt, va_list args);
+//extern void searchbindlist(const char *action, int type, int limit, const char *sep, const char *pretty, const char *cap, vector<char> &names);
 
 // menus
 extern int mainmenu;
@@ -469,6 +470,7 @@ struct g3d_gui
     virtual void separator() = 0;
 	virtual void progress(float percent) = 0;
 	virtual void strut(float size) = 0;
+	virtual void vstrut(float size) = 0;
     virtual void space(float size) = 0;
     virtual char *keyfield(const char *name, int color, int length, int height = 0, const char *initval = NULL, int initmode = EDITORFOCUSED) = 0;
     virtual char *field(const char *name, int color, int length, int height = 0, const char *initval = NULL, int initmode = EDITORFOCUSED) = 0;

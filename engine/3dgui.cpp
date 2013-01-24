@@ -240,6 +240,7 @@ struct gui : g3d_gui
 
     //use to set min size (useful when you have progress bars)
     void strut(float size) { layout(isvertical() ? int(size*FONTW) : 0, isvertical() ? 0 : int(size*FONTH)); }
+    void vstrut(float size) { layout(0, int(size*FONTH)); }
     //add space between list items
     void space(float size) { layout(isvertical() ? 0 : int(size*FONTW), isvertical() ? int(size*FONTH) : 0); }
 

@@ -70,7 +70,7 @@ void abortconnect()
     clienthost = NULL;
 }
 
-SVAR(connectname, "");
+SVARP(connectname, "");
 VAR(connectport, 0, 0, 0xFFFF);
 
 void connectserv(const char *servername, int serverport, const char *serverpassword)

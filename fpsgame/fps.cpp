@@ -228,7 +228,7 @@ namespace game
 				conoutf(CON_INFO, "\f2not enough gut points to buy item");
 				break;
 			}
-			if (m_survival) addmsg(N_BUY, "ri", player1, i);
+			if (m_survival) addmsg(N_BUY, "rci", player1, i);
 			else
 			{
 				applyitem(player1, i); // DMSP
@@ -967,11 +967,11 @@ namespace game
     const char *colorname(fpsent *d, const char *name, const char *prefix)
     {
         if(!name) name = d->name;
-        if(name[0] && !duplicatename(d, name) && d->aitype == AI_NONE) return name;
+        if(name[0] && !duplicatename(d, name) && d->aitype != AI_ZOMBIE) return name;
         static string cname[3];
         static int cidx = 0;
         cidx = (cidx+1)%3;
-		if (d->aitype == AI_NONE) formatstring(cname[cidx])("%s%s \fs\f5(%d)\fr", prefix, name, d->clientnum);
+		if (d->aitype==AI_NONE) formatstring(cname[cidx])("%s%s \fs\f5(%d)\fr", prefix, name, d->clientnum);
 		else formatstring(cname[cidx])("%s%s \fs\f5[%s]\fr", prefix, name, d->aitype==AI_ZOMBIE? "zombie": "bot");
         return cname[cidx];
     }
