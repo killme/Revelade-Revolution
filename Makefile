@@ -1,8 +1,7 @@
 CXXFLAGS= -O3 -fomit-frame-pointer
-override CXXFLAGS+= -Wall -fsigned-char
+override CXXFLAGS+= -Wall -fsigned-char -fpermissive
 
-PLATFORM= "windows"
-#$(shell uname -s)
+PLATFORM= $(shell uname -s)
 PLATFORM_PREFIX= native
 
 INCLUDES= -Ishared -Iengine -Ifpsgame -Ienet/include -Iinclude
@@ -10,17 +9,17 @@ INCLUDES= -Ishared -Iengine -Ifpsgame -Ienet/include -Iinclude
 STRIP=
 ifeq (,$(findstring -g,$(CXXFLAGS)))
 ifeq (,$(findstring -pg,$(CXXFLAGS)))
-  STRIP=strip
+ STRIP=strip
 endif
 endif
 
 MV=mv
 
-ifeq (,$(findstring MINGW,$(PLATFORM)))
+ifneq (,$(findstring MINGW,$(PLATFORM)))
 WINDRES= windres
 CLIENT_INCLUDES= $(INCLUDES) -Iinclude
 CLIENT_LIBS= -mwindows -Llib -lSDL -lSDL_image -lSDL_mixer -lzdll -lopengl32 -lenet -lws2_32 -lwinmm
-else	
+else
 CLIENT_INCLUDES= $(INCLUDES)
 CLIENT_LIBS= -Lenet/.libs -lenet -lSDL_image -lSDL_mixer -lz -lGL
 endif
@@ -29,67 +28,67 @@ CLIENT_LIBS+= -lrt
 endif
 CLIENT_LIBS += -lcurl
 CLIENT_OBJS= \
-	shared/crypto.o \
-	shared/geom.o \
-	shared/stream.o \
-	shared/tools.o \
-	shared/zip.o \
-	engine/3dgui.o \
-	engine/bih.o \
-	engine/blend.o \
-	engine/blob.o \
-	engine/client.o	\
-	engine/command.o \
-	engine/console.o \
-	engine/cubeloader.o \
-	engine/decal.o \
-	engine/dynlight.o \
-	engine/glare.o \
-	engine/grass.o \
-	engine/irc.o \
-	engine/lightmap.o \
-	engine/main.o \
-	engine/material.o \
-	engine/menus.o \
-	engine/movie.o \
-	engine/normal.o	\
-	engine/octa.o \
-	engine/octaedit.o \
-	engine/octarender.o \
-	engine/physics.o \
-	engine/pvs.o \
-	engine/rendergl.o \
-	engine/rendermodel.o \
-	engine/renderparticles.o \
-	engine/rendersky.o \
-	engine/rendertext.o \
-	engine/renderva.o \
-	engine/server.o	\
-	engine/serverbrowser.o \
-	engine/shader.o \
-	engine/shadowmap.o \
-	engine/sound.o \
-	engine/texture.o \
-	engine/water.o \
-	engine/world.o \
-	engine/worldio.o \
-	fpsgame/ai.o \
-	fpsgame/client.o \
-	fpsgame/entities.o \
-	fpsgame/fps.o \
-	fpsgame/monster.o \
-	fpsgame/movable.o \
-	fpsgame/render.o \
-	fpsgame/scoreboard.o \
-	fpsgame/server.o \
-	fpsgame/waypoint.o \
-	fpsgame/weapon.o
-ifeq (,$(findstring MINGW,$(PLATFORM)))
+ shared/crypto.o \
+ shared/geom.o \
+ shared/stream.o \
+ shared/tools.o \
+ shared/zip.o \
+ engine/3dgui.o \
+ engine/bih.o \
+ engine/blend.o \
+ engine/blob.o \
+ engine/client.o \
+ engine/command.o \
+ engine/console.o \
+ engine/cubeloader.o \
+ engine/decal.o \
+ engine/dynlight.o \
+ engine/glare.o \
+ engine/grass.o \
+ engine/lightmap.o \
+ engine/main.o \
+ engine/material.o \
+ engine/menus.o \
+ engine/movie.o \
+ engine/normal.o \
+ engine/octa.o \
+ engine/octaedit.o \
+ engine/octarender.o \
+ engine/physics.o \
+ engine/pvs.o \
+ engine/rendergl.o \
+ engine/rendermodel.o \
+ engine/renderparticles.o \
+ engine/rendersky.o \
+ engine/rendertext.o \
+ engine/renderva.o \
+ engine/server.o \
+ engine/serverbrowser.o \
+ engine/shader.o \
+ engine/shadowmap.o \
+ engine/sound.o \
+ engine/texture.o \
+ engine/water.o \
+ engine/world.o \
+ engine/worldio.o \
+ engine/irc.o \
+ fpsgame/ai.o \
+ fpsgame/client.o \
+ fpsgame/entities.o \
+ fpsgame/fps.o \
+ fpsgame/monster.o \
+ fpsgame/movable.o \
+ fpsgame/render.o \
+ fpsgame/scoreboard.o \
+ fpsgame/server.o \
+ fpsgame/waypoint.o \
+ fpsgame/weapon.o
+ifneq (,$(findstring MINGW,$(PLATFORM)))
 CLIENT_OBJS+= vcpp/SDL_win32_main.o
 endif
 CLIENT_PCH= shared/cube.h.gch engine/engine.h.gch fpsgame/game.h.gch
 
-ifeq (,$(findstring MINGW,$(PLATFORM)))
+ifneq (,$(findstring MINGW,$(PLATFORM)))
 SERVER_INCLUDES= -DSTANDALONE $(INCLUDES) -Iinclude
 SERVER_LIBS= -Llib -lzdll -lenet -lws2_32 -lwinmm
 else
@@ -97,18 +96,19 @@ SERVER_INCLUDES= -DSTANDALONE $(INCLUDES)
 SERVER_LIBS= -Lenet/.libs -lenet -lz
 endif
 SERVER_OBJS= \
-	shared/crypto-standalone.o \
-	shared/stream-standalone.o \
-	shared/tools-standalone.o \
-	engine/command-standalone.o \
-	engine/server-standalone.o \
-	fpsgame/server-standalone.o
+ shared/crypto-standalone.o \
+ shared/stream-standalone.o \
+ shared/tools-standalone.o \
+ engine/command-standalone.o \
+ engine/server-standalone.o \
+ fpsgame/server-standalone.o \
+ fpsgame/ai.o
 MASTER_OBJS= \
-	shared/crypto-standalone.o \
-	shared/stream-standalone.o \
-	shared/tools-standalone.o \
-	engine/command-standalone.o \
-	engine/master-standalone.o
+ shared/crypto-standalone.o \
+ shared/stream-standalone.o \
+ shared/tools-standalone.o \
+ engine/command-standalone.o \
+ engine/master-standalone.o
 
 ifeq ($(PLATFORM),SunOS)
 CLIENT_LIBS+= -lsocket -lnsl -lX11
@@ -117,27 +117,22 @@ endif
 
 default: all
 
-all: client
-#server
-
-debug: client_debug
-#server
+all: client #server
 
 enet/Makefile:
-	
+
 libenet: enet/Makefile
 
 clean-enet: enet/Makefile
 
 clean:
-	-perl "E:\Program Files\ReveladeRevolution\data\src_\rm.pl" "$(CLIENT_PCH) $(CLIENT_OBJS)"
-# $(SERVER_OBJS) $(MASTER_OBJS) sauer_client sauer_server sauer_master
+ -$(RM) $(CLIENT_PCH) $(CLIENT_OBJS) $(SERVER_OBJS) $(MASTER_OBJS) sauer_client sauer_server sauer_master
 
 %.h.gch: %.h
-	$(CXX) $(CXXFLAGS) -o $@ $(subst .h.gch,.h,$@)
+ $(CXX) $(CXXFLAGS) -o $@ $(subst .h.gch,.h,$@)
 
 %-standalone.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $(subst -standalone.o,.cpp,$@)
+ $(CXX) $(CXXFLAGS) -c -o $@ $(subst -standalone.o,.cpp,$@)
 
 $(CLIENT_OBJS): CXXFLAGS += $(CLIENT_INCLUDES)
 $(filter shared/%,$(CLIENT_OBJS)): $(filter shared/%,$(CLIENT_PCH))
@@ -147,45 +142,45 @@ $(filter fpsgame/%,$(CLIENT_OBJS)): $(filter fpsgame/%,$(CLIENT_PCH))
 $(SERVER_OBJS): CXXFLAGS += $(SERVER_INCLUDES)
 $(filter-out $(SERVER_OBJS),$(MASTER_OBJS)): CXXFLAGS += $(SERVER_INCLUDES)
 
-ifeq (,$(findstring MINGW,$(PLATFORM)))
+ifneq (,$(findstring MINGW,$(PLATFORM)))
 vcpp/%.o:
-	$(CXX) $(CXXFLAGS) -c -o $@ $(subst .o,.c,$@) 
+ $(CXX) $(CXXFLAGS) -c -o $@ $(subst .o,.c,$@)
 
 client: $(CLIENT_OBJS)
-	$(WINDRES) -I vcpp -i vcpp/mingw.rc -J rc -o vcpp/mingw.res -O coff 
-	$(CXX) $(CXXFLAGS) -o ../../bin/RR_GAME.exe vcpp/mingw.res $(CLIENT_OBJS) $(CLIENT_LIBS)
+ $(WINDRES) -I vcpp -i vcpp/mingw.rc -J rc -o vcpp/mingw.res -O coff
+ $(CXX) $(CXXFLAGS) -o ../bin/rr_GAME.exe vcpp/mingw.res $(CLIENT_OBJS) $(CLIENT_LIBS)
 
 server: $(SERVER_OBJS)
-	$(CXX) $(CXXFLAGS) -o ../bin/rr_server.exe $(SERVER_OBJS) $(SERVER_LIBS)
+ $(CXX) $(CXXFLAGS) -o ../bin/rr_server.exe $(SERVER_OBJS) $(SERVER_LIBS)
 
 master: $(MASTER_OBJS)
-	$(CXX) $(CXXFLAGS) -o ../bin/rr_master.exe $(MASTER_OBJS) $(SERVER_LIBS)
+ $(CXX) $(CXXFLAGS) -o ../bin/rr_master.exe $(MASTER_OBJS) $(SERVER_LIBS)
 
 install: all
 else
-client:	libenet $(CLIENT_OBJS)
-	$(CXX) $(CXXFLAGS) -o rr_client $(CLIENT_OBJS) $(CLIENT_LIBS)
+client: libenet $(CLIENT_OBJS)
+ $(CXX) $(CXXFLAGS) -o rr_client $(CLIENT_OBJS) $(CLIENT_LIBS)
 
-server:	libenet $(SERVER_OBJS)
-	$(CXX) $(CXXFLAGS) -o rr_server $(SERVER_OBJS) $(SERVER_LIBS)  
-	
+server: libenet $(SERVER_OBJS)
+ $(CXX) $(CXXFLAGS) -o rr_server $(SERVER_OBJS) $(SERVER_LIBS)
+
 master: libenet $(MASTER_OBJS)
-	$(CXX) $(CXXFLAGS) -o rr_master $(MASTER_OBJS) $(SERVER_LIBS)  
+ $(CXX) $(CXXFLAGS) -o rr_master $(MASTER_OBJS) $(SERVER_LIBS)
 
 install: all
-	cp sauer_client	../bin_unix/$(PLATFORM_PREFIX)_client
-	cp sauer_server	../bin_unix/$(PLATFORM_PREFIX)_server
+ cp sauer_client ../bin_unix/$(PLATFORM_PREFIX)_client
+ cp sauer_server ../bin_unix/$(PLATFORM_PREFIX)_server
 ifneq (,$(STRIP))
-	$(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_client
-	$(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_server
+ $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_client
+ $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_server
 endif
 endif
 
 depend:
-	makedepend -Y -Ishared -Iengine -Ifpsgame $(subst .o,.cpp,$(CLIENT_OBJS))
-	makedepend -a -o.h.gch -Y -Ishared -Iengine -Ifpsgame $(subst .h.gch,.h,$(CLIENT_PCH))
-	makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(SERVER_OBJS))
-	makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(filter-out $(SERVER_OBJS), $(MASTER_OBJS)))
+ makedepend -Y -Ishared -Iengine -Ifpsgame $(subst .o,.cpp,$(CLIENT_OBJS))
+ makedepend -a -o.h.gch -Y -Ishared -Iengine -Ifpsgame $(subst .h.gch,.h,$(CLIENT_PCH))
+ makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(SERVER_OBJS))
+ makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(filter-out $(SERVER_OBJS), $(MASTER_OBJS)))
 
 # DO NOT DELETE
 
