@@ -107,7 +107,7 @@ char *parsehdname(char *header)
 				found2 = true;
 				break;
 			}
-			else if (!fchar && *fnp=='"' || *fnp=='\'')
+			else if ((!fchar && *fnp=='"') || *fnp=='\'')
 			{
 				res = fnp+1;
 				fchar = *fnp;
@@ -1385,15 +1385,18 @@ int main(int argc, char **argv)
     execfile("data/menus.cfg");
     execfile("data/sounds.cfg");
     execfile("data/brush.cfg");
+	puts("game");
     execfile("mybrushes.cfg", false);
     if(game::savedservers()) execfile(game::savedservers(), false);
+	puts("game");
 
     persistidents = true;
 
     initing = INIT_LOAD;
+	
     if(!execfile(game::savedconfig(), false))
     {
-        execfile(game::defaultconfig());
+	    execfile(game::defaultconfig());
         writecfg(game::restoreconfig());
     }
     execfile(game::autoexec(), false);
@@ -1401,7 +1404,7 @@ int main(int argc, char **argv)
 
     persistidents = false;
 
-    string gamecfgname;
+	string gamecfgname;
     copystring(gamecfgname, "data/game_");
     concatstring(gamecfgname, game::gameident());
     concatstring(gamecfgname, ".cfg");

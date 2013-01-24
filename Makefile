@@ -1,6 +1,10 @@
 CXXFLAGS= -O3 -fomit-frame-pointer
 override CXXFLAGS+= -Wall -fsigned-char -fpermissive
 
+#Debugging
+override CXXFLAGS+=-D_DEBUG -g3
+
+
 PLATFORM= $(shell uname -s)
 PLATFORM_PREFIX= native
 
@@ -168,12 +172,12 @@ master: libenet $(MASTER_OBJS)
 	$(CXX) $(CXXFLAGS) -o rr_master $(MASTER_OBJS) $(SERVER_LIBS)
 
 install: all
-	cp sauer_client ../bin_unix/$(PLATFORM_PREFIX)_client
-	cp sauer_server ../bin_unix/$(PLATFORM_PREFIX)_server
-	ifneq (,$(STRIP))
-	    $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_client
-	    $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_server
-	endif
+	cp rr_client ../bin/$(PLATFORM_PREFIX)_client
+	cp rr_client ../bin/$(PLATFORM_PREFIX)_server
+ifneq (,$(STRIP))
+	    $(STRIP) ../bin/$(PLATFORM_PREFIX)_client
+	    $(STRIP) ../bin/$(PLATFORM_PREFIX)_server
+endif
 endif
 
 depend:

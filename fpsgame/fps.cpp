@@ -436,7 +436,7 @@ namespace game
 			{
 				int ncam = camnext->attr4;
 				float dcam = camstep;
-				setnextcam(&ncam, &dcam, "");
+				setnextcam(&ncam, &dcam, ""[0]);
 			}
 			else
 			{
@@ -868,7 +868,10 @@ namespace game
     }
 
 	vector<char*> sptips;
-	ICOMMAND(addtip, "s", (char *s), { sptips.add(new char[strlen(s)]); strcpy(sptips[sptips.length()-1], s); });
+	ICOMMAND(addtip, "s", (char *s), {
+		sptips.add(s);
+	//	copystring(added, s);
+	});
 
 	const char *getmapinfo()
     {
