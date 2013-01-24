@@ -255,7 +255,7 @@ enum
 	NUMPCS
 };
 
-static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; char* name; } playerclasses[NUMPCS] =
+static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; const char* name; } playerclasses[NUMPCS] =
 {
 	// weap[0]			weap[1]			weap[2]				mxhlth	armourtype	armour	mxspd	name
 	{ {WEAP_SLUGSHOT,	WEAP_MG,		WEAP_GRENADIER},	90,		A_GREEN,	50,		80,		"Offense"},

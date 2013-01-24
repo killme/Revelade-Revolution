@@ -1,6 +1,7 @@
 #include "engine.h"
 #include "textedit.h"
 #include "version.h"
+#include "string.h"
 
 #ifdef IRC
 vector<ircnet *> ircnets;
@@ -430,7 +431,7 @@ void ircprocess(ircnet *n, char *user[3], int g, int numargs, char *w[])
             }
             else if(ismsg)
             {
-                if(n->type == IRCT_RELAY && g && strcasecmp(w[g+1], n->nick) && !_strnicmp(w[g+2], n->nick, strlen(n->nick)))
+                if(n->type == IRCT_RELAY && g && strcasecmp(w[g+1], n->nick) /*&& !_strnicmp(w[g+2], n->nick, strlen(n->nick))*/)
                 {
                     const char *p = &w[g+2][strlen(n->nick)];
                     while(p && (*p == ':' || *p == ';' || *p == ',' || *p == '.' || *p == ' ' || *p == '\t')) p++;

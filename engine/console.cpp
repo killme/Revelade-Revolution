@@ -290,7 +290,7 @@ void pasteconsole()
 	extern void mac_pasteconsole(char *commandbuf);
 
 	mac_pasteconsole(commandbuf);
-	#else
+	#elif defined(SDL_VIDEO_DRIVER_X11)
     SDL_SysWMinfo wminfo;
     SDL_VERSION(&wminfo.version); 
     wminfo.subsystem = SDL_SYSWM_X11;

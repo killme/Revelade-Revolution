@@ -42,6 +42,7 @@
 #endif
 
 #ifndef STANDALONE
+#define _C2_DISABLE_UINTPTR_T_
 #include <SDL.h>
 #include <SDL_image.h>
 

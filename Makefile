@@ -126,13 +126,13 @@ libenet: enet/Makefile
 clean-enet: enet/Makefile
 
 clean:
- -$(RM) $(CLIENT_PCH) $(CLIENT_OBJS) $(SERVER_OBJS) $(MASTER_OBJS) sauer_client sauer_server sauer_master
+	$(RM) $(CLIENT_PCH) $(CLIENT_OBJS) $(SERVER_OBJS) $(MASTER_OBJS) sauer_client sauer_server sauer_master
 
 %.h.gch: %.h
- $(CXX) $(CXXFLAGS) -o $@ $(subst .h.gch,.h,$@)
+	$(CXX) $(CXXFLAGS) -o $@ $(subst .h.gch,.h,$@)
 
 %-standalone.o: %.cpp
- $(CXX) $(CXXFLAGS) -c -o $@ $(subst -standalone.o,.cpp,$@)
+	$(CXX) $(CXXFLAGS) -c -o $@ $(subst -standalone.o,.cpp,$@)
 
 $(CLIENT_OBJS): CXXFLAGS += $(CLIENT_INCLUDES)
 $(filter shared/%,$(CLIENT_OBJS)): $(filter shared/%,$(CLIENT_PCH))
@@ -159,28 +159,28 @@ master: $(MASTER_OBJS)
 install: all
 else
 client: libenet $(CLIENT_OBJS)
- $(CXX) $(CXXFLAGS) -o rr_client $(CLIENT_OBJS) $(CLIENT_LIBS)
+	$(CXX) $(CXXFLAGS) -o rr_client $(CLIENT_OBJS) $(CLIENT_LIBS)
 
 server: libenet $(SERVER_OBJS)
- $(CXX) $(CXXFLAGS) -o rr_server $(SERVER_OBJS) $(SERVER_LIBS)
+	$(CXX) $(CXXFLAGS) -o rr_server $(SERVER_OBJS) $(SERVER_LIBS)
 
 master: libenet $(MASTER_OBJS)
- $(CXX) $(CXXFLAGS) -o rr_master $(MASTER_OBJS) $(SERVER_LIBS)
+	$(CXX) $(CXXFLAGS) -o rr_master $(MASTER_OBJS) $(SERVER_LIBS)
 
 install: all
- cp sauer_client ../bin_unix/$(PLATFORM_PREFIX)_client
- cp sauer_server ../bin_unix/$(PLATFORM_PREFIX)_server
-ifneq (,$(STRIP))
- $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_client
- $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_server
-endif
+	cp sauer_client ../bin_unix/$(PLATFORM_PREFIX)_client
+	cp sauer_server ../bin_unix/$(PLATFORM_PREFIX)_server
+	ifneq (,$(STRIP))
+	    $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_client
+	    $(STRIP) ../bin_unix/$(PLATFORM_PREFIX)_server
+	endif
 endif
 
 depend:
- makedepend -Y -Ishared -Iengine -Ifpsgame $(subst .o,.cpp,$(CLIENT_OBJS))
- makedepend -a -o.h.gch -Y -Ishared -Iengine -Ifpsgame $(subst .h.gch,.h,$(CLIENT_PCH))
- makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(SERVER_OBJS))
- makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(filter-out $(SERVER_OBJS), $(MASTER_OBJS)))
+	makedepend -Y -Ishared -Iengine -Ifpsgame $(subst .o,.cpp,$(CLIENT_OBJS))
+	makedepend -a -o.h.gch -Y -Ishared -Iengine -Ifpsgame $(subst .h.gch,.h,$(CLIENT_PCH))
+	makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(SERVER_OBJS))
+	makedepend -a -o-standalone.o -Y -Ishared -Iengine -Ifpsgame $(subst -standalone.o,.cpp,$(filter-out $(SERVER_OBJS), $(MASTER_OBJS)))
 
 # DO NOT DELETE
 
