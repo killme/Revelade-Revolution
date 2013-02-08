@@ -1,6 +1,35 @@
 #include "cube.h"
 #include <signal.h>
 #include <enet/time.h>
+#define MYSQLPP_MYSQL_HEADERS_BURIED
+#include <mysql++.h>
+
+#if defined(_WIN32) || defined(__WIN32__)
+#include <process.h>
+#else
+#include <pthread.h>
+#endif
+
+char lateststring[1001] = "newver 1.0 \"http://sourceforge.net/p/rrevolution/\" 500.0 \"reveladerevolution_1.0_setup.exe\"";
+
+extern bool updateserverlist;
+
+void reupdate()
+{
+	stream *fs = openfile("update.txt", "r");
+	if (!fs)
+	{
+		conoutf("could not read \"update.txt\"");
+		return;
+	}
+	int flen = min((int)fs->size(), 1000);
+	fs->read(lateststring, flen);
+	fs->close();
+	lateststring[flen-2] = '\0';
+	updateserverlist = true;
+}
+
+COMMAND(reupdate, "");
 
 #define INPUT_LIMIT 4096
 #define OUTPUT_LIMIT (64*1024)
@@ -30,6 +59,7 @@ void adduser(char *name, char *pubkey)
     userinfo &u = users[name];
     u.name = name;
     u.pubkey = parsepubkey(pubkey);
+	conoutf("added user: %s", name);
 }
 COMMAND(adduser, "ss");
 
@@ -37,6 +67,7 @@ void clearusers()
 {
     enumerate(users, userinfo, u, { delete[] u.name; freepubkey(u.pubkey); });
     users.clear();
+	conoutf("cleared users");
 }
 COMMAND(clearusers, "");
 
@@ -51,11 +82,13 @@ void clearbans()
     bans.shrink(0);
     servbans.shrink(0);
     gbans.shrink(0);
+	conoutf("cleared bans");
 }
 COMMAND(clearbans, "");
 
 void addban(vector<baninfo> &bans, const char *name)
 {
+	conoutf("banned: %s", name);
     union { uchar b[sizeof(enet_uint32)]; enet_uint32 i; } ip, mask;
     ip.i = 0;
     mask.i = 0;
@@ -71,6 +104,13 @@ void addban(vector<baninfo> &bans, const char *name)
     baninfo &ban = bans.add();
     ban.ip = ip.i;
     ban.mask = mask.i;
+
+	void bangameservers();
+	void banclients();
+	void gengbanlist();
+    bangameservers();
+    banclients();
+    gengbanlist();
 }
 ICOMMAND(ban, "s", (char *name), addban(bans, name));
 ICOMMAND(servban, "s", (char *name), addban(servbans, name));
@@ -178,10 +218,21 @@ void fatal(const char *fmt, ...)
     exit(EXIT_FAILURE);
 }
 
+void conoutv(int len, const char *str)
+{
+	loopi(len)
+	{
+		fputc(str[i], logfile);
+		fputc(str[i], stdout);
+	}
+}
+
 void conoutfv(int type, const char *fmt, va_list args)
 {
     vfprintf(logfile, fmt, args);
     fputc('\n', logfile);
+    vfprintf(stdout, fmt, args);
+    fputc('\n', stdout);
 }
 
 void conoutf(const char *fmt, ...)
@@ -273,11 +324,14 @@ void genserverlist()
     while(gameserverlists.length() && gameserverlists.last()->refs<=0)
         delete gameserverlists.pop();
     messagebuf *l = new messagebuf(gameserverlists);
+    l->buf.put(lateststring, strlen(lateststring));
+    l->buf.put("\n", 1);
+    string cmd;
     loopv(gameservers)
     {
         gameserver &s = *gameservers[i];
         if(!s.lastpong) continue;
-        defformatstring(cmd)("addserver %s %d\n", s.ip, s.port);
+        formatstring(cmd)("addserver %s %d\n", s.ip, s.port);
         l->buf.put(cmd, strlen(cmd));
     }
     l->buf.add('\0');
@@ -693,20 +747,83 @@ void banclients()
     loopvrev(clients) if(checkban(bans, clients[i]->address.host)) purgeclient(i);
 }
 
-volatile bool reloadcfg = true;
-
-void reloadsignal(int signum)
+ICOMMAND(printgbans, "", (),
 {
-    reloadcfg = true;
+	gengbanlist();
+	conoutf("\n----------------");
+	conoutv(gbanlists.last()->buf.length(), gbanlists.last()->buf.getbuf());
+	conoutf("----------------\n");
+} );
+
+ICOMMAND(printservlist, "", (),
+{
+	genserverlist();
+	conoutf("\n----------------");
+	conoutf(gameserverlists.last()->buf.getbuf());
+	conoutf("----------------\n");
+} );
+
+volatile bool execcmd = false;
+string command;
+
+unsigned int _stdcall processinput(void *)
+{
+	char c;
+	int i = 0;
+	conoutv(2, "> ");
+	while(1)
+	{
+		if (execcmd) continue;
+		c = fgetc(stdin);
+		if (c == '\n' || c == EOF || c == '\0')
+		{
+			command[i] = '\0';
+			execcmd = true;
+			i = 0;
+			continue;
+		}
+		command[i++] = c;
+	}
 }
+
+VAR(masterport, 0, 28787, 0xFFFF);
 
 int main(int argc, char **argv)
 {
-    if(enet_initialize()<0) fatal("Unable to initialise network module");
+	mysqlpp::Connection conn(false);
+	if (conn.connect("reveladerevolution", "localhost", "root", "thecakeisalie"))
+	{
+		// Retrieve a subset of the sample stock table set up by resetdb
+		// and display it.
+		mysqlpp::Query query = conn.query("INSERT INTO `players`(`name`) VALUES ('organizer')");
+		//mysqlpp::Query query = conn.query("select name from players");
+		if (mysqlpp::StoreQueryResult res = query.store())
+		{
+			printf("We have:\n");
+			mysqlpp::StoreQueryResult::const_iterator it;
+			for (it = res.begin(); it != res.end(); ++it)
+			{
+				mysqlpp::Row row = *it;
+				printf("\t%s\n", row[0].c_str());
+			}
+		}
+		else
+		{
+			printf("Failed to get item list: %s\n", query.error());
+		}
+	}
+	else
+	{
+		const char *err = conn.error();
+		printf("DB connection failed: %s\n", "unknown");
+	}
+
+
+    if(enet_initialize()<0) fatal("Unable to initialize network module");
     atexit(enet_deinitialize);
 
     const char *dir = "", *ip = NULL;
-    int port = 28787;
+    int port = masterport;
     if(argc>=2) dir = argv[1];
     if(argc>=3) port = atoi(argv[2]);
     if(argc>=4) ip = argv[3];
@@ -716,22 +833,29 @@ int main(int argc, char **argv)
     path(cfgname);
     logfile = fopen(logname, "a");
     if(!logfile) logfile = stdout;
-    setvbuf(logfile, NULL, _IOLBF, 0);
-#ifndef WIN32
-    signal(SIGUSR1, reloadsignal);
-#endif
+	setvbuf(logfile, NULL, _IONBF, 0); // _IOLBF
+	
     setupserver(port, ip);
+    execfile(cfgname);
+
+	reupdate();
+
+#ifdef WIN32
+	_beginthreadex(NULL, 0, processinput, NULL, 0, NULL);
+#else
+	pthread_t thread;
+	pthread_create(thread, NULL, processinput, NULL);
+#endif
+
     for(;;)
     {
-        if(reloadcfg)
-        {
-            conoutf("reloading master.cfg");
-            execfile(cfgname);
-            bangameservers();
-            banclients();
-            gengbanlist();
-            reloadcfg = false;
-        }
+		if (execcmd && command[0])
+		{
+			execute((char *)command);
+			command[0] = '\0';
+			execcmd = false;
+			conoutv(2, "> ");
+		}
 
         servtime = enet_time_get();
         checkclients();

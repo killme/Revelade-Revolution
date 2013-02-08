@@ -152,6 +152,9 @@ namespace aiman
                 ci->ownernum = owner ? owner->clientnum : -1;
                 ci->aireinit = 2;
                 dorefresh = true;
+#ifdef XRRS
+				SbPy::triggerEventInt("game_bot_added", ci->clientnum);
+#endif
                 return true;
             }
         }
@@ -175,11 +178,17 @@ namespace aiman
 		ci->aireinit = 2;
 		ci->connected = true;
         dorefresh = true;
+#ifdef XRRS
+        SbPy::triggerEventInt("game_bot_added", ci->clientnum);
+#endif
 		return true;
 	}
 
 	void deleteai(clientinfo *ci)
 	{
+#ifdef XRRS
+		SbPy::triggerEventInt("game_bot_removed", ci->clientnum);
+#endif
         int cn = ci->clientnum - MAXCLIENTS;
         if(!bots.inrange(cn)) return;
         if(smode) smode->leavegame(ci, true);

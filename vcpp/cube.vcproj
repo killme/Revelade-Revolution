@@ -231,114 +231,6 @@
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
-		<Configuration
-			Name="Profile|Win32"
-			OutputDirectory="Profile"
-			IntermediateDirectory="Profile"
-			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-				TypeLibraryName=".\Profile/cube.tlb"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="0"
-				EnableIntrinsicFunctions="false"
-				FavorSizeOrSpeed="2"
-				OmitFramePointers="true"
-				AdditionalIncludeDirectories="..\enet\include;..\include;..\engine;..\fpsgame;..\shared"
-				PreprocessorDefinitions="WIN32,NDEBUG,_CONSOLE,USE_ENET"
-				StringPooling="true"
-				MinimalRebuild="false"
-				ExceptionHandling="0"
-				RuntimeLibrary="0"
-				BufferSecurityCheck="false"
-				EnableFunctionLevelLinking="false"
-				FloatingPointModel="2"
-				ForceConformanceInForLoopScope="true"
-				UsePrecompiledHeader="2"
-				PrecompiledHeaderThrough="cube.h"
-				PrecompiledHeaderFile=".\Profile/cube.pch"
-				AssemblerListingLocation=".\Profile/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Profile/"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="3"
-				CompileAs="0"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="2057"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				AdditionalOptions="/MACHINE:I386"
-				AdditionalDependencies="enet.lib zdll.lib opengl32.lib SDL.lib SDL_image.lib ws2_32.lib SDL_mixer.lib winmm.lib dbghelp.lib kernel32.lib user32.lib"
-				OutputFile="..\..\bin\sauerbraten.exe"
-				LinkIncremental="1"
-				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="..\lib"
-				IgnoreAllDefaultLibraries="false"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Profile/cube.pdb"
-				GenerateMapFile="true"
-				MapFileName=".\Profile/cube.map"
-				MapExports="true"
-				SubSystem="1"
-				OptimizeForWindows98="1"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-				AdditionalManifestFiles="dpiaware.manifest"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
 	</Configurations>
 	<References>
 	</References>
@@ -376,17 +268,6 @@
 						ObjectFile="$(IntDir)\$(InputName)1.obj"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-						PrecompiledHeaderThrough="engine.h"
-						PrecompiledHeaderFile=".\Profile/engine.pch"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\sauerbraten.rc"
@@ -405,14 +286,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -444,15 +317,6 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PrecompiledHeaderThrough="engine.h"
-							PrecompiledHeaderFile=".\Profile/engine.pch"
-						/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\engine\cubeloader.cpp"
@@ -475,15 +339,6 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PrecompiledHeaderThrough="engine.h"
-							PrecompiledHeaderFile=".\Profile/engine.pch"
-						/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\engine\lightmap.cpp"
@@ -504,15 +359,6 @@
 							Name="VCCLCompilerTool"
 							PrecompiledHeaderThrough="engine.h"
 							PrecompiledHeaderFile=".\Debug/engine.pch"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PrecompiledHeaderThrough="engine.h"
-							PrecompiledHeaderFile=".\Profile/engine.pch"
 						/>
 					</FileConfiguration>
 				</File>
@@ -545,15 +391,6 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PrecompiledHeaderThrough="engine.h"
-							PrecompiledHeaderFile=".\Profile/engine.pch"
-						/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\engine\octa.cpp"
@@ -574,15 +411,6 @@
 							Name="VCCLCompilerTool"
 							PrecompiledHeaderThrough="engine.h"
 							PrecompiledHeaderFile=".\Debug/engine.pch"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PrecompiledHeaderThrough="engine.h"
-							PrecompiledHeaderFile=".\Profile/engine.pch"
 						/>
 					</FileConfiguration>
 				</File>
@@ -611,15 +439,6 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PrecompiledHeaderThrough="engine.h"
-							PrecompiledHeaderFile=".\Profile/engine.pch"
-						/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\engine\octarender.cpp"
@@ -642,8 +461,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -673,8 +491,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -704,8 +521,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -735,8 +551,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -770,8 +585,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -805,8 +619,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -836,8 +649,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -867,8 +679,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -902,8 +713,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -937,8 +747,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -972,8 +781,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1003,8 +811,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1038,8 +845,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1073,8 +879,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1104,8 +909,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1147,8 +951,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1202,8 +1005,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1233,8 +1035,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1264,8 +1065,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1295,8 +1095,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1330,8 +1129,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1361,8 +1159,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1396,8 +1193,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1427,8 +1223,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1470,8 +1265,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1513,8 +1307,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1548,8 +1341,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1579,8 +1371,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1610,8 +1401,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1641,8 +1431,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1672,8 +1461,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1703,8 +1491,7 @@
 							PrecompiledHeaderFile=".\Debug/engine.pch"
 						/>
 					</FileConfiguration>
-					<FileConfiguration
-						Name="Profile|Win32"
+					    
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1770,8 +1557,7 @@
 						UsePrecompiledHeader="1"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1905,8 +1691,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1950,8 +1735,7 @@
 						ObjectFile="$(IntDir)\$(InputName)1.obj"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1986,8 +1770,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2021,8 +1804,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2056,8 +1838,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2087,8 +1868,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2122,8 +1902,7 @@
 						ObjectFile="$(IntDir)\$(InputName)2.obj"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2155,8 +1934,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2186,8 +1964,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2219,8 +1996,7 @@
 						ObjectFile="$(IntDir)\$(InputName)1.obj"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2251,8 +2027,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2282,8 +2057,7 @@
 						PrecompiledHeaderFile=".\Debug/game.pch"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Profile|Win32"
+				    
 					>
 					<Tool
 						Name="VCCLCompilerTool"

@@ -1,7 +1,12 @@
 // command.cpp: implements the parsing and execution of a tiny script language which
 // is largely backwards compatible with the quake console language.
 
-#include "engine.h"
+#include "cube.h"
+
+extern const char *addreleaseaction(const char *s);
+extern void writebinds(stream *f);
+extern void writecompletions(stream *f);
+extern void writecrosshairs(stream *f);
 
 char *exchangestr(char *o, const char *n) { delete[] o; return newstring(n); }
 
@@ -1310,4 +1315,3 @@ void clearsleep_(int *clearoverrides)
 
 COMMANDN(clearsleep, clearsleep_, "i");
 #endif
-

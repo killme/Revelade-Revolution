@@ -2,6 +2,10 @@
 
 #ifndef PARSEMESSAGES
 
+#ifdef XRRS
+extern int maxzombies;
+#endif
+
 #define RESPAWN_SECS	5
 //#define maxzombies		16
 #define ZOMBIE_CN		1024
@@ -865,7 +869,7 @@ case N_SURVSPAWNSTATE:
 case N_SURVNEWROUND:
 case N_SURVROUNDOVER:
 {
-	if(cmode) survivalmode.message(type, p);
+	if(cmode == (clientmode *)&survivalmode) survivalmode.message(type, p);
 	break;
 }
 

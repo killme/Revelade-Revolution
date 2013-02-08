@@ -20,6 +20,10 @@ enum
 #define DNF 100.0f              // for normalized vectors
 #define DVELF 1.0f              // for playerspeed based velocity vectors
 
+#ifdef XRRS
+#undef PLATFORM
+#endif
+
 enum                            // static entity types
 {
     NOTUSED = ET_EMPTY,         // entity slot not in use in map
@@ -503,7 +507,7 @@ struct fpsstate
                 if(armourtype==A_YELLOW && armour>=100) return false;
             case I_YELLOWARMOUR: return !armourtype || armour<is.max;
             case I_QUAD: return quadmillis<is.max;
-			case I_MORTAR: return ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO;
+			case I_MORTAR: return infected? false: ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO;
             default:
 			{
 				if (infected) return false;

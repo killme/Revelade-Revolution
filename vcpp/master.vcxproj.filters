@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{64a73bf9-a5a2-4772-8128-7c9b3d50feeb}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Engine\system">
+      <UniqueIdentifier>{fa76fc05-a9cf-4425-b8c6-15b792180f59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{7b218dbf-804b-4c4b-8a81-7a35373e7733}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Common\text">
+      <UniqueIdentifier>{745bbaef-2495-403c-bf5f-080696662f6e}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Common\text\docs">
+      <UniqueIdentifier>{ef98a796-a8f1-4553-b091-464a634ba681}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\text\cfg">
+      <UniqueIdentifier>{0973035e-4b07-4b63-9894-67bcf55b4e97}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\shared\command.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\cube.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\iengine.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\igame.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\tools.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\engine\command.cpp">
+      <Filter>Engine\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\pch.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\stream.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\tools.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\engine\master.cpp">
+      <Filter>Engine\system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\crypto.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="rr.rc">
+      <Filter>Engine</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\OCTA_TODO.txt">
+      <Filter>Common\text</Filter>
+    </None>
+    <None Include="..\..\docs\config.html">
+      <Filter>Common\text\docs</Filter>
+    </None>
+    <None Include="..\..\docs\editing.html">
+      <Filter>Common\text\docs</Filter>
+    </None>
+    <None Include="..\..\docs\editref.html">
+      <Filter>Common\text\docs</Filter>
+    </None>
+    <None Include="..\..\docs\game.html">
+      <Filter>Common\text\docs</Filter>
+    </None>
+    <None Include="..\..\docs\history.html">
+      <Filter>Common\text\docs</Filter>
+    </None>
+    <None Include="..\..\README.html">
+      <Filter>Common\text\docs</Filter>
+    </None>
+    <None Include="..\..\data\brush.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\default_map_models.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\default_map_settings.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\defaults.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\game_fps.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\keymap.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\menus.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\sounds.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\stdlib.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="..\..\data\stdshader.cfg">
+      <Filter>Common\text\cfg</Filter>
+    </None>
+    <None Include="rr_icon.ico">
+      <Filter>Common\text</Filter>
+    </None>
+  </ItemGroup>
+</Project>

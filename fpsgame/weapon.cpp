@@ -1122,7 +1122,7 @@ namespace game
             default:
                 return;
         }
-        if(WEAP_VALID(gun) && d->clientnum >= 0 && d->state == CS_ALIVE &&
+        if(WEAP_VALID(gun) && d->clientnum >= 0 && d->state == CS_ALIVE && !d->infected &&
            d->lastattackgun == gun && lastmillis - d->lastaction < WEAP(gun,attackdelay) + 50)
         {
             d->attackchan = playsound(d->attacksound, local ? NULL : &d->o, NULL, -1, -1, d->attackchan);

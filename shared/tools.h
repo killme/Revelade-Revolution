@@ -975,6 +975,7 @@ extern vector<char *> packagedirs;
 extern char *makerelpath(const char *dir, const char *file, const char *prefix = NULL, const char *cmd = NULL);
 extern char *path(char *s);
 extern char *path(const char *s, bool copy);
+extern char *pathtofile(const char *s);
 extern const char *parentdir(const char *directory);
 extern bool fileexists(const char *path, const char *mode);
 extern bool createdir(const char *path);
@@ -991,6 +992,9 @@ extern char *loadfile(const char *fn, int *size);
 extern bool listdir(const char *dir, const char *ext, vector<char *> &files);
 extern int listfiles(const char *dir, const char *ext, vector<char *> &files, bool searchpackagedirs = true);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
+extern void listallzipfiles(vector<char *> &files);
+extern bool addzip(const char *name, const char *mount = NULL, const char *strip = NULL);
+extern bool removezip(const char *name);
 extern void seedMT(uint seed);
 extern uint randomMT(void);
 

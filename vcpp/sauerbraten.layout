@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="debug" />
+	<File name="..\engine\grass.cpp" open="1" top="0" tabpos="8">
+		<Cursor position="0" topLine="0" />
+	</File>
+	<File name="..\engine\irc.cpp" open="1" top="1" tabpos="3">
+		<Cursor position="15117" topLine="395" />
+	</File>
+	<File name="..\engine\main.cpp" open="1" top="0" tabpos="1">
+		<Cursor position="4067" topLine="176" />
+	</File>
+	<File name="..\engine\physics.cpp" open="1" top="0" tabpos="7">
+		<Cursor position="73033" topLine="2153" />
+	</File>
+	<File name="..\engine\textedit.h" open="1" top="0" tabpos="2">
+		<Cursor position="19567" topLine="622" />
+	</File>
+	<File name="..\fpsgame\fps.cpp" open="1" top="0" tabpos="6">
+		<Cursor position="15086" topLine="530" />
+	</File>
+	<File name="..\fpsgame\game.h" open="1" top="0" tabpos="4">
+		<Cursor position="3435" topLine="109" />
+	</File>
+	<File name="..\shared\igame.h" open="1" top="0" tabpos="5">
+		<Cursor position="2827" topLine="52" />
+	</File>
+	<File name="mingw.rc" open="0" top="0" tabpos="3">
+		<Cursor position="86" topLine="0" />
+	</File>
+</CodeBlocks_layout_file>

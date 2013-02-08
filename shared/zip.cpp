@@ -259,7 +259,7 @@ static void mountzip(ziparchive &arch, vector<zipfile> &files, const char *mount
     }
 }
 
-bool addzip(const char *name, const char *mount = NULL, const char *strip = NULL)
+bool addzip(const char *name, const char *mount, const char *strip)
 {
     string pname;
     copystring(pname, name);
@@ -560,6 +560,19 @@ int listzipfiles(const char *dir, const char *ext, vector<char *> &files)
         if(files.length() > oldsize) dirs++;
     }
     return dirs;
+}
+
+void listallzipfiles(vector<char *> &files)
+{
+    loopvrev(archives)
+    {
+        ziparchive *arch = archives[i];
+        int oldsize = files.length();
+        enumerate(arch->files, zipfile, f,
+        {
+			files.add(newstring(f.name));
+        });
+    }
 }
 
 #ifndef STANDALONE

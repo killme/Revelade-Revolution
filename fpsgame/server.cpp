@@ -129,7 +129,7 @@ namespace server
         int state, editstate;
         int lastdeath, lastspawn, lifesequence;
         int lastshot;
-        projectilestate<32> rockets, grenades, flames;
+        projectilestate<32> rockets, grenades;//, flames;
         int frags, flags, deaths, teamkills, shotdamage, damage;
         int lasttimeplayed, timeplayed;
         float effectiveness;
@@ -1345,7 +1345,6 @@ namespace server
             putint(p, ci->clientnum);
             sendstring(ci->team, p);
             putint(p, -1);
-			conoutf("%s -> %s", ci->name, ci->team);
         }
         if(ci && (m_demo || m_mp(gamemode)) && ci->state.state!=CS_SPECTATOR)
         {
@@ -1705,10 +1704,7 @@ namespace server
         {
             case WEAP_ROCKETL: gs.rockets.add(id); break;
             case WEAP_GRENADIER: gs.grenades.add(id); break;
-			case WEAP_FLAMEJET:
-				{
-				gs.flames.add(id); break;
-				}
+			case WEAP_FLAMEJET: /*gs.flames.add(id);*/ break;
             default:
             {
                 int totalrays = 0, maxrays = WEAP(gun,numrays);

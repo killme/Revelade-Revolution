@@ -133,6 +133,14 @@ extern void conoutf(int type, const char *s, ...);
 extern void conoutfv(int type, const char *fmt, va_list args);
 //extern void searchbindlist(const char *action, int type, int limit, const char *sep, const char *pretty, const char *cap, vector<char> &names);
 
+#ifdef XRRS
+extern void setlogfile(const char *fname);
+extern void closelogfile();
+extern void logoutfv(const char *fmt, va_list args);
+extern void logoutf(const char *fmt, ...);
+extern void logouts(const char *s);
+#endif
+
 // menus
 extern int mainmenu;
 extern vec menuinfrontofplayer();

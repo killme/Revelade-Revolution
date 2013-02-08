@@ -264,6 +264,19 @@ char *path(const char *s, bool copy)
     return tmp;
 }
 
+char *pathtofile(const char *s)
+{
+    static string tmp;
+    copystring(tmp, s);
+    path(tmp);
+	for (int i=strlen(tmp); i>0; i--) if (tmp[i] == '\\' || tmp[i] == '/')
+	{
+		tmp[i] = '\0';
+		break;
+	}
+    return tmp;
+}
+
 const char *parentdir(const char *directory)
 {
     const char *p = directory + strlen(directory);

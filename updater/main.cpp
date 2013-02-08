@@ -1,6 +1,7 @@
 #include "cube.h"
-#include "curl/curl.h"
 #include "version.h"
+
+#include <curl/curl.h>
 
 const char *infostring =
 "\nRevelade Revolution Updater Tool "RR_VERSION_STRING" - "RR_VERSION_DATE"\n\n"

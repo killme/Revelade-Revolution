@@ -1,5 +1,9 @@
 #ifndef PARSEMESSAGES
 
+#ifdef XRRS
+extern int flaglimit;
+#endif
+
 #define ctfteamflag(s) (!strcmp(s, TEAM_0) ? 1 : (!strcmp(s, TEAM_1) ? 2 : 0))
 #define ctfflagteam(i) (i==1 ? TEAM_0 : (i==2 ? TEAM_1 : NULL))
 
@@ -224,7 +228,7 @@ struct ctfclientmode : clientmode
         notgotflags = !empty;
     }
 
-    void dropflag(clientinfo *ci)
+    void dropflag(clientinfo *ci, clientinfo *actor = NULL, bool suicide = false)
     {
         if(notgotflags) return;
         loopv(flags) if(flags[i].owner==ci->clientnum)
@@ -237,6 +241,10 @@ struct ctfclientmode : clientmode
             }
             else
             {
+#ifdef XRRS
+				SbPy::triggerEventIntInt("player_frag_carrier", ci->clientnum, actor? actor->clientnum: suicide? -1: -2);
+#endif
+
                 ivec o(vec(ci->state.o).mul(DMF));
                 sendf(-1, 1, "ri7", N_DROPFLAG, ci->clientnum, i, ++f.version, o.x, o.y, o.z);
                 dropflag(i, o.tovec().div(DMF), lastmillis, ci->clientnum);
@@ -252,7 +260,7 @@ struct ctfclientmode : clientmode
 
     void died(clientinfo *ci, clientinfo *actor)
     {
-        dropflag(ci);
+        dropflag(ci, actor, actor==NULL);
         loopv(flags) if(flags[i].dropper == ci->clientnum) flags[i].dropper = -1;
     }
 
@@ -287,7 +295,9 @@ struct ctfclientmode : clientmode
         sendf(-1, 1, "rii9", N_SCOREFLAG, ci->clientnum, relay, relay >= 0 ? ++flags[relay].version : -1, goal, ++flags[goal].version, flags[goal].spawnindex, team, score, ci->state.flags);
         if(score >= flaglimit)
 		{
+#ifndef XRRS
 			sendservmsgf(-1, "team %s scored %d flags", ci->team, score);
+#endif
 			startintermission();
 		}
     }

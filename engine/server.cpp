@@ -2,6 +2,13 @@
 // runs dedicated or as client coroutine
 
 #include "engine.h"
+#ifdef XRRS
+#include "sbpy.h"
+#include "server.h"
+#include "version.h"
+
+#include <signal.h>
+#endif
 
 #ifdef STANDALONE
 void fatal(const char *s, ...) 
@@ -468,7 +475,10 @@ void processmasterinput()
             conoutf(CON_ERROR, "master server registration failed: %s", args);
         else if(!strncmp(input, "succreg", cmdlen))
             conoutf("master server registration succeeded");
+#ifndef XRRS
+		//TODO: Fix me...
         else server::processmasterinput(input, cmdlen, args);
+#endif
 
         masterinpos = end - masterin.getbuf();
         input = end;
@@ -601,13 +611,17 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
        
     // below is network only
 
+#ifndef XRRS
     if(dedicated) 
     {
+#endif
         int millis = (int)enet_time_get();
         curtime = server::ispaused() ? 0 : millis - totalmillis;
         totalmillis = millis;
         lastmillis += curtime;
+#ifndef XRRS
     }
+#endif
     server::serverupdate();
 
     flushmasteroutput();
@@ -616,12 +630,14 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
     if(!lastupdatemaster || totalmillis-lastupdatemaster>60*60*1000)       // send alive signal to masterserver every hour of uptime
         updatemasterserver();
     
+#ifndef XRRS
     if(totalmillis-laststatus>60*1000)   // display bandwidth stats, useful for server ops
     {
         laststatus = totalmillis;     
         if(nonlocalclients || serverhost->totalSentData || serverhost->totalReceivedData) printf("status: %d remote clients, %.1f send, %.1f rec (K/sec)\n", nonlocalclients, serverhost->totalSentData/60.0f/1024, serverhost->totalReceivedData/60.0f/1024);
         serverhost->totalSentData = serverhost->totalReceivedData = 0;
     }
+#endif
 
     ENetEvent event;
     bool serviced = false;
@@ -709,11 +725,26 @@ void localconnect()
 }
 #endif
 
+#ifdef XRRS
+static bool rundedicated = true;
+
+void quit()
+{
+    rundedicated = false;
+}
+
+void server_sigint(int signal)
+{
+    quit();
+}
+#endif
+
 void rundedicatedserver()
 {
     #ifdef WIN32
     SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
     #endif
+#ifndef XRRS
     printf("dedicated server started, waiting for clients...\nCtrl-C to exit\n\n");
     for(;;)
 	{
@@ -722,6 +753,12 @@ void rundedicatedserver()
         ircslice();
 #endif
 	}
+#else
+	printf("\nXRRS - Revelade Revolution %s - %s\n", RR_VERSION_STRING, RR_VERSION_DATE);
+    puts("dedicated server started...\nCtrl-C to exit\n\n");
+    SbPy::triggerEvent("server_start", 0);
+    for(;rundedicated;) serverslice(true, 4);
+#endif
 }
 
 
@@ -777,7 +814,19 @@ void initserver(bool listen, bool dedicated)
 
     if(listen) setuplistenserver(dedicated);
 
+#ifndef XRRS
     server::serverinit();
+#else
+    if(!server::serverinit())
+    {
+        conoutf("Server initialization failed.");
+        return;
+    }
+    signal(SIGINT, server_sigint);
+	signal(SIGTERM, server_sigint);
+
+#endif
+
 
     if(listen)
     {
@@ -817,6 +866,20 @@ void stoplistenserver()
 COMMAND(stoplistenserver, "");
 #endif
 
+#ifdef XRRS
+void showhelp()
+{
+	printf("Usage: xrrs -sPYSCRIPTS_PATH [OPTION...]\n");
+	printf("\n");
+	printf(" -cMAXCLIENTS             Set the maximum number of clients.\n");
+	printf(" -iIP_ADDRESS             Set ip address to bind server to.\n");
+	printf(" -jPORT                   Set port to listen on.\n");
+	printf(" -mMASTER_HOSTNAME        Use hostname as master server.\n");
+	printf(" -sPYSCRIPTS_PATH         Path to the pyscripts directory.\n");
+	printf(" -aCONFIGDIR_PATH         Path to configuration directory.\n\n");
+}
+#endif
+
 bool serveroption(char *opt)
 {
     switch(opt[1])
@@ -829,6 +892,9 @@ bool serveroption(char *opt)
 #ifdef STANDALONE
         case 'q': printf("Using home directory: %s\n", opt+2); sethomedir(opt+2); return true;
         case 'k': printf("Adding package directory: %s\n", opt+2); addpackagedir(opt+2); return true;
+#endif
+#ifdef XRRS
+		case 'h': showhelp(); exit(0);
 #endif
         default: return false;
     }
@@ -845,6 +911,10 @@ int main(int argc, char* argv[])
     for(int i = 1; i<argc; i++) if(argv[i][0]!='-' || !serveroption(argv[i])) gameargs.add(argv[i]);
     game::parseoptions(gameargs);
     initserver(true, true);
+#ifdef XRRS
+    SbPy::triggerEvent("server_stop", 0);
+    SbPy::deinitPy();
+#endif
     return 0;
 }
 #endif

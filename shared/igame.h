@@ -98,7 +98,11 @@ namespace server
 {
     extern void *newclientinfo();
     extern void deleteclientinfo(void *ci);
+#ifdef XRRS
+    extern bool serverinit();
+#else
     extern void serverinit();
+#endif
     extern int reserveclients();
     extern int numchannels();
     extern void clientdisconnect(int n);

@@ -234,34 +234,16 @@ struct infectionclientmode : clientmode
 
 	bool aicheck(fpsent *d, ai::aistate &b)
 	{
-		if (d->infected)
+		float mindist = 1e16f;
+		fpsent *closest = NULL;
+		loopv(players) if (players[i]->infected != d->infected && players[i]->state == CS_ALIVE)
 		{
-			float mindist = 1e16f;
-			fpsent *closest = NULL;
-			loopv(players) if (!players[i]->infected && players[i]->state == CS_ALIVE)
-			{
-				if (!closest || players[i]->o.dist(closest->o) < mindist) closest = players[i];
-			}
-			if (!closest) return false;
-			b.millis = lastmillis;
-            d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
-			return true;
+			if (!closest || players[i]->o.dist(closest->o) < mindist) closest = players[i];
 		}
-		else
-		{
-			float mindist = 1e16f;
-			fpsent *closest = NULL;
-			loopv(players) if (players[i]->infected && players[i]->state == CS_ALIVE)
-			{
-				if (!closest || players[i]->o.dist(closest->o) < mindist) closest = players[i];
-			}
-			if (!closest) return false;
-			b.millis = lastmillis;
-            d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
-			return true;
-		}
-
-		return false;
+		if (!closest) return false;
+		b.millis = lastmillis;
+        d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
+		return true;
 	}
 	
 	void aifind(fpsent *d, ai::aistate &b, vector<ai::interest> &interests)

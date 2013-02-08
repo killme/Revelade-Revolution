@@ -42,7 +42,6 @@
 #endif
 
 #ifndef STANDALONE
-#define _C2_DISABLE_UINTPTR_T_
 #include <SDL.h>
 #include <SDL_image.h>
 
@@ -75,8 +74,9 @@
 #include "iengine.h"
 #include "igame.h"
 
-#define IRC
+#ifdef IRC
 #include "irc.h"
+#endif
 
 #endif
 

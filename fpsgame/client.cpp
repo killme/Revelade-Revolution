@@ -1616,8 +1616,8 @@ namespace game
 				getstring(text, p);
                 filtertext(text, text, false);
 
-				extern void sayradio(char *s, fpsent *spe, bool rteam);
-				sayradio(text, sr, false);
+				extern void sayradio(char *s, bool teamonly, fpsent *speaker, bool fullpath);
+				sayradio(text, false, sr, true);
 				break;
 			}
 

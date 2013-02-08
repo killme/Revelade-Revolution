@@ -115,16 +115,17 @@ namespace game
 
 	SVAR(voicedir, "female");
 
-	void sayradio(char *s, fpsent *spe = NULL, bool rteam = false)
+	void sayradio(char *s, bool teamonly = false, fpsent *speaker = NULL, bool fullpath = false)
 	{
-		if (spe == player1) return;
-		if (spe == NULL) addmsg((rteam)? N_RADIOTEAM: N_RADIOALL, "rs", s);
+		if (speaker == player1) return;
 
-		defformatstring(path)("voice/radio/%s/%s", voicedir, s);
+		defformatstring(path)(fullpath? s: "voice/radio/%s/%s", voicedir, s);
 		playsoundname(path);
+
+		if (speaker == NULL) addmsg((teamonly)? N_RADIOTEAM: N_RADIOALL, "rs", path);
 	}
-	ICOMMAND(radioall, "s", (char *s), sayradio(s, NULL, false));
-	ICOMMAND(radioteam, "s", (char *s), sayradio(s, NULL, true));
+	ICOMMAND(radioall, "s", (char *s), sayradio(s));
+	ICOMMAND(radioteam, "s", (char *s), sayradio(s, true));
 
 	const char *buyablesnames[BA_NUM] = { "ammo", "dammo", "health",
 		"dhealth", "garmour", "yarmour", "quad", "dquad", "support", "dsupport" };
@@ -436,7 +437,7 @@ namespace game
 			{
 				int ncam = camnext->attr4;
 				float dcam = camstep;
-				setnextcam(&ncam, &dcam, ""[0]);
+				setnextcam(&ncam, &dcam, "");
 			}
 			else
 			{
@@ -868,10 +869,7 @@ namespace game
     }
 
 	vector<char*> sptips;
-	ICOMMAND(addtip, "s", (char *s), {
-		sptips.add(s);
-	//	copystring(added, s);
-	});
+	ICOMMAND(addtip, "s", (char *s), { sptips.add(new char[strlen(s)]); strcpy(sptips[sptips.length()-1], s); });
 
 	const char *getmapinfo()
     {

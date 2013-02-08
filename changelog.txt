@@ -1,16 +1,22 @@
-Revelade Revolution change log.
+Revelade Revolution
 
+Change history:
+======================================================================
+1.0.6 (2/3/2013):
+-Features/additions:
+    Added new server XRRS (eXtensible Revelade Revolution Server) based on XSBS.
 
-1.0.6 (1/20/2013):
 -Fixes:
     Fixed invisible fire bug.
     Fixed small survival bug that crashed the game when starting a local match.
     Fixed bug that caused players to get full ammo when picking up mortar ammo.
-    
+    Fixed bug where zombies in survival are not taking or giving any damage.
+    Fixed bug where infected players can pick up mortar in infection mode.
+
 -Other/tweaks:
     /reconnect will work after game restart.
-
-
+    Radio voice playback set to load sound from the same directory (male/female) as the speaker.
+======================================================================
 1.0.5 and older (newest first):
 -Features/additions:
     Added controller support.
@@ -101,3 +107,4 @@ Revelade Revolution change log.
     Lowered slughshot secondary fire damage to 60%.
     Improved infection mode AI.
     Added secondary fire support for bots.
+======================================================================

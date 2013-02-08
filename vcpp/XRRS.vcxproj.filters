@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="pycontrol">
+      <UniqueIdentifier>{a8175d09-e662-4108-a9e4-4f6b64f18a5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{48a5ee17-e631-44ff-99bb-ba1fd18f24a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{11249b02-4b2a-46c7-b945-6a0059a10e79}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\pycontrol\sbpy.cpp">
+      <Filter>pycontrol</Filter>
+    </ClCompile>
+    <ClCompile Include="..\pycontrol\servermodule.cpp">
+      <Filter>pycontrol</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\crypto.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\pch.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\stream.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\tools.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\engine\command.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\engine\server.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="..\pycontrol\pyserver.cpp">
+      <Filter>pycontrol</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\fpsgame\ai.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\fpsgame\game.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\fpsgame\weapons.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pycontrol\servermodule.h">
+      <Filter>pycontrol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pycontrol\server.h">
+      <Filter>pycontrol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pycontrol\sbpy.h">
+      <Filter>pycontrol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\command.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\cube.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\ents.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\geom.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\iengine.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\igame.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\tools.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\version.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\vcpp\rr.rc">
+      <Filter>Game</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
