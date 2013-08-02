@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="client32" />
+	<File name="..\fpsgame\fps.cpp" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="20034" topLine="664" />
+		</Cursor>
+	</File>
+	<File name="..\engine\octa.h" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="6006" topLine="229" />
+		</Cursor>
+	</File>
+	<File name="..\fpsgame\game.h" open="1" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="30496" topLine="713" />
+		</Cursor>
+	</File>
+	<File name="..\shared\iengine.h" open="1" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="19837" topLine="435" />
+		</Cursor>
+	</File>
+	<File name="..\shared\tools.h" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="12811" topLine="514" />
+		</Cursor>
+	</File>
+	<File name="..\shared\igame.h" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="61" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\engine\engine.h" open="1" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\engine\explosion.h" open="1" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="10439" topLine="310" />
+		</Cursor>
+	</File>
+	<File name="..\engine\sound.cpp" open="1" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="8961" topLine="351" />
+		</Cursor>
+	</File>
+	<File name="..\engine\light.h" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1104" topLine="44" />
+		</Cursor>
+	</File>
+	<File name="..\engine\main.cpp" open="1" top="1" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="5117" topLine="219" />
+		</Cursor>
+	</File>
+	<File name="..\engine\3dgui.cpp" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="40781" topLine="1147" />
+		</Cursor>
+	</File>
+	<File name="..\engine\menus.cpp" open="1" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="14540" topLine="560" />
+		</Cursor>
+	</File>
+</CodeBlocks_layout_file>
