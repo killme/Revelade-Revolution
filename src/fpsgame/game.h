@@ -698,7 +698,7 @@ struct fpsent : dynent, fpsstate
 
     void fpsent::respawn()
     {
-		if(pclass <0 || pclass >= NUMPCS){ showgui("playerclass"); return;}
+		//if(pclass <0 || pclass >= NUMPCS){ showgui("playerclass"); return;}
         dynent::reset();
         fpsstate::respawn();
         respawned = suicided = -1;
