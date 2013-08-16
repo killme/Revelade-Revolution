@@ -1450,10 +1450,17 @@ namespace game
                     health = getint(p);
                 fpsent *target = getclient(tcn),
                        *actor = getclient(acn);
+				if(acn == -1)
+				{ //we got hurt by the environment
+					target->armour = armour;
+					target->health = health;
+					if(target->state == CS_ALIVE) target->lastpain = lastmillis;
+					damaged(damage, target, new fpsent(), false);
+				}
                 if(!target || !actor) break;
                 target->armour = armour;
                 target->health = health;
-                if(target->state == CS_ALIVE && actor != player1) target->lastpain = lastmillis;
+                if(target->state == CS_ALIVE /*&& actor != player1*/) target->lastpain = lastmillis; //removed code because when you hurt your self your should show pain animation and be stuned for a second
                 damaged(damage, target, actor, false);
                 break;
             }

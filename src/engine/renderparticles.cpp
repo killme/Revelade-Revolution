@@ -792,14 +792,13 @@ struct softquadrenderer : quadrenderer
     {
     }
 };
-
 static partrenderer *parts[] = 
 {
     new quadrenderer("<grey>data/particles/blood1.png", PT_PART|PT_FLIP|PT_MOD|PT_RND4, DECAL_BLOOD), // blood spats (note: rgb is inverted) 
     new trailrenderer("data/particles/base.png", PT_TRAIL|PT_LERP),                            // water, entity
-    new quadrenderer("<grey>data/particles/smoke.png", PT_PART|PT_FLIP|PT_LERP),               // smoke
-    new quadrenderer("<grey>data/particles/steam.png", PT_PART|PT_FLIP),                       // steam
-    new quadrenderer("<grey>data/particles/flames.png", PT_PART|PT_HFLIP|PT_RND4|PT_BRIGHT),   // flame on - no flipping please, they have orientation
+    new quadrenderer("data/particles/smoke.png", PT_PART|PT_FLIP|PT_LERP),               // smoke
+    new quadrenderer("data/particles/steam.png", PT_PART|PT_FLIP),                       // steam
+    new quadrenderer("data/particles/flames.png", PT_PART|PT_HFLIP|PT_RND4),   // flame on - no flipping please, they have orientation
     new quadrenderer("data/particles/ball1.png", PT_PART|PT_FEW|PT_BRIGHT),                    // fireball1
     new quadrenderer("data/particles/ball2.png", PT_PART|PT_FEW|PT_BRIGHT),                    // fireball2
     new quadrenderer("data/particles/ball3.png", PT_PART|PT_FEW|PT_BRIGHT),                    // fireball3

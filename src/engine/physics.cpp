@@ -1471,7 +1471,7 @@ bool move(physent *d, vec &dir)
         slideagainst(d, dir, slide ? obstacle : floor, found, slidecollide);
         d->blocked = true;
     }
-    if(found) landing(d, dir, floor, collided);
+	if(found) landing(d, dir, floor, collided);
     else falling(d, dir, floor);
     return !collided;
 }
@@ -1753,6 +1753,7 @@ void modifygravity(physent *pl, bool water, int curtime)
 
 bool moveplayer(physent *pl, int moveres, bool local, int curtime)
 {
+	static float falling = 0;
     int material = lookupmaterial(vec(pl->o.x, pl->o.y, pl->o.z + (3*pl->aboveeye - pl->eyeheight)/4));
     bool water = isliquid(material&MATF_VOLUME);
     bool floating = pl->type==ENT_PLAYER && (pl->state==CS_EDITING || pl->state==CS_SPECTATOR);
@@ -1767,6 +1768,7 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
     if(!floating && water) d.mul(0.5f);
     d.add(pl->falling);
     d.mul(secs);
+	falling = d.z *1000;
 
     pl->blocked = false;
 
@@ -1785,13 +1787,17 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
         const float f = 1.0f/moveres;
         const int timeinair = pl->timeinair;
         int collisions = 0;
-
+		float fl = pl->vel.z;
+		//falling = pl->falling.z < falling ?  pl->falling.z : falling;
         d.mul(f);
         loopi(moveres) if(!move(pl, d) && ++collisions<5) i--; // discrete steps collision detection & sliding
-        if(timeinair > 800 && !pl->timeinair && !water) // if we land after long time must have been a high jump, make thud sound
+        if(!pl->timeinair && !water) // if we land after long time must have been a high jump, make thud sound
         {
-            game::physicstrigger(pl, local, -1, 0);
+			if(abs(falling) > 900){game::physicstrigger(pl, local, -1, 0, 0, abs(falling*0.5)); }
+			falling = 0.f;
+			//if(timeinair > 100)pl->jumpwait = lastmillis + 100;
         }
+		falling = fl;
     }
 
     if(pl->state==CS_ALIVE) updatedynentcache(pl);
@@ -1813,7 +1819,7 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
     pl->inwater = water ? material&MATF_VOLUME : MAT_AIR;
 
     if(pl->state==CS_ALIVE && (pl->o.z < 0 || material&MAT_DEATH)) game::suicide(pl);
-
+	
     return true;
 }
 

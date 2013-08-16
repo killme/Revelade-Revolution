@@ -52,6 +52,8 @@ enum EntityTypes               // static entity types
 	I_HEALTH, I_BOOST,I_GREENARMOUR, I_YELLOWARMOUR,I_QUAD,		//remove at some point
 };
 
+enum EnvDamTypes {EVD_FALLDAM};
+
 struct fpsentity : extentity
 {
 	void talk(){};
@@ -184,7 +186,7 @@ enum AuthorizationTypes { PRIV_NONE = 0, PRIV_MASTER, PRIV_AUTH, PRIV_ADMIN };
 enum 
 {
     N_CONNECT = 0, N_SERVINFO, N_WELCOME, N_INITCLIENT, N_POS, N_TEXT, N_SOUND, N_CDIS,
-    N_SHOOT, N_EXPLODE, N_SUICIDE,
+    N_SHOOT, N_EXPLODE, N_SUICIDE, N_ENVDAMAGE,
     N_DIED, N_DAMAGE, N_HITPUSH, N_SHOTFX, N_EXPLODEFX,
     N_TRYSPAWN, N_SPAWNSTATE, N_SPAWN, N_FORCEDEATH,
     N_GUNSELECT, N_TAUNT,
@@ -214,8 +216,8 @@ enum
 static const int msgsizes[] =               // size inclusive message token, 0 for variable or not-checked sizes
 {
     N_CONNECT, 0, N_SERVINFO, 0, N_WELCOME, 1, N_INITCLIENT, 0, N_POS, 0, N_TEXT, 0, N_SOUND, 2, N_CDIS, 2,
-    N_SHOOT, 0, N_EXPLODE, 0, N_SUICIDE, 1,
-    N_DIED, 5, N_DAMAGE, 6, N_HITPUSH, 7, N_SHOTFX, 10, N_EXPLODEFX, 4,
+    N_SHOOT, 0, N_EXPLODE, 0, N_SUICIDE, 1, N_ENVDAMAGE, 3,
+    N_DIED, 5, N_DAMAGE, 6, N_HITPUSH, 7, N_SHOTFX, 10, N_EXPLODEFX, 4, 
     N_TRYSPAWN, 1, N_SPAWNSTATE, 14, N_SPAWN, 3, N_FORCEDEATH, 2,
     N_GUNSELECT, 2, N_TAUNT, 1,
     N_MAPCHANGE, 0, N_MAPVOTE, 0, N_TEAMINFO, 0, N_ITEMSPAWN, 2, N_ITEMPICKUP, 2, N_ITEMACC, 3,
@@ -306,14 +308,16 @@ static struct itemstat { float add, sound; const char *name; int icon; int info;
 };
 
 #define MAXRAYS 20 // maxium rays a gun can have
-#define EXP_SELFDAM	 0.7f //amount of damage absorbed when player hits them self --- damage *= selfdam
-#define EXP_SELFPUSH 3.0f //amount of pushback a player gets from hitting themself ---
+#define EXP_SELFDAM	 0.5f //amount of damage absorbed when player hits them self --- damage *= selfdam
+#define EXP_SELFPUSH 2.3f //amount of pushback a player gets from hitting themself ---
 
 // next 3 variable form a bell curve, where y = the percentage of damage and x = the distance between attacker and victum
 #define DIST_HEIGHT ((40*sqrt(2*PI))) //part of a 3 part bell curve -- this determinds the max height of the bell cuve (y axis) - 40 will keep the number between 100.1004 (hense why it is capped to an int) and 0;
 #define DIST_PULL (2*(pow(500.f,2))) // part of a 3 part bell curve -- this determinds the about of pull latterally (x axis) - simply put the higher 500 is the more damage at farther distance: NOTE a bell curve has 2 major parts: is an open curve(closer you get to the middle the less movement), closed curve (the farther you get the less movement) --  look at a bell curve its pretty self explanitory -- this number controls the closed curve
 #define DIST_PUSH 50.f //part of a 3 part bell curve -- this determinds the bottom curve (open curve) of the bell curve - simply put the this pulls the middle (where the two curve meet) forward (towards 0 along the x) the higher this number the farther out the middle is -- do not modify this number unless you know what you are doint (this is basically the mean )
 #define EXP_DISTSCALE 3.0f//the power at which the explosion distance is calculated on -- damage*(1/scale * (scale ^ (1- (dist/maxdist))))
+#define FALLDAM_PUSH 50.f
+#define FALLDAMMUL 0.01 //amout multiplyed by the velocity (in the z direction) when a player lands which results in damage ie pl->falling = (20, 30.4, 300.43); pl->falling * FALLDAMMUL = damage player takes on land;
 
 enum parttypes {PT_REGULAR_SPLASH = 0,PT_REGULAR_FLAME,PT_SPLASH,PT_TRAIL,PT_FLARE,PT_FIREBALL};
 
@@ -399,23 +403,23 @@ ttl - a timer set on bouncers that forces the projectile to explode
 
 */
 enum BONUSDAMAGE { BD_NONE, BD_HEAD, BD_DIRECT};
-enum GUNTYPE {GUNTY_MELEE, GUNTY_PROJ, GUNTY_BOUNCE, GUNTY_BULLET};
-enum Projectiles {PROJ_NONE, PROJ_GREN, PROJ_ROCK, PROJ_MAX};
+enum GUNTYPE {GUNTY_MELEE, GUNTY_PROJ, GUNTY_BOUNCE};
+enum Projectiles {PROJ_NONE, PROJ_GREN, PROJ_ROCK, PROJ_BULLET, PROJ_MAX};
 
 //need to add projectile model, muzzle position, dynlight type, particle type, particle splash
 static const struct guninfo { const char* name; int sound; const char* file; int damage, spread, attackdelay, reload, relamount, rewait, maxammo, changewait;\
 	float critchance; short rays; int range, projspeed, hitpush, kickamount; short bonustype, guntype, projectile, exprad, expfalloff, ttl, part; char projparts[4]; } guns[NUMGUNS] =
-{
+{//                                            (per ray)
 //	name			sound			file		damage	  spread	attd	rel	relam	relw	mxam	chwt	    crit	rays	rnge	prsd	htph	kick	bonus		   gunty	   proj		exrad	fall	   ttl		part
-	{"MELEE",		S_PUNCH1,		"",			 70,		0,		250,	1,	1,		0,		1,		300,		0.05f,	1,		20,		 0,		80,		5,		BD_NONE,	GUNTY_MELEE,   NULL,		0,		0,		0, 0,		{0,0,0,0}},
-	{"Shotgun",		S_SG,			"",			100,	  500,		500,	4,	1,	 2000,		36,		300,		0.05f,	8,	  1024,	   600,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		0,		0,		0, 0,		{0,0,0,0}},
-	{"Machine Gun",	S_CG,			"",			 25,	  600,		100,   40,	1,	 2000,		200,	300,		0.05f,	1,	  1024,	   600,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		0,		0,		0, 0,		{0,0,0,0}},
-	{"RPG",			S_RLFIRE,		"",			 80,	  200,		500,	4,	1,	 1000,		20,		300,		0.05f,	1,	  1024,	   300,	   250, 	5,		BD_NONE,	GUNTY_PROJ,	  PROJ_ROCK,	40,		0,		0, 0,		{0,0,0,0}},
-	{"RAzz0r Cannon",S_FLAUNCH,		"",			 60,	  200,		500,	4,	1,	 1200,		20,		300,		0.05f,	1,	  1024,	   200,    250, 	5,		BD_NONE,	GUNTY_BOUNCE, PROJ_GREN,	40,		0,		1500,0,	{0,0,0,0}},
-	{"grander",		S_FLAUNCH,		"",			 80,	  400,		500,    8,	1,	  500,		20,		300,		0.05f,	1,	  1024,	   200,	   250, 	5,		BD_NONE,	GUNTY_BOUNCE,  NULL,		40,		0,		1500,0,	{0,0,0,0}},
-	{"carbine",		S_PISTOL,		"",			 25,	  200,		150,   16,	1,	  700,		60,		300,		0.05f,	1,	  1024,		 0,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		0,		0,		0, 0,		{0,0,0,0}},
-	{"revolver",	S_PISTOL,		"",			 50,	  200,		500,	7,	1,	  200,		60,		300,		0.05f,	1,	  1024,	     0,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		0,		0,		0, 0,		{0,0,0,0}},
-	{"Fireball",	S_FLAUNCH,		"",			 20,	    0,		200,	1,	1,		0,		0,		300,		0.05f,	1,	  1024,	   200,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		40,		0,		0, 0,		{0,0,0,0}},
+	{"MELEE",		S_PUNCH1,		"",			  0,		0,		250,	1,	1,		0,		1,		300,		0.05f,	1,		20,		 0,		80,		5,		BD_NONE,	GUNTY_MELEE,   NULL,		0,		0,		0, 0,		{0,0,0,0}},
+	{"Shotgun",		S_SG,			"",			  7,	  200,		500,	4,	1,	 2000,		36,		300,		0.05f,	8,	  1024,	   600,		80,		5,		BD_NONE,	GUNTY_PROJ,	   PROJ_BULLET,		0,		0,		0, 0,		{0,0,0,0}},
+	{"Machine Gun",	S_CG,			"",			 25,	  300,		100,   40,	40,	 3000,		200,	300,		0.05f,	1,	  1024,	   600,		80,		5,		BD_NONE,	GUNTY_PROJ,	   PROJ_BULLET,		0,		0,		0, 0,		{0,0,0,0}},
+	{"RPG",			S_RLFIRE,		"",			 80,	  200,		500,	4,	1,	 1500,		20,		300,		0.05f,	1,	  1024,	   300,	   250, 	5,		BD_NONE,	GUNTY_PROJ,	   PROJ_ROCK,	40,		0,		0, 0,		{0,0,0,0}},
+	{"RAzz0r Cannon",S_FLAUNCH,		"",			 60,	  200,		500,	4,	1,	 1700,		20,		300,		0.05f,	1,	  1024,	   200,    250, 	5,		BD_NONE,	GUNTY_BOUNCE,  PROJ_GREN,	40,		0,		1000,0,	{0,0,0,0}},
+	{"grander",		S_FLAUNCH,		"",			 50,	  200,		500,    6,	1,	 1500,		24,		300,		0.05f,	1,	  1024,	   200,	   250, 	5,		BD_NONE,	GUNTY_BOUNCE,  PROJ_BULLET,		40,		0,	1000,0,	{0,0,0,0}},
+	{"carbine",		S_PISTOL,		"",			 25,	  250,		250,   12, 12,	 2500,		60,		300,		0.05f,	1,	  1024,	   1000,	80,		5,		BD_NONE,    GUNTY_PROJ,	   PROJ_BULLET,		0,		0,		0, 0,		{0,0,0,0}},
+	{"revolver",	S_PISTOL,		"",			 50,	  200,		300,	7,	7,	 2000,		35,		300,		0.05f,	1,	  1024,	   500,		80,		5,		BD_NONE,	GUNTY_PROJ,	   PROJ_BULLET,		0,		0,		0, 0,		{0,0,0,0}},
+	{"Fireball",	S_FLAUNCH,		"",			 20,	    0,		200,	1,	1,		0,		0,		300,		0.05f,	1,	  1024,	   500,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		40,		0,		0, 0,		{0,0,0,0}},
 	{"Iceball",		S_ICEBALL,		NULL,		 40,		0,		200,	1,	1,		0,		0,		300,		0.05f,	1,	  1024,	   120,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		40,		0,		0, 0,		{0,0,0,0}},
 	{"Slimeball",	S_SLIMEBALL,	NULL,		 30,		0,		200,	1,	1,		0,		0,		300,		0.05f,	1,	  1024,	   640,		80,		5,		BD_NONE,	GUNTY_PROJ,    NULL,		40,		0,		0, 0,	{0,0,0,0}},
 	{ "bite",		S_PIGR1,		NULL,		 50,		0,		250,	1,	1,		0,		0,		300,		0.05f,	1,		20,	   	 0,		80,		5,		BD_NONE,	GUNTY_PROJ,	   NULL,		0,		0,		0, 0,	{0,0,0,0}},
@@ -451,9 +455,9 @@ enum PlayerClassID
 	PCS_PREP,
 	PCS_MOTER,
 	PCS_SWAT,
+	PCS_SOLI,
 	PCS_SCI,
 	PCS_ADVENT,
-	PCS_BLANK,
 	NUMPCS
 };
 
@@ -461,7 +465,7 @@ enum PlayerClassID
 
 static const struct PlayerClass{ const char *name; int modelId, speed, maxhealth,  guns[3], utility;} PClasses[6] =
 {
-	//name		MId	Speed	health	guns		utility; 
+	//name		MId	Speed	health	guns						utility; 
 	{"Preper",	0,	55,		150,	{GUN_RL,	GUN_CARB,	0},		0	},
 	{"Moter",	1,	53,		175,	{GUN_RC,	GUN_GL,		0},		0	},
 	{"S.W.A.T.",2,	45,		250,	{GUN_SG,	GUN_PISTOL,	0},		0	},
@@ -505,10 +509,10 @@ struct GunObj
 	int ammo, maxammo, reload, maxreload, reloadamt;
 	int reloadtime, switchtime, attacktime;
 	int attackwait, reloadwait, switchwait;
-	int projspeed, range, rays, damage, spread;
+	int projspeed, range, totalrays, damage, spread;
 	float exprad, expdropoff, distpush, distpull;
 	int kickamount, hitpush;
-	short sound, soundreload, id, icon;
+	short sound, soundreload, id, icon, gunty;
 	char *file;
 	GunObj() : file(""){};
 
@@ -528,6 +532,7 @@ struct GunObj
 struct fpsstate
 {
 	GunObj *gun[3];
+	short gunindex;
     int health, maxhealth;
     int armour, armourtype;
     int quadmillis;
@@ -551,22 +556,19 @@ struct fpsstate
     void addammo(int gun, int k = 1, int scale = 1)
     {
         itemstat &is = itemstats[gun];
-		const PlayerClass &pcs = PClasses[pclass];
 		loopi(WEAPONS_PER_CLASS){
-			const guninfo &gi = guns[pcs.guns[i]];
-			const int a = pcs.guns[i];
-			ammo[a] = min((int((is.add)*gi.maxammo)+ammo[pcs.guns[i]]),gi.maxammo);
+			GunObj *gi = this->gun[i];
+			//gi->ammo = min((int((is.add)*gi->maxammo)+ammo[pcs.guns[i]]),gi->maxammo);
+			gi->ammo = min((int((is.add)*gi->maxammo)+gi->ammo),gi->maxammo);
 		}
 
     }
 
     bool hasmaxammo()
     {
-		const PlayerClass &pcs = PClasses[pclass];
 		loopi(WEAPONS_PER_CLASS){
-			const guninfo &gi = guns[pcs.guns[i]];
-			if(gi.maxammo != ammo[pcs.guns[i]])
-				return false;
+			if(!gun[i])return false;
+			if(gun[i]->ammo < gun[i]->maxammo)return false;
 		}
 		return true;
     }
@@ -632,10 +634,7 @@ struct fpsstate
 	}
 	void startreload()
 	{
-		if(reloadwait) return;
-		const guninfo &gi = guns[gunselect];
-		if (reload[gunselect] == gi.reload) return;
-		reloadwait = gi.rewait+lastmillis+gunwait;
+		if(gun[gunindex])gun[gunindex]->reloading();
 	}
 };
 
@@ -698,7 +697,7 @@ struct fpsent : dynent, fpsstate
 
     void fpsent::respawn()
     {
-		//if(pclass <0 || pclass >= NUMPCS){ showgui("playerclass"); return;}
+		if(pclass <0 || pclass >= NUMPCS){ showgui("playerclass"); return;}
         dynent::reset();
         fpsstate::respawn();
         respawned = suicided = -1;
@@ -759,7 +758,7 @@ namespace entities
     extern void preloadentities();
     extern void renderentities();
     extern void checkitems(fpsent *d);
-    extern void checkquad(int time, fpsent *d);
+    //extern void checkquad(int time, fpsent *d);
     extern void resetspawns();
     extern void spawnitems(bool force = false);
     extern void putitems(packetbuf &p);

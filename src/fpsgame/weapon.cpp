@@ -25,19 +25,20 @@ namespace game
             playsound(S_WEAPLOAD, &d->o);
 			d->reloadwait = 0;
         }
+		loopi(WEAPONS_PER_CLASS)if(d->gun[i]->id == gun){ d->gunindex = i; break;}
         d->gunselect = gun;
     }
 
     void nextweapon(int dir, bool force = false)
     {
+
         if(player1->state!=CS_ALIVE) return;
-        dir = (dir < 0 ? NUMGUNS-1 : 1);
-        int gun = player1->gunselect;
-        loopi(NUMGUNS)
-        {
-            gun = (gun + dir)%NUMGUNS;
-            if(force || player1->ammo[gun]) break;
-        }
+        dir = dir > 0 ? 1 : -1;
+		int gun = dir + player1->gunindex;
+		if(gun < 0) gun = WEAPONS_PER_CLASS;
+		if(gun >= WEAPONS_PER_CLASS) gun = 0;
+		if(!player1->gun[gun]->ammo && !player1->gun[gun]->reload){playsound(S_NOAMMO); return;}
+		gun = player1->gun[gun]->id;
         if(gun != player1->gunselect) gunselect(gun, player1);
         else playsound(S_NOAMMO);
     }
@@ -51,80 +52,79 @@ namespace game
         return -1;
     }
 
-    void setweapon(const char *name, bool force = false)
+    void setweapon(int ind)
     {
-        int gun = getweapon(name);
-        if(player1->state!=CS_ALIVE || gun<GUN_FIST || gun>GUN_PISTOL) return;
-        if(force || player1->ammo[gun]) gunselect(gun, player1);
-        else playsound(S_NOAMMO);
+       if(player1->gun[ind])gunselect(player1->gun[ind]->id,player1);
     }
-    ICOMMAND(setweapon, "si", (char *name, int *force), setweapon(name, *force!=0));
+    ICOMMAND(setweapon, "i", (int *ind), setweapon(*ind));
 
-    void cycleweapon(int numguns, int *guns, bool force = false)
-    {
-        if(numguns<=0 || player1->state!=CS_ALIVE) return;
-        int offset = 0;
-        loopi(numguns) if(guns[i] == player1->gunselect) { offset = i+1; break; }
-        loopi(numguns)
-        {
-            int gun = guns[(i+offset)%numguns];
-            if(gun>=0 && gun<NUMGUNS && (force || player1->ammo[gun]))
-            {
-                gunselect(gun, player1);
-                return;
-            }
-        }
-        playsound(S_NOAMMO);
-    }
-    ICOMMAND(cycleweapon, "V", (tagval *args, int numargs),
-    {
-         int numguns = min(numargs, 7);
-         int guns[7];
-         loopi(numguns) guns[i] = getweapon(args[i].getstr());
-         cycleweapon(numguns, guns);
-    });
+  //  void cycleweapon(int numguns, int *guns, bool force = false)
+  //  {
+		//return;
+  //      if(numguns<=0 || player1->state!=CS_ALIVE) return;
+  //      int offset = 0;
+  //      loopi(numguns) if(guns[i] == player1->gunselect) { offset = i+1; break; }
+  //      loopi(numguns)
+  //      {
+  //          int gun = guns[(i+offset)%numguns];
+  //          if(gun>=0 && gun<NUMGUNS && (force || player1->ammo[gun]))
+  //          {
+  //              gunselect(gun, player1);
+  //              return;
+  //          }
+  //      }
+  //      playsound(S_NOAMMO);
+  //  }
+  //  ICOMMAND(cycleweapon, "V", (tagval *args, int numargs),
+  //  {
+  //       int numguns = min(numargs, 7);
+  //       int guns[7];
+  //       loopi(numguns) guns[i] = getweapon(args[i].getstr());
+  //       cycleweapon(numguns, guns);
+  //  });
 
-    void weaponswitch(fpsent *d)
-    {
-        if(d->state!=CS_ALIVE) return;
-        int s = d->gunselect;
-		loopi(3){
-		int gun = PClasses[d->pclass].guns[i];
-		if(s != gun  && d->ammo[gun]) s = gun;
-		}
-	/*  if     (s!=GUN_CG     && d->ammo[GUN_CG])     s = GUN_CG;
-        else if(s!=GUN_RL     && d->ammo[GUN_RL])     s = GUN_RL;
-        else if(s!=GUN_SG     && d->ammo[GUN_SG])     s = GUN_SG;
-        else if(s!=GUN_RIFLE  && d->ammo[GUN_RIFLE])  s = GUN_RIFLE;
-        else if(s!=GUN_GL     && d->ammo[GUN_GL])     s = GUN_GL;
-        else if(s!=GUN_PISTOL && d->ammo[GUN_PISTOL]) s = GUN_PISTOL;
-        else                                          s = GUN_FIST;
-*/
-        gunselect(s, d);
-    }
+//    void weaponswitch(fpsent *d)
+//    {
+//		return;
+//        if(d->state!=CS_ALIVE) return;
+//        int s = d->gunselect;
+//		loopi(3){
+//		int gun = PClasses[d->pclass].guns[i];
+//		if(s != gun  && d->ammo[gun]) s = gun;
+//		}
+//	/*  if     (s!=GUN_CG     && d->ammo[GUN_CG])     s = GUN_CG;
+//        else if(s!=GUN_RL     && d->ammo[GUN_RL])     s = GUN_RL;
+//        else if(s!=GUN_SG     && d->ammo[GUN_SG])     s = GUN_SG;
+//        else if(s!=GUN_RIFLE  && d->ammo[GUN_RIFLE])  s = GUN_RIFLE;
+//        else if(s!=GUN_GL     && d->ammo[GUN_GL])     s = GUN_GL;
+//        else if(s!=GUN_PISTOL && d->ammo[GUN_PISTOL]) s = GUN_PISTOL;
+//        else                                          s = GUN_FIST;
+//*/
+//        gunselect(s, d);
+//    }
 
-    ICOMMAND(weapon, "V", (tagval *args, int numargs),
-    {
-        if(player1->state!=CS_ALIVE) return;
-        loopi(7)
-        {
-            const char *name = i < numargs ? args[i].getstr() : "";
-            if(name[0])
-            {
-                int gun = getweapon(name);
-                if(gun >= GUN_FIST && gun <= GUN_PISTOL && gun != player1->gunselect && player1->ammo[gun]) { gunselect(gun, player1); return; }
-            } else { weaponswitch(player1); return; }
-        }
-        playsound(S_NOAMMO);
-    });
-	void weaponset(int weapon){
-		if(weapon > 0 && weapon < 4){ 
-		int gun = PClasses[player1->pclass].guns[weapon-1];
-		gunselect(gun,player1);
-		}
-	}
-	
-	ICOMMAND(weaponset, "i", (int *weapon), {weaponset(*weapon);});
+    //ICOMMAND(weapon, "V", (tagval *args, int numargs),
+    //{
+    //    if(player1->state!=CS_ALIVE) return;
+    //    loopi(7)
+    //    {
+    //        const char *name = i < numargs ? args[i].getstr() : "";
+    //        if(name[0])
+    //        {
+    //            int gun = getweapon(name);
+    //            if(gun >= GUN_FIST && gun <= GUN_PISTOL && gun != player1->gunselect && player1->ammo[gun]) { gunselect(gun, player1); return; }
+    //        } else { weaponswitch(player1); return; }
+    //    }
+    //    playsound(S_NOAMMO);
+    //});
+	//void weaponset(int weapon){
+	//	if(weapon > 0 && weapon < 4){ 
+	//	int gun = PClasses[player1->pclass].guns[weapon-1];
+	//	gunselect(gun,player1);
+	//	}
+	//}
+	//
+	//ICOMMAND(weaponset, "i", (int *weapon), {weaponset(*weapon);});
     void offsetray(const vec &from, const vec &to, int spread, float range, vec &dest)
     {
         vec offset;
@@ -139,7 +139,7 @@ namespace game
 
     void createrays(int gun, const vec &from, const vec &to)             // create random spread of rays
     {
-        loopi(guns[gun].rays) offsetray(from, to, guns[gun].spread, guns[gun].range, rays[i]);
+       
     }
 
     enum { BNC_GRENADE, BNC_GIBS, BNC_DEBRIS, BNC_BARRELDEBRIS };
@@ -272,7 +272,7 @@ namespace game
     void clearbouncers() { bouncers.deletecontents(); }
 
 
-char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
+char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket", ""};
     struct projectile
     {
         vec dir, o, to, offset;
@@ -367,19 +367,19 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
             h.info1 = int(info1*DMF);
             h.info2 = info2;
             h.dir = f==at ? ivec(0, 0, 0) : ivec(int(vel.x*DNF), int(vel.y*DNF), int(vel.z*DNF));
-            if(false) // old way of doing it now the server tells us how much damage we did
+            if(false) // old way of doing it now the server tells us how much damage we did -chasester
 			if(at==player1)
             {
 				damageeffect(damage, f);
-                if(f==player1)
-                {
-                    damageblend(damage);
-                    damagecompass(damage, at ? at->o : f->o);
-                    playsound(S_PAIN6);
-                }
-                else playsound(S_PAIN1+rnd(5), &f->o);
+			}
+            if(f==player1)
+            {
+                damageblend(damage);
+                damagecompass(damage, at ? at->o : f->o);
+                playsound(S_PAIN6);
             }
-        }
+            else playsound(S_PAIN1+rnd(5), &f->o);
+		}
     }
 
     void hitpush(int damage, dynent *d, fpsent *at, vec &from, vec &to, int gun, int rays)
@@ -447,8 +447,8 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
         }
         else
         {
-            explode(p.local, p.owner, v, safe, damage, GUN_RL);
-            adddecal(/*gun[p.gun].decal*/DECAL_SCORCH, v, vec(p.dir).neg(), guns[p.gun].exprad/2);
+			if(guns[p.gun].exprad){explode(p.local, p.owner, v, safe, damage, p.gun); adddecal(/*gun[p.gun].decal*/DECAL_SCORCH, v, vec(p.dir).neg(), guns[p.gun].exprad/2);}
+			else  adddecal(DECAL_BULLET, v, vec(p.dir).neg(), 2.0f);
         }
     }
 
@@ -461,7 +461,7 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
                 loopv(projs)
                 {
                     projectile &p = projs[i];
-                    if(p.gun == gun && p.owner == d && p.id == id && !p.local)
+                    if(p.gun == gun && p.owner == d && p.id == id)// && !p.local)
                     {
                         vec pos(p.o);
                         pos.add(vec(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)));
@@ -519,6 +519,7 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
             v.add(p.o);
             bool stopped = false;
             hits.setsize(0);
+			//conoutf("x:%f y:%f z:%f",p.o.x,p.o.y,p.o.z);
             if(p.local)
             {
                 loopj(numdynents())
@@ -543,17 +544,12 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
                 {
                     vec pos(v);
                     pos.add(vec(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)));
-                    if(guns[p.gun].part)
-                    {
-                         regular_particle_splash(PART_SMOKE, 2, 300, pos, 0x404040, 0.6f, 150, -20);
-                         int color = 0xFFFFFF;
-                         switch(guns[p.gun].part)
-                         {
-                            case PART_FIREBALL1: color = 0xFFC8C8; break;
-                         }
-                         particle_splash(guns[p.gun].part, 1, 1, pos, color, 4.8f, 150, 20);
-                    }
-                    else regular_particle_splash(PART_SMOKE, 2, 300, pos, 0x404040, 2.4f, 50, -20);
+                    vec sp = vec(p.o).sub(v);
+					if(p.proj == PROJ_ROCK)regular_particle_splash(PART_SMOKE, 2, 300, pos, 0x404040, 2.4f, 50, -20);
+					if(p.proj == PROJ_BULLET){
+						if(rnd(3) == 1)
+						particle_flare(vec(sp).normalize().mul(rnd(5)+7).add(v), v, rnd(150), PART_STREAK, 0xEDDB8C, (rnd(15)*0.01));
+					}
                 }
             }
             if(stopped)
@@ -776,7 +772,7 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
         else if(d->gunselect!=GUN_FIST && d->gunselect!=GUN_BITE) adddecal(/*gun.decal*/DECAL_BULLET, to, vec(from).sub(to).normalize(), d->gunselect==GUN_RIFLE ? 3.0f : 2.0f);
     }
 
-	ICOMMAND(reload, "", (), {player1->startreload();});
+	ICOMMAND(reload, "", (), {player1->gun[player1->gunindex]->reloading();});
 
     void shoot(fpsent *d, const vec &targ)
     {
@@ -809,10 +805,10 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
 		//if(d->gunselect){d->reload[d->gunselect]--;}
 		//d->maxspeed = PClasses[d->pclass].speed*0.2;
 		if(player1==d || d->ai)if(!d->attacking)return;
-		d->gun[0]->update(d);
-		if(!d->gun[0]->shoot(d,targ)) return;
-        vec from = d->o;
-        vec to = targ;
+		if(!d->gun[d->gunindex]->shoot(d,targ))return;
+		//if(!flag){ gunselect(d->gun[0]->id,d); conoutf(CON_DEBUG, "some weird error: a weapon is selected that the player is not allowed to have - chasester");}
+       /* vec from = d->o;
+        vec to = targ;*/
 
         //vec unitv;
         //float dist = to.dist(from, unitv);
@@ -828,21 +824,20 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
         //    shorten = barrier;
         //if(shorten) to = vec(unitv).mul(shorten).add(from);
 
-        if(guns[d->gunselect].rays > 1) createrays(d->gunselect, from, to);
-        else if(guns[d->gunselect].spread) offsetray(from, to, guns[d->gunselect].spread, guns[d->gunselect].range, to);
+        /*if(guns[d->gunselect].rays > 1) createrays(d->gunselect, from, to);
+        else if(guns[d->gunselect].spread) offsetray(from, to, guns[d->gunselect].spread, guns[d->gunselect].range, to);*/
 
-        hits.setsize(0);
+ 
 
-        if(!guns[d->gunselect].projspeed) raydamage(from, to, d);
-
-		shoteffects(d->gunselect, from, to, d, true, 0, d->lastaction);
+        /*if(!guns[d->gunselect].projspeed) raydamage(from, to, d);
+		shoteffects(d->gunselect, from, to, d, true, 0, d->lastaction);*/
 
         if(d==player1 || d->ai)
         {
-            addmsg(N_SHOOT, "rci2i6iv", d, lastmillis-maptime, d->gunselect,
+           /* addmsg(N_SHOOT, "rci2i6iv", d, lastmillis-maptime, d->gunselect,
                    (int)(from.x*DMF), (int)(from.y*DMF), (int)(from.z*DMF),
                    (int)(to.x*DMF), (int)(to.y*DMF), (int)(to.z*DMF),
-                   hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
+                   hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());*/
         }
 
 		//d->gunwait = guns[d->gunselect].attackdelay;
@@ -872,9 +867,9 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
         }
     }
 
-    static const char * const projnames[2] = { "projectiles/grenade", "projectiles/rocket" };
+    static const char * const projnames[2] = { "projectiles/grenade", "projectiles/rocket" }; //not needed, we need to remove - chasester
     static const char * const gibnames[3] = { "gibs/gib01", "gibs/gib02", "gibs/gib03" };
-    static const char * const debrisnames[4] = { "debris/debris01", "debris/debris02", "debris/debris03", "debris/debris04" };
+    static const char * const debrisnames[4] = { "debris/debris01", "debris/debris02", "debris/debris03", "debris/debris04" }; //dibris and gibs should be done differently
     static const char * const barreldebrisnames[4] = { "barreldebris/debris01", "barreldebris/debris02", "barreldebris/debris03", "barreldebris/debris04" };
          
     void preloadbouncers()
@@ -1009,8 +1004,8 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
         loopv(players)
         {
             fpsent *d = players[i];
-            checkattacksound(d, d==following);
-            checkidlesound(d, d==following);
+			if(d->gun)
+				loopi(WEAPONS_PER_CLASS)if(d->gun[i])d->gun[i]->update(d);
         }
     }
 
@@ -1028,7 +1023,6 @@ char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket"};
             obstacles.avoidnear(NULL, bnc.o.z + guns[GUN_GL].exprad + 1, bnc.o, radius + guns[GUN_GL].exprad);
         }
     }
-};
 
 //start of my code - chasester
 VARP(autoreload, 0, 0, 1);
@@ -1067,11 +1061,12 @@ const vec calcKickBack(vec from, vec to,int kb){
 
 struct BaseGun : GunObj //this may seem titious but this will be nessary in the long run
 {
-
+	bool secondreload;
 	bool shoot(fpsent *d, const vec &targ) {
 		if(attackwait > lastmillis){return false;}
-		if(reloadwait > lastmillis){ return false;}
-		if(reload <= 0){ reloadwait = 0; reloading(); return false;}
+		//if(reloadwait > lastmillis){ return false;}
+		if(reload <= 0){ if(d->ai)reloading();return false;}
+		secondreload = false;
 		d->lastaction = lastmillis;
 		d->lastattackgun = id;
 		reload--;
@@ -1084,50 +1079,54 @@ struct BaseGun : GunObj //this may seem titious but this will be nessary in the 
 		if(ammo <= 0){ return false;} // if you dont have any ammo then you cant reload .. duh
 		if(reload == maxreload) return false; // if your already fully reloaded dont try to reload
 		if(switchwait > lastmillis) return false; // if you just switched then dont try to reload wait until this is done ;)
-		if(reloadwait) return false; //basically if your trying to reload then dont interfer ;p 
-		reloadwait = lastmillis + reloadtime;
+		if(reloadwait > 0) return false; //basically if your trying to reload then dont interfer ;p 
+		reloadwait = lastmillis + (secondreload ? int(reloadtime*0.8f) : reloadtime); //change 0.8f to a variable set by the class
 		return true;
 	}
 
 	bool update(fpsent* d) {
-		conoutf("rel: %d, ammo: %d relwait: %d",reload,ammo,reloadwait ?reloadwait-lastmillis: 0);
+		//conoutf("rel: %d, ammo: %d relwait: %d",reload,ammo,reloadwait ?reloadwait-lastmillis: 0);
 		//check reload
-		//if(d->gunselect != id){reloadwait = 0; attackwait = 0; return true;} //change this code for guns that reload when weapon is not equiped (ie charge)
+		if(d->gunselect != id){reloadwait = 0; attackwait = 0; return true;} 
 		if(switchwait>lastmillis) return false;
-		if(!reload){reloading();};
-		if(lastmillis > attackwait){ if(autoreload)reloading(); return false;}
-		if(reloadwait && reloadwait > lastmillis){
-			reload += reloadamt;
-			ammo -= reloadamt;
+		if(reload<=0){reloading();};
+		if(lastmillis > attackwait){ if(autoreload)reloading();}
+		if(reloadwait!=0 && reloadwait < lastmillis){
+			reload += reloadamt <= ammo ? reloadamt : ammo;
+			ammo -= reloadamt <= ammo ? reloadamt : ammo;
 			reloadwait = 0;
-			if(reload < maxreload){ reloading();}else{reload = maxreload; }
+			attackwait = lastmillis + 100;
+			if(reload < maxreload){secondreload = true; reloading(); }else{reload = maxreload; }
 		}
 		return true;
 	}
 	bool switchto(){
 		if(!reload && !ammo) return false;
-		if(!reload){reloading();}
+		//if(!reload){reloading();}
 		return true;
 	}
 	void reset(){
 		hitpush = GETGUNINFO(id,hitpush); reloadtime = GETGUNINFO(id,rewait); attacktime = GETGUNINFO(id,attackdelay);
 		maxammo = GETGUNINFO(id,maxammo); maxreload = GETGUNINFO(id,reload); projspeed = GETGUNINFO(id,projspeed); 
-		range = GETGUNINFO(id,range); rays = GETGUNINFO(id,rays); damage = GETGUNINFO(id,damage); 
+		range = GETGUNINFO(id,range); totalrays = GETGUNINFO(id,rays); damage = GETGUNINFO(id,damage); 
 		spread = GETGUNINFO(id,spread); kickamount = GETGUNINFO(id,kickamount); reloadamt = GETGUNINFO(id,relamount);
+		gunty = GETGUNINFO(id,guntype);
 		reloadwait = 0;
 		attackwait = 0;
 		switchwait = 0;
+		secondreload = false;
 	}
 };
 
-struct Pistol : BaseGun {Pistol();void reset();bool shoot(fpsent *d, const vec &targ);};
-struct Rocklauncher : BaseGun {Rocklauncher();void reset();bool shoot(fpsent *d, const vec &targ);};
-struct Melee : BaseGun {Melee();void reset();bool shoot(fpsent *d, const vec &targ);};
+struct HitscanGun : BaseGun {HitscanGun(int type);void reset();bool shoot(fpsent *d, const vec &targ);bool reloading();};
+struct Rocklauncher : BaseGun {Rocklauncher();void reset();bool shoot(fpsent *d, const vec &targ); bool reloading();};
+struct Bouncer : BaseGun {Bouncer(int type);void reset();bool shoot(fpsent *d, const vec &targ); bool reloading();};
+struct Melee : BaseGun {Melee();void reset();bool shoot(fpsent *d, const vec &targ); bool reloading();};
 
 
 	//constuctors
-	Pistol::Pistol() {
-		id = GUN_CARB;
+	HitscanGun::HitscanGun(int type) {
+		id = type;
 		switchtime = 200; distpush = 70; distpull = (2*(pow(700.f,2)));
 		//todo chasester: write a struct to incorperate this in a nice table like format
 		reset();
@@ -1138,21 +1137,24 @@ struct Melee : BaseGun {Melee();void reset();bool shoot(fpsent *d, const vec &ta
 		//todo chasester: write a struct to incorperate this in a nice table like format
 		reset();
 	}
-
+	Bouncer::Bouncer(int type) {
+		id = type;
+		switchtime = 200; distpush = 70; distpull = (2*(pow(700.f,2)));
+		//todo chasester: write a struct to incorperate this in a nice table like format
+		reset();
+	}
 	Melee::Melee(){
 		id = GUN_FIST; 
 		switchtime = 200; distpush = 70; distpull = (2*(pow(700.f,2)));
 		//todo chasester: write a struct to incorperate this in a nice table like format
 		reset();
 	}
-
 	//reset functions
-	void Pistol::reset(){
+	void HitscanGun::reset(){
 		BaseGun::reset();
 		ammo = maxammo;
 		reload = maxreload;
 		switchwait = lastmillis + switchtime;
-		conoutf("%d, %d, %d", maxammo, maxreload, switchtime);
 	}
 
 	void Rocklauncher::reset(){
@@ -1160,22 +1162,37 @@ struct Melee : BaseGun {Melee();void reset();bool shoot(fpsent *d, const vec &ta
 		ammo = maxammo;
 		reload = maxreload;
 		switchwait = lastmillis + switchtime;
-		conoutf("%d, %d, %d", maxammo, maxreload, switchtime);
+	}
+	void Bouncer::reset(){
+		BaseGun::reset();
+		ammo = maxammo;
+		reload = maxreload;
+		switchwait = lastmillis + switchtime;
 	}
 	void Melee::reset(){
 		BaseGun::reset();
 		ammo = maxammo;
 		reload = maxreload;
 		switchwait = lastmillis + switchtime;
-		conoutf("%d, %d, %d", maxammo, maxreload, switchtime);
 	}
 	
 	//shoot functions
-	bool Pistol::shoot(fpsent *d, const vec &targ){
+	bool HitscanGun::shoot(fpsent *d, const vec &targ){
 		if(!BaseGun::shoot(d,targ)) return false;
 		 vec from = d->o;
 		 vec to = targ;
+		 bool local = d==player1 || d->ai;
+		 if(!local)return true;
 		 d->vel.add(calcKickBack(vec(d->o), vec(targ),kickamount));
+		   loopi(totalrays){
+				if(spread)offsetray(from, to, spread, range, to);
+				newprojectile(from, to, (float)projspeed, local, id, d, id);
+			}
+		    hits.setsize(0);
+			 addmsg(N_SHOOT, "rci2i6iv", d, lastmillis-maptime, d->gunselect,
+                   (int)(from.x*DMF), (int)(from.y*DMF), (int)(from.z*DMF),
+                   (int)(to.x*DMF), (int)(to.y*DMF), (int)(to.z*DMF),
+                   hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
 		 return true;
 	}
 
@@ -1184,35 +1201,107 @@ struct Melee : BaseGun {Melee();void reset();bool shoot(fpsent *d, const vec &ta
 		if(!BaseGun::shoot(d, targ)) return false;
 		vec from = d->o;
 		vec to = targ;
+		bool local = d==player1 || d->ai;
+		if(!local)return true;
 		d->vel.add(calcKickBack(vec(d->o), vec(targ),kickamount));
+		if(spread)offsetray(from, to, spread, range, to);
+		newprojectile(from, to, (float)projspeed, local, id, d, id);
+		adddynlight(hudgunorigin(id, d->o, to, d), 20, vec(1.0f, 0.75f, 0.5f), 100, 100, DL_FLASH, 0, vec(0, 0, 0), d);
+		hits.setsize(0);
+		addmsg(N_SHOOT, "rci2i6iv", d, lastmillis-maptime, d->gunselect,
+                   (int)(from.x*DMF), (int)(from.y*DMF), (int)(from.z*DMF),
+                   (int)(to.x*DMF), (int)(to.y*DMF), (int)(to.z*DMF),
+                   hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
 		return true;
 	}
-	bool Melee::shoot(fpsent *d, const vec &targ){return true;}
+	bool Bouncer::shoot(fpsent *d, const vec &targ){
+		if(!BaseGun::shoot(d, targ)) return false;
+		vec from = d->o;
+		vec to = targ;
+		bool local = d==player1 || d->ai;
+		if(!local)return true;
+		d->vel.add(calcKickBack(vec(d->o), vec(targ),kickamount));
+		if(spread)offsetray(from, to, spread, range, to);
+		float dist = from.dist(to);
+		vec up = to;
+        up.z += dist/8;
+       /* if(muzzleflash && d->muzzle.x >= 0)
+			particle_flare(d->muzzle, d->muzzle, 200, PART_MUZZLE_FLASH2, 0xFFFFFF, 1.5f, d);*/
+        //if(muzzlelight) adddynlight(hudgunorigin(id, d->o, to, d), 20, vec(1.0f, 0.75f, 0.5f), 100, 100, DL_FLASH, 0, vec(0, 0, 0), d);
+        newbouncer(from, up, local, id, d, BNC_GRENADE, guns[id].ttl, projspeed);
+		addmsg(N_SHOOT, "rci2i6iv", d, lastmillis-maptime, d->gunselect,
+                   (int)(from.x*DMF), (int)(from.y*DMF), (int)(from.z*DMF),
+                   (int)(to.x*DMF), (int)(to.y*DMF), (int)(to.z*DMF),
+                   hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
+		return true;
+	}
+	bool Melee::shoot(fpsent *d, const vec &targ){
+		return false;
+		if(attackwait > lastmillis)return false;
+		d->lastaction = lastmillis;
+		d->lastattackgun = id;
+		attackwait = lastmillis + attacktime;
+		reloadwait = 0;
+		bool local = d==player1 || d->ai;
+		if(!local)return true;
+		vec from = d->o;
+		vec to = targ;
+		addmsg(N_SHOOT, "rci2i6iv", d, lastmillis-maptime, d->gunselect,
+                   (int)(from.x*DMF), (int)(from.y*DMF), (int)(from.z*DMF),
+                   (int)(to.x*DMF), (int)(to.y*DMF), (int)(to.z*DMF),
+                   hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
+		return true;
+	}
+
+	//reload functions
+	bool HitscanGun::reloading(){return BaseGun::reloading();}
+	bool Rocklauncher::reloading(){return BaseGun::reloading();}
+	bool Bouncer::reloading(){return BaseGun::reloading();}
+	bool Melee::reloading(){return true;}
 
 void setupGuns(int pc, fpsstate* d){ //temp function till layouts are defined
 	if(pc == PCS_PREP){
 		d->gun[0] = new Rocklauncher();
-		d->gun[1] = new Pistol();
+		d->gun[1] = new HitscanGun(GUN_CARB);
 		d->gun[2] = new Melee();
 	}
+	else if(pc == PCS_MOTER){
+		d->gun[0] = new Bouncer(GUN_RC);
+		d->gun[1] = new Bouncer(GUN_GL);
+		d->gun[2] = new Melee();
+	}
+	else if(pc == PCS_SWAT){
+		d->gun[0] = new HitscanGun(GUN_PISTOL);
+		d->gun[1] = new HitscanGun(GUN_SG);
+		d->gun[2] = new Melee();
+	}
+	//else if(pc == PCS_SCI){}
+	else if(pc == PCS_SOLI){
+		d->gun[0] = new HitscanGun(GUN_CG);
+		d->gun[1] = new HitscanGun(GUN_PISTOL);
+		d->gun[2] = new Melee();
+	}
+	//else if(pc == PCS_ADVENT){}
 	else{
+		//just incase
+		//conoutf(CON_DEBUG,"CLASS SELECTED IS OUTSIDE THE ARRAY OF CLASSES, THIS MAYBE AN ERROR - chasester");
 		GunObj *g = new Melee();
 		loopi(3) d->gun[i] = g;
 	}
 }
-
-
+};
 void fpsstate::respawn()
     {
 		//if(npclass >-1 && npclass < NUMPCS) pclass = npclass; npclass = -1;
 		//gun = new Pistol();
-		setupGuns(pclass, this);
+		game::setupGuns(pclass, this);
 		loopi(3)gun[i]->reloading();
 		pcs = PClasses[pclass];
 		maxhealth = health = pcs.maxhealth;
         armour = 0;
         quadmillis = 0;
 		gunselect = pcs.guns[0];
+		gunindex = 0;
         gunwait = 0;
 		reloadwait = 0;
         loopi(NUMGUNS) ammo[i] = 0;

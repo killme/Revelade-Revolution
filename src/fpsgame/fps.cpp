@@ -195,7 +195,7 @@ namespace game
             else if(!intermission)
             {
                 if(lastmillis - d->lastaction >= d->gunwait) d->gunwait = 0;
-                if(d->quadmillis) entities::checkquad(curtime, d);
+                //if(d->quadmillis) entities::checkquad(curtime, d);
             }
 
             const int lagtime = totalmillis-d->lastupdate;
@@ -241,10 +241,6 @@ namespace game
 
         physicsframe();
         ai::navigate();
-        if(player1->state != CS_DEAD && !intermission)
-        {
-            if(player1->quadmillis) entities::checkquad(curtime, player1);
-        }
 		if(player1->state == CS_DEAD && !intermission) respawn();
         updateweapons(curtime);
         otherplayers(curtime);
@@ -308,7 +304,6 @@ namespace game
 
     bool canjump()
     {
-        //if(!intermission) respawn();
         return player1->state!=CS_DEAD && !intermission;
     }
 
@@ -585,12 +580,15 @@ namespace game
         return showmodeinfo && m_valid(gamemode) ? gamemodes[gamemode - STARTGAMEMODE].info : NULL;
     }
 
-    void physicstrigger(physent *d, bool local, int floorlevel, int waterlevel, int material)
+    void physicstrigger(physent *d, bool local, int floorlevel, int waterlevel, int material, int fallvel)
     {
         if     (waterlevel>0) { if(material!=MAT_LAVA) playsound(S_SPLASH1, d==player1 ? NULL : &d->o); }
 		else if(waterlevel<0) playsound(material==MAT_LAVA ? S_BURN : S_SPLASH2, d==player1 ? NULL : &d->o);
         if     (floorlevel>0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai) msgsound(S_JUMP, d); }
-        else if(floorlevel<0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai) msgsound(S_LAND, d); }
+        else if(floorlevel<0) {
+			if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai) 
+			{msgsound(S_LAND, d); addmsg(N_ENVDAMAGE, "rci2", d, EVD_FALLDAM, fallvel);}
+		}
     }
 
     void dynentcollide(physent *d, physent *o, const vec &dir)
@@ -779,26 +777,19 @@ namespace game
 
     void drawhudicons(fpsent *d)
     {
+		 if(d->state==CS_DEAD) return;
+		GunObj *gun = d->gun[d->gunindex];
         glPushMatrix();
         glScalef(2, 2, 1);
 
         draw_textf("%d", (HICON_X + HICON_SIZE + HICON_SPACE)/2, HICON_TEXTY/2, d->state==CS_DEAD ? 0 : d->health);
-        if(d->state!=CS_DEAD)
-        {
-            if(d->armour) draw_textf("%d", (HICON_X + HICON_STEP + HICON_SIZE + HICON_SPACE)/2, HICON_TEXTY/2, d->armour);
-			draw_textf("%d / %d", (HICON_X + 2*HICON_STEP + HICON_SIZE + HICON_SPACE)/2, HICON_TEXTY/2, d->ammo[d->gunselect],d->reload[d->gunselect]);
-        }
+		if(gun->gunty != GUNTY_MELEE)draw_textf("%d / %d", (HICON_X + 2*HICON_STEP + HICON_SIZE + HICON_SPACE)/2, HICON_TEXTY/2,gun->reload,gun->ammo);
 
         glPopMatrix();
 
         drawicon(HICON_HEALTH, HICON_X, HICON_Y);
-        if(d->state!=CS_DEAD)
-        {
-            if(d->armour) drawicon(HICON_BLUE_ARMOUR+d->armourtype, HICON_X + HICON_STEP, HICON_Y);
-            drawicon(HICON_FIST+d->gunselect, HICON_X + 2*HICON_STEP, HICON_Y);
-            if(d->quadmillis) drawicon(HICON_QUAD, HICON_X + 3*HICON_STEP, HICON_Y);
-            if(ammohud) drawammohud(d);
-        }
+        drawicon(HICON_FIST+d->gunselect, HICON_X + 2*HICON_STEP, HICON_Y);
+        if(ammohud) drawammohud(d);
     }
 
     void gameplayhud(int w, int h)

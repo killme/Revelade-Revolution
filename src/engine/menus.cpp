@@ -162,13 +162,14 @@ void restoregui(int pos)
     menustart = totalmillis;
 }
 
-void showgui(const char *name)
+bool showgui(const char *name)
 {
     menu *m = guis.access(name);
-    if(!m) return;
+    if(!m) return false;
     int pos = guistack.find(m);
     if(pos<0) pushgui(m);
     else restoregui(pos);
+	return true;
 }
 
 void hidegui(const char *name)

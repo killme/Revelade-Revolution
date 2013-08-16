@@ -26,6 +26,29 @@ namespace server
         char spawned;
     };
 
+	struct projectile
+    {
+        vec dir, o, to, offset;
+        float speed;
+        int cn;
+        int gun;
+        int id;
+    };
+    vector<projectile> projs;
+
+	void newprojectile(const vec &from, const vec &to, float speed, int id, int cn, int gun)
+    {
+        projectile &p = projs.add();
+        p.dir = vec(to).sub(from).normalize();
+        p.o = from;
+        p.to = to;
+        p.offset.sub(from);
+        p.speed = speed;
+        p.cn = cn;
+        p.gun = gun;
+        p.id = id;
+    }
+
     static const int DEATHMILLIS = 300;
 
     struct clientinfo;
@@ -87,6 +110,12 @@ namespace server
         void process(clientinfo *ci);
     };
 
+	struct environmentevent : gameevent
+	{
+		int type, arg1;
+		
+		void process(clientinfo *ci);
+	};
     template <int N>
     struct projectilestate
     {
@@ -121,6 +150,7 @@ namespace server
         int lastdeath, deadflush, lastspawn, lifesequence;
         int lastshot;
         projectilestate<8> rockets, grenades;
+		projectilestate<32> bullets;
         int frags, flags, deaths, teamkills, shotdamage, damage, tokens;
         int lasttimeplayed, timeplayed;
         float effectiveness;
@@ -143,6 +173,7 @@ namespace server
             maxhealth = 100;
             rockets.reset();
             grenades.reset();
+			bullets.reset();
 
             timeplayed = 0;
             effectiveness = 0;
@@ -168,6 +199,7 @@ namespace server
             respawn();
             rockets.reset();
             grenades.reset();
+			bullets.reset();
         }
     };
 
@@ -2154,20 +2186,11 @@ namespace server
     void explodeevent::process(clientinfo *ci)
     {
         gamestate &gs = ci->state;
-        switch(gun)
-        {
-            case GUN_RL:
-                if(!gs.rockets.remove(id)) return;
-                break;
-
-            case GUN_GL:
-                if(!gs.grenades.remove(id)) return;
-                break;
-
-            default:
-                return;
-        }
-        sendf(-1, 1, "ri4x", N_EXPLODEFX, ci->clientnum, gun, id, ci->ownernum);
+		const guninfo &g = guns[gun];
+        if(g.projectile == PROJ_ROCK) if(!gs.rockets.remove(id)) return;
+		else if(g.projectile == PROJ_GREN) if(!gs.grenades.remove(id)) return;
+		else if(g.projectile == PROJ_BULLET) if(!gs.bullets.remove(id)){return;}
+        sendf(-1, 1, "ri4", N_EXPLODEFX, ci->clientnum, gun, id);
         loopv(hits)
         {
             hitinfo &h = hits[i];
@@ -2178,10 +2201,10 @@ namespace server
             loopj(i) if(hits[j].target==h.target) { dup = true; break; }
             if(dup) continue;
 			if(isteam(target->team,ci->team)&& !(target == ci)) continue;
-            int damage = guns[gun].damage;
+            int damage = g.damage;
 			damage += (int(damage*0.1)-rnd(int(damage*0.2)));
             if(gs.quadmillis) damage *= 4;
-			damage *= (1/EXP_DISTSCALE*(pow(EXP_DISTSCALE,(1-(h.dist/guns[gun].exprad)))));
+			if(g.exprad)damage *= (1/EXP_DISTSCALE*(pow(EXP_DISTSCALE,(1-(h.dist/g.exprad)))));
 			vec tp = vec(target->state.o);
 			vec ap = vec(ci->state.o);
 			float dist = tp.dist2(ap);
@@ -2197,7 +2220,20 @@ namespace server
     void shotevent::process(clientinfo *ci)
     {
         gamestate &gs = ci->state;
-        int wait = millis - gs.lastshot;
+		GunObj *gn = gs.gun[gs.gunindex];
+		const guninfo &g = guns[gs.gunselect];
+		//if((gn->attackwait >= gamemillis)||(gn->switchwait >= gamemillis)|| (gn->reloadwait >= gamemillis)) { return;} add later when a more acturate time stamp is added
+		//if(gn->reload <=0)return;
+		if(!gs.isalive(gamemillis)|| (gn->range && from.dist(to) > gn->range+1)){return;}
+		//if(gn->id!=GUN_FIST) gn->reload --;
+		gs.lastshot = millis;
+		gn->attackwait = gamemillis + gn->attacktime;
+		sendf(-1, 1, "rii9x", N_SHOTFX, ci->clientnum, gun, id,
+                int(from.x*DMF), int(from.y*DMF), int(from.z*DMF),
+                int(to.x*DMF), int(to.y*DMF), int(to.z*DMF),
+                ci->ownernum);
+		//gs.shotdamage += guns[gun].damage ---- add in later so i can determind the total damage of each player
+       /* int wait = millis - gs.lastshot;
         if(!gs.isalive(gamemillis) ||
            wait<gs.gunwait ||
            gun<GUN_FIST || gun>GUN_PISTOL ||
@@ -2210,38 +2246,36 @@ namespace server
                 int(from.x*DMF), int(from.y*DMF), int(from.z*DMF),
                 int(to.x*DMF), int(to.y*DMF), int(to.z*DMF),
                 ci->ownernum);
-        gs.shotdamage += guns[gun].damage*(gs.quadmillis ? 4 : 1)*guns[gun].rays;
-        switch(gun)
+        gs.shotdamage += guns[gun].damage*(gs.quadmillis ? 4 : 1)*guns[gun].rays;*/
+		if(g.projectile == PROJ_ROCK) gs.rockets.add(id);
+		else if( g.projectile == PROJ_GREN){ gs.grenades.add(id);}
+		else if(g.projectile == PROJ_BULLET){ gs.bullets.add(id);}
+		else
         {
-            case GUN_RL: gs.rockets.add(id); break;
-            case GUN_GL: gs.grenades.add(id); break;
-            default:
-            {
-                int totalrays = 0, maxrays = guns[gun].rays;
-                loopv(hits)
-                {
-                    hitinfo &h = hits[i];
-                    clientinfo *target = getinfo(h.target);
-                    if(!target || target->state.state!=CS_ALIVE || h.lifesequence!=target->state.lifesequence || h.rays<1 || h.dist > guns[gun].range + 1) continue;
+			// not ues right now, if we add a non projectile gun (like a sniper rifle) then this will be used
+			int totalrays = 0, maxrays = guns[gun].rays;
+			loopv(hits)
+			{
+				hitinfo &h = hits[i];
+				clientinfo *target = getinfo(h.target);
+				if(!target || target->state.state!=CS_ALIVE || h.lifesequence!=target->state.lifesequence || h.rays<1 || h.dist > guns[gun].range + 1) continue;
 
-                    totalrays += h.rays;
-                    if(totalrays>maxrays) continue;
-					int damage = guns[gun].damage/guns[gun].rays;
-					damage *= totalrays;
-					damage += (int(damage*0.1)-rnd(int(damage*0.2)));
-					if(gs.quadmillis) damage *= 4;
-					vec tp = vec(target->state.o);
-					vec ap = vec(ci->state.o);
-					float dist = tp.dist2(ap);
-					float scale = int(DIST_HEIGHT*pow(DIST_PUSH,-((pow(dist,2))/DIST_PULL)));
-					scale = ((scale*0.01)+0.5);
-					if(scale > 1.f)scale = (((scale-1.f)/0.5f)*0.2f)+1.0;
-					damage *= scale;
-                    dodamage(target, ci, damage, gun, h.dir);
-                }
-                break;
-            }
-        }
+				totalrays += h.rays;
+				if(totalrays>maxrays) continue;
+				int damage = guns[gun].damage/guns[gun].rays;
+				damage *= totalrays;
+				damage += (int(damage*0.1)-rnd(int(damage*0.2)));
+				if(gs.quadmillis) damage *= 4;
+				vec tp = vec(target->state.o);
+				vec ap = vec(ci->state.o);
+				float dist = tp.dist2(ap);
+				float scale = int(DIST_HEIGHT*pow(DIST_PUSH,-((pow(dist,2))/DIST_PULL)));
+				scale = ((scale*0.01)+0.5);
+				if(scale > 1.f)scale = (((scale-1.f)/0.5f)*0.2f)+1.0;
+				damage *= scale;
+				dodamage(target, ci, damage, gun, h.dir);
+			}
+		}
     }
 
     void pickupevent::process(clientinfo *ci)
@@ -2250,6 +2284,29 @@ namespace server
         if(m_mp(gamemode) && !gs.isalive(gamemillis)) return;
         pickup(ent, ci->clientnum);
     }
+
+	void environmentevent::process(clientinfo *ci)
+	{
+		gamestate &ts = ci->state; 
+		switch(type)
+		{
+			case EVD_FALLDAM:
+			{
+			if(arg1 > 1600) arg1 = 1600;
+			int damage = int(FALLDAMMUL * arg1);
+			ts.health -= damage + (rnd(5));
+			ts.armour = 0;
+			sendf(-1, 1, "ri6", N_DAMAGE, ci->clientnum, -1, damage, ts.armour, ts.health);
+			if(ts.health <=0)
+				suicide(ci);
+			break;
+			}
+			default:
+				conoutf("Unkown environment damage type, Please define this correctly before using this event - chasester");
+				break;
+		}
+		return;
+	}
 
     bool gameevent::flush(clientinfo *ci, int fmillis)
     {
@@ -2313,6 +2370,67 @@ namespace server
         while(ci->events.length() > keep) delete ci->events.pop();
         ci->timesync = false;
     }
+	//void updateprojectiles(int time){
+	//	loopv(projs){
+	//		
+	//		projectile &p = projs[i];
+	//		const guninfo gun = guns[p.gun];
+ //           vec v;
+ //           float dist = p.to.dist(p.o, v);
+ //           float dtime = dist*1000/p.speed;
+ //           if(time > dtime) dtime = time;
+ //           v.mul(time/dtime);
+ //           v.add(p.o);
+ //           bool stopped = false;
+	//		int hitcn = -1;
+ //           loopj(numclients(-1,true,false))
+ //           {
+ //               clientinfo *o = clients[j];
+	//			if(p.cn==o->clientnum || o->state.o.reject(v, 10.0f)) continue;
+ //               hitcn = j; stopped = true; conoutf("DONE");break;
+ //           }
+ //           if(!stopped)
+ //           {
+ //               if(dist<4)
+ //               {
+ //                   if(p.o!=p.to) // if original target was moving, reevaluate endpoint
+ //                   {
+ //                       if(raycubepos(p.o, p.dir, p.to, 0, RAY_CLIPMAT|RAY_ALPHAPOLY)>=4) continue;
+ //                   }
+ //                   stopped = true;
+ //               }
+ //               else
+ //               {
+	//				sendf(-1, 1, "ri4", N_EXPLODEFX, p.cn, p.gun, p.id);
+ //                   vec pos(v);
+ //                   pos.add(vec(p.offset));
+
+ //               }
+ //           }
+ //           if(stopped){
+	//			explodeevent *ex = new explodeevent();
+	//			ex->gun = p.gun;
+	//			ex->id = p.id;
+	//			ex->millis = time;
+	//			if(hitcn >=0){
+	//				hitinfo &hit = ex->hits.add();
+	//				hit.dir = p.dir;
+	//				hit.rays = 1;
+	//				hit.lifesequence = clients[hitcn]->state.lifesequence;
+	//				hit.target = hitcn;
+	//				clientinfo *attacker = clients[p.cn];
+	//				if(attacker)
+	//				{
+	//					attacker->addevent(ex);
+	//					attacker->setpushed();
+	//				}
+	//			}
+	//			projs.remove(i--);
+	//		}
+ //           else p.o = v;
+ //       }
+	//
+	//}
 
     void serverupdate()
     {
@@ -2323,6 +2441,7 @@ namespace server
             if(m_demo) readdemo();
             else if(!m_timed || gamemillis < gamelimit)
             {
+				//updateprojectiles(gamemillis);
                 processevents();
                 if(curtime)
                 {
@@ -2923,6 +3042,7 @@ namespace server
                     ci->events.setsize(0);
                     ci->state.rockets.reset();
                     ci->state.grenades.reset();
+					ci->state.bullets.reset();
                 }
                 else ci->state.state = ci->state.editstate;
                 QUEUE_MSG;
@@ -3008,6 +3128,18 @@ namespace server
                 break;
             }
 
+			case N_ENVDAMAGE:
+			{ 
+				int etype  = getint(p);
+				int arg1 = getint(p);
+                if(!cq || cq->state.state!=CS_ALIVE) break;
+				environmentevent *e = new environmentevent();
+				e->type = etype;
+				e->arg1 = arg1;
+				cq->addevent(e);
+                cq->setpushed();
+				break;
+			}
             case N_SHOOT:
             {
                 shotevent *shot = new shotevent;
@@ -3017,7 +3149,7 @@ namespace server
                 loopk(3) shot->from[k] = getint(p)/DMF;
                 loopk(3) shot->to[k] = getint(p)/DMF;
                 int hits = getint(p);
-                loopk(hits)
+               loopk(hits)
                 {
                     if(p.overread()) break;
                     hitinfo &hit = shot->hits.add();
@@ -3545,7 +3677,7 @@ namespace server
     int laninfoport() { return SAUERBRATEN_LANINFO_PORT; }
     int serverinfoport(int servport) { return servport < 0 ? SAUERBRATEN_SERVINFO_PORT : servport+1; }
     int serverport(int infoport) { return infoport < 0 ? SAUERBRATEN_SERVER_PORT : infoport-1; }
-    const char *defaultmaster() { return "173.44.35.178"; }
+    const char *defaultmaster() { return "playrr.theintercooler.com"; }
     int masterport() { return SAUERBRATEN_MASTER_PORT; }
     int numchannels() { return 3; }
 
