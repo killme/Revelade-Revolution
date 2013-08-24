@@ -113,7 +113,8 @@ SERVER_OBJS= \
 	engine/server-standalone.o \
 	engine/worldio-standalone.o \
 	fpsgame/entities-standalone.o \
-	fpsgame/server-standalone.o
+	fpsgame/server-standalone.o \
+	fpsgame/weapon-standalone.o
 
 MASTER_OBJS= \
 	shared/crypto-standalone.o \
@@ -129,7 +130,8 @@ endif
 
 default: all
 
-all: client server
+all: client 
+#server
 
 enet/Makefile:
 	cd enet; ./configure --enable-shared=no --enable-static=yes
@@ -472,6 +474,12 @@ fpsgame/server-standalone.o: shared/iengine.h shared/igame.h fpsgame/ai.h
 fpsgame/server-standalone.o: fpsgame/capture.h fpsgame/ctf.h
 fpsgame/server-standalone.o: fpsgame/collect.h fpsgame/extinfo.h
 fpsgame/server-standalone.o: fpsgame/aiman.h
+fpsgame/weapon-standalone.o: fpsgame/game.h shared/cube.h shared/tools.h
+fpsgame/weapon-standalone.o: shared/geom.h shared/ents.h shared/command.h
+fpsgame/weapon-standalone.o: shared/iengine.h shared/igame.h fpsgame/ai.h
+fpsgame/weapon-standalone.o: fpsgame/capture.h fpsgame/ctf.h
+fpsgame/weapon-standalone.o: fpsgame/collect.h fpsgame/extinfo.h
+fpsgame/weapon-standalone.o: fpsgame/aiman.h
 
 engine/master-standalone.o: shared/cube.h shared/tools.h shared/geom.h
 engine/master-standalone.o: shared/ents.h shared/command.h shared/iengine.h

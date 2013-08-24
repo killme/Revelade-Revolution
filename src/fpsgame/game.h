@@ -446,7 +446,8 @@ static const struct guninfo { const char* name; int sound; const char* file; int
 //	{-1,			 0,	  0,	0,	0,		  0,	 0,	   0,  0,	 0,	 0,	   0,  "",					"",					 0,   1,         0}
 //};
 
-char *PmodelDir[6]= {"","","","","",""};
+//TODO: move this to a non-header file!!!
+//char *PmodelDir[6]= {0, 0, 0, 0, 0, 0};
 
 
 
@@ -475,8 +476,9 @@ static const struct PlayerClass{ const char *name; int modelId, speed, maxhealth
 };
 
 #define WEAPONS_PER_CLASS 3
-char *classinfo[NUMPCS] = { NULL, NULL, NULL, NULL, NULL };
-
+//TODO: move this to a non-header file!!!
+//char *classinfo[NUMPCS] = { NULL, NULL, NULL, NULL, NULL };
+/*
 const char *getclassinfo(int c)
 {
 	if (!classinfo[c])
@@ -496,11 +498,18 @@ const char *getclassinfo(int c)
 		formatstring(tm)("\n\nMax Health:\t\fs\f%c%d\fr\nMax Speed:\t\fs\f%c%d\fr", (PClasses[c].maxhealth<100)?'e': (PClasses[c].maxhealth==100)?'b': 'g', PClasses[c].maxhealth, (PClasses[c].speed<100)?'e': (PClasses[c].speed==100)?'b': 'g', PClasses[c].speed);
 	}
 	return classinfo[c];
-}
-ICOMMAND(getplayerclassnum, "", (), intret(NUMPCS));
-ICOMMAND(getplayerclassname, "i", (int *i), string a; formatstring(a)("%s", *i > -1 ? *i<NUMPCS ? PClasses[*i].name: "" : ""); result(a)); //(*i<NUMPCS)?PClasses[*i].name:"ERROR NUMBER TO LARGE");
-ICOMMAND(getplayerclassinfo, "i", (int *i), result(getclassinfo(*i)));
+}*/
+//TODO: move this to a non-header file!!!
+//ICOMMAND(getplayerclassnum, "", (), intret(NUMPCS));
+//ICOMMAND(getplayerclassname, "i", (int *i), string a; formatstring(a)("%s", *i > -1 ? *i<NUMPCS ? PClasses[*i].name: "" : ""); result(a)); //(*i<NUMPCS)?PClasses[*i].name:"ERROR NUMBER TO LARGE");
+//ICOMMAND(getplayerclassinfo, "i", (int *i), result(getclassinfo(*i)));
 #include "ai.h"
+
+struct fpsstate;
+namespace game
+{
+	extern void setupGuns(int pc, fpsstate* d);
+};
 
 struct GunObj
 {
@@ -514,7 +523,7 @@ struct GunObj
 	int kickamount, hitpush;
 	short sound, soundreload, id, icon, gunty;
 	char *file;
-	GunObj() : file(""){};
+	GunObj() : file(NULL){};
 
 	virtual bool shoot(fpsent *d, const vec &targ) {return false;/*runs when player request to shoot, retuns false if player cant shoot*/}
 
@@ -607,7 +616,30 @@ struct fpsstate
         }
     }
 
-    void respawn();
+    void respawn()
+    {
+  		//if(npclass >-1 && npclass < NUMPCS) pclass = npclass; npclass = -1;
+		//gun = new Pistol();
+		game::setupGuns(pclass, this);
+		loopi(3)gun[i]->reloading();
+		pcs = PClasses[pclass];
+		maxhealth = health = pcs.maxhealth;
+        armour = 0;
+        quadmillis = 0;
+		gunselect = pcs.guns[0];
+		gunindex = 0;
+        gunwait = 0;
+		reloadwait = 0;
+        loopi(NUMGUNS) ammo[i] = 0;
+		loopi(NUMGUNS) reload[i] = 0;
+		loopi(WEAPONS_PER_CLASS-1)
+		{
+			const guninfo &gi = guns[pcs.guns[i]];
+			ammo[pcs.guns[i]] = gi.maxammo;
+			reload[pcs.guns[i]] = gi.reload;
+		}
+		ammo[pcs.guns[WEAPONS_PER_CLASS-1]] = 1;
+    }
 
     void spawnstate(int gamemode){}
 
@@ -695,7 +727,7 @@ struct fpsent : dynent, fpsstate
         idlesound = idlechan = -1;
     }
 
-    void fpsent::respawn()
+    void respawn()
     {
 		if(pclass <0 || pclass >= NUMPCS){ showgui("playerclass"); return;}
         dynent::reset();
@@ -884,6 +916,7 @@ namespace game
     extern void gunselect(int gun, fpsent *d);
     extern void weaponswitch(fpsent *d);
     extern void avoidweapons(ai::avoidset &obstacles, float radius);
+    extern void setupGuns(int pc, fpsstate* d);
 
     // scoreboard
     extern void showscores(bool on);

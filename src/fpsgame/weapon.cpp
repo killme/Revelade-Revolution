@@ -1,5 +1,7 @@
 // weapon.cpp: all shooting and effects code, projectile management
 #include "game.h"
+
+#ifndef STANDALONE
 namespace game
 {
     static const int OFFSETMILLIS = 500;
@@ -272,7 +274,7 @@ namespace game
     void clearbouncers() { bouncers.deletecontents(); }
 
 
-char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket", ""};
+const char *projectile_dir[PROJ_MAX] = { "", "grenade","rocket", ""};
     struct projectile
     {
         vec dir, o, to, offset;
@@ -1057,6 +1059,8 @@ const vec calcKickBack(vec from, vec to,int kb){
 //	{-1,			 0,	  0,	0,	0,		  0,	 0,	   0,  0,	 0,	 0,	   0,  "",					"",					 0,     HICON_FIST,		1,	0 }
 //};
 
+#endif
+
 #define GETGUNINFO(a,b) guns[a].b //use this to link into a pretty table, later ;)
 
 struct BaseGun : GunObj //this may seem titious but this will be nessary in the long run
@@ -1196,6 +1200,7 @@ struct Melee : BaseGun {Melee();void reset();bool shoot(fpsent *d, const vec &ta
 		 return true;
 	}
 
+#ifndef STANDALONE
 	bool Rocklauncher::shoot(fpsent *d, const vec &targ)
 	{
 		if(!BaseGun::shoot(d, targ)) return false;
@@ -1252,7 +1257,7 @@ struct Melee : BaseGun {Melee();void reset();bool shoot(fpsent *d, const vec &ta
                    hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
 		return true;
 	}
-
+#endif
 	//reload functions
 	bool HitscanGun::reloading(){return BaseGun::reloading();}
 	bool Rocklauncher::reloading(){return BaseGun::reloading();}
@@ -1290,26 +1295,3 @@ void setupGuns(int pc, fpsstate* d){ //temp function till layouts are defined
 	}
 }
 };
-void fpsstate::respawn()
-    {
-		//if(npclass >-1 && npclass < NUMPCS) pclass = npclass; npclass = -1;
-		//gun = new Pistol();
-		game::setupGuns(pclass, this);
-		loopi(3)gun[i]->reloading();
-		pcs = PClasses[pclass];
-		maxhealth = health = pcs.maxhealth;
-        armour = 0;
-        quadmillis = 0;
-		gunselect = pcs.guns[0];
-		gunindex = 0;
-        gunwait = 0;
-		reloadwait = 0;
-        loopi(NUMGUNS) ammo[i] = 0;
-		loopi(NUMGUNS) reload[i] = 0;
-		loopi(WEAPONS_PER_CLASS-1){
-		const guninfo &gi = guns[pcs.guns[i]];
-		ammo[pcs.guns[i]] = gi.maxammo;
-		reload[pcs.guns[i]] = gi.reload;
-		}
-		ammo[pcs.guns[WEAPONS_PER_CLASS-1]] = 1;
-    }

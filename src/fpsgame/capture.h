@@ -869,7 +869,7 @@ ICOMMAND(insidebases, "", (),
                     ci->state.health = min(ci->state.health + ticks*REGENHEALTH, ci->state.maxhealth);
                     notify = true;
                 }
-                if(ci->state.armourtype = 0)
+                if(ci->state.armourtype == 0)
                 {
                     if(ci->state.armourtype != -1)
                     {

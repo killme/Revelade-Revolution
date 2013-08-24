@@ -2187,8 +2187,8 @@ namespace server
     {
         gamestate &gs = ci->state;
 		const guninfo &g = guns[gun];
-        if(g.projectile == PROJ_ROCK) if(!gs.rockets.remove(id)) return;
-		else if(g.projectile == PROJ_GREN) if(!gs.grenades.remove(id)) return;
+        if(g.projectile == PROJ_ROCK) { if(!gs.rockets.remove(id)) return; }
+		else if(g.projectile == PROJ_GREN) { if(!gs.grenades.remove(id)) return; }
 		else if(g.projectile == PROJ_BULLET) if(!gs.bullets.remove(id)){return;}
         sendf(-1, 1, "ri4", N_EXPLODEFX, ci->clientnum, gun, id);
         loopv(hits)
