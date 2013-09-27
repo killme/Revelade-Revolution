@@ -479,10 +479,10 @@ struct ctfclientmode : clientmode
     void drawblip(fpsent *d, float x, float y, float s, int i, bool flagblip)
     {
         flag &f = flags[i];
-        settexture(m_hold && (!flagblip || !f.owner || lastmillis%1000 < 500) ? (flagblip ? "packages/hud/blip_neutral_flag.png" : "packages/hud/blip_neutral.png") :
+        settexture(m_hold && (!flagblip || !f.owner || lastmillis%1000 < 500) ? (flagblip ? "data/hud/blip_neutral_flag.png" : "data/hud/blip_neutral.png") :
                     ((m_hold ? ctfteamflag(f.owner->team) : f.team)==ctfteamflag(player1->team) ?
-                        (flagblip ? "packages/hud/blip_blue_flag.png" : "packages/hud/blip_blue.png") :
-                        (flagblip ? "packages/hud/blip_red_flag.png" : "packages/hud/blip_red.png")), 3);
+                        (flagblip ? "data/hud/blip_blue_flag.png" : "data/hud/blip_blue.png") :
+                        (flagblip ? "data/hud/blip_red_flag.png" : "data/hud/blip_red.png")), 3);
         drawblip(d, x, y, s, flagblip ? (f.owner ? f.owner->o : (f.droptime ? f.droploc : f.spawnloc)) : f.spawnloc, flagblip);
     }
 
@@ -519,10 +519,10 @@ struct ctfclientmode : clientmode
         if(minimapalpha >= 1) glEnable(GL_BLEND);
         glColor3f(1, 1, 1);
         float margin = 0.04f, roffset = s*margin, rsize = s + 2*roffset;
-        settexture("packages/hud/radar.png", 3);
+        settexture("data/hud/radar.png", 3);
         drawradar(x - roffset, y - roffset, rsize);
         #if 0
-        settexture("packages/hud/compass.png", 3);
+        settexture("data/hud/compass.png", 3);
         glPushMatrix();
         glTranslatef(x - roffset + 0.5f*rsize, y - roffset + 0.5f*rsize, 0);
         glRotatef(camera1->yaw + 180, 0, 0, -1);
@@ -531,7 +531,7 @@ struct ctfclientmode : clientmode
         #endif
         if(m_hold)
         {
-            settexture("packages/hud/blip_neutral.png", 3);
+            settexture("data/hud/blip_neutral.png", 3);
             loopv(holdspawns) drawblip(d, x, y, s, holdspawns[i].o, false);
         }
         loopv(flags)

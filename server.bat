@@ -1,9 +1,12 @@
 @ECHO OFF
-set RR_BIN=bin
+
+set TESS_BIN=bin
+
 IF /I "%PROCESSOR_ARCHITECTURE%" == "amd64" (
-set RR_BIN=bin64
+    set TESS_BIN=bin
 )
 IF /I "%PROCESSOR_ARCHITEW6432%" == "amd64" (
-set RR_BIN=bin64
+    set TESS_BIN=bin
 )
-start %RR_BIN%\reveladerevolution.exe "-q$HOME\My Games\ReveladeRevolution" -gserver-log.txt -d %* 
+
+start bin\test01.exe "-q$HOME\My Games\Tesseract" -ktesseract -gserver-log.txt -d %*

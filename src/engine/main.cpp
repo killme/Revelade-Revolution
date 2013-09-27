@@ -52,7 +52,7 @@ void fatal(const char *s, ...)    // failure exit
                 cleargamma();
             }
             #ifdef WIN32
-                MessageBox(NULL, msg, "Tesseract fatal error", MB_OK|MB_SYSTEMMODAL);
+                MessageBox(NULL, msg, "ReveladeRevolution fatal error", MB_OK|MB_SYSTEMMODAL);
             #endif
             SDL_Quit();
         }
