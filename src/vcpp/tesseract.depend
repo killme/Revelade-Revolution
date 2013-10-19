@@ -1287,7 +1287,7 @@
 1361962408 c:\users\owner\desktop\tesseract-rr\src\vcpp\tesseract.rc
 	"winresrc.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\engine.h
+1375462158 source:c:\users\owner\desktop\rr\src\engine\engine.h
 	"cube.h"
 	"world.h"
 	"octa.h"
@@ -1298,7 +1298,7 @@
 	"model.h"
 	"varray.h"
 
-1375492866 c:\users\owner\desktop\rr\src\shared\cube.h
+1375462158 c:\users\owner\desktop\rr\src\shared\cube.h
 	<math.h>
 	<string.h>
 	<stdio.h>
@@ -1324,7 +1324,7 @@
 	"iengine.h"
 	"igame.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl.h
 	"SDL_main.h"
 	"SDL_stdinc.h"
 	"SDL_audio.h"
@@ -1343,14 +1343,14 @@
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_main.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_main.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_stdinc.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_stdinc.h
 	"SDL_config.h"
 	<sys/types.h>
 	<stdio.h>
@@ -1376,7 +1376,7 @@
 	<stdlib.h>
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_config.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_config.h
 	"SDL_platform.h"
 	"SDL_config_dreamcast.h"
 	"SDL_config_macos.h"
@@ -1386,20 +1386,20 @@
 	"SDL_config_os2.h"
 	"SDL_config_minimal.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_platform.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_platform.h
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_config_macosx.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_config_macosx.h
 	"SDL_platform.h"
 	<AvailabilityMacros.h>
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_config_win32.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_config_win32.h
 	"SDL_platform.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\begin_code.h
+1375462158 c:\users\owner\desktop\rr\src\include\begin_code.h
 
-1375492859 c:\users\owner\desktop\rr\src\include\close_code.h
+1375462158 c:\users\owner\desktop\rr\src\include\close_code.h
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_audio.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_audio.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_endian.h"
@@ -1409,24 +1409,24 @@
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_error.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_error.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_endian.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_endian.h
 	"SDL_stdinc.h"
 	<endian.h>
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_mutex.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_mutex.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_thread.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_thread.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_mutex.h"
@@ -1434,24 +1434,24 @@
 	<process.h>
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_rwops.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_rwops.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_cdrom.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_cdrom.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_cpuinfo.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_cpuinfo.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_events.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_events.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_active.h"
@@ -1462,69 +1462,69 @@
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_active.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_active.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_keyboard.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_keyboard.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_keysym.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_keysym.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_keysym.h
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_mouse.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_mouse.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_video.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_video.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_video.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_rwops.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_joystick.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_joystick.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_quit.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_quit.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_loadso.h
-	"SDL_stdinc.h"
-	"SDL_error.h"
-	"begin_code.h"
-	"close_code.h"
-
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_timer.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_loadso.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_version.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_timer.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_version.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_image.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_image.h
 	"SDL.h"
 	"SDL_version.h"
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_opengl.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_opengl.h
 	"SDL_config.h"
 	<windows.h>
 	<OpenGL/gl.h>
@@ -1536,7 +1536,7 @@
 	<windows.h>
 	<stddef.h>
 
-1377470409 c:\users\owner\desktop\rr\src\enet\include\enet\enet.h
+1377464196 c:\users\owner\desktop\rr\src\enet\include\enet\enet.h
 	<stdlib.h>
 	"enet/win32.h"
 	"enet/unix.h"
@@ -1545,11 +1545,11 @@
 	"enet/list.h"
 	"enet/callbacks.h"
 
-1377470409 c:\users\owner\desktop\rr\src\enet\include\enet\win32.h
+1377464196 c:\users\owner\desktop\rr\src\enet\include\enet\win32.h
 	<stdlib.h>
 	<winsock2.h>
 
-1377470409 c:\users\owner\desktop\rr\src\enet\include\enet\unix.h
+1377464196 c:\users\owner\desktop\rr\src\enet\include\enet\unix.h
 	<stdlib.h>
 	<sys/time.h>
 	<sys/types.h>
@@ -1557,61 +1557,61 @@
 	<netinet/in.h>
 	<unistd.h>
 
-1375492876 c:\users\owner\desktop\rr\src\enet\include\enet\types.h
+1375462158 c:\users\owner\desktop\rr\src\enet\include\enet\types.h
 
-1377470409 c:\users\owner\desktop\rr\src\enet\include\enet\protocol.h
+1377464196 c:\users\owner\desktop\rr\src\enet\include\enet\protocol.h
 	"enet/types.h"
 
-1375492875 c:\users\owner\desktop\rr\src\enet\include\enet\list.h
+1375462158 c:\users\owner\desktop\rr\src\enet\include\enet\list.h
 	<stdlib.h>
 
-1375492875 c:\users\owner\desktop\rr\src\enet\include\enet\callbacks.h
+1375462158 c:\users\owner\desktop\rr\src\enet\include\enet\callbacks.h
 	<stdlib.h>
 
-1375492859 c:\users\owner\desktop\rr\src\include\zlib.h
+1375462158 c:\users\owner\desktop\rr\src\include\zlib.h
 	"zconf.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\zconf.h
+1375462158 c:\users\owner\desktop\rr\src\include\zconf.h
 	<windows.h>
 	<sys/types.h>
 	<unistd.h>
 	<unixio.h>
 
-1375492867 c:\users\owner\desktop\rr\src\shared\tools.h
+1375462158 c:\users\owner\desktop\rr\src\shared\tools.h
 
-1375492867 c:\users\owner\desktop\rr\src\shared\geom.h
+1375462158 c:\users\owner\desktop\rr\src\shared\geom.h
 
-1376689861 c:\users\owner\desktop\rr\src\shared\ents.h
+1376672772 c:\users\owner\desktop\rr\src\shared\ents.h
 
-1375492866 c:\users\owner\desktop\rr\src\shared\command.h
+1375462158 c:\users\owner\desktop\rr\src\shared\command.h
 
-1376689861 c:\users\owner\desktop\rr\src\shared\iengine.h
+1376672772 c:\users\owner\desktop\rr\src\shared\iengine.h
 
-1376689861 c:\users\owner\desktop\rr\src\shared\igame.h
+1376672772 c:\users\owner\desktop\rr\src\shared\igame.h
 
-1375492862 c:\users\owner\desktop\rr\src\engine\world.h
+1375462158 c:\users\owner\desktop\rr\src\engine\world.h
 
-1375492862 c:\users\owner\desktop\rr\src\engine\octa.h
+1375462158 c:\users\owner\desktop\rr\src\engine\octa.h
 
-1375492862 c:\users\owner\desktop\rr\src\engine\light.h
+1375462158 c:\users\owner\desktop\rr\src\engine\light.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\bih.h
+1375462158 c:\users\owner\desktop\rr\src\engine\bih.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\glexts.h
+1375462158 c:\users\owner\desktop\rr\src\engine\glexts.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\texture.h
+1375462158 c:\users\owner\desktop\rr\src\engine\texture.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\model.h
+1375462158 c:\users\owner\desktop\rr\src\engine\model.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\varray.h
+1375462158 c:\users\owner\desktop\rr\src\engine\varray.h
 
-1377346660 source:c:\users\owner\desktop\rr\src\fpsgame\game.h
+1377343423 source:c:\users\owner\desktop\rr\src\fpsgame\game.h
 	"cube.h"
 	"ai.h"
 
-1375492837 c:\users\owner\desktop\rr\src\fpsgame\ai.h
+1375462158 c:\users\owner\desktop\rr\src\fpsgame\ai.h
 
-1375492866 source:c:\users\owner\desktop\rr\src\shared\cube.h
+1375462158 source:c:\users\owner\desktop\rr\src\shared\cube.h
 	<math.h>
 	<string.h>
 	<stdio.h>
@@ -1637,11 +1637,11 @@
 	"iengine.h"
 	"igame.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\3dgui.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\3dgui.cpp
 	"engine.h"
 	"textedit.h"
 
-1375492862 c:\users\owner\desktop\rr\src\engine\engine.h
+1375462158 c:\users\owner\desktop\rr\src\engine\engine.h
 	"cube.h"
 	"world.h"
 	"octa.h"
@@ -1652,29 +1652,29 @@
 	"model.h"
 	"varray.h"
 
-1375492863 c:\users\owner\desktop\rr\src\engine\textedit.h
+1375462158 c:\users\owner\desktop\rr\src\engine\textedit.h
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\aa.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\aa.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\bih.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\bih.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\blend.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\blend.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\client.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\client.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\command.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\command.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\console.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\console.cpp
 	"engine.h"
 	<X11/Xlib.h>
 	<SDL_syswm.h>
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_syswm.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_syswm.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_version.h"
@@ -1687,32 +1687,32 @@
 	<Ph.h>
 	"close_code.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\decal.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\decal.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\dynlight.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\dynlight.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\grass.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\grass.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\light.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\light.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\main.cpp
+1380240696 source:c:\users\owner\desktop\rr\src\engine\main.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\material.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\material.cpp
 	"engine.h"
 
-1376689861 source:c:\users\owner\desktop\rr\src\engine\menus.cpp
+1376672772 source:c:\users\owner\desktop\rr\src\engine\menus.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\movie.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\movie.cpp
 	"engine.h"
 	"SDL_mixer.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_mixer.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_mixer.h
 	"SDL_types.h"
 	"SDL_rwops.h"
 	"SDL_audio.h"
@@ -1721,39 +1721,39 @@
 	"begin_code.h"
 	"close_code.h"
 
-1375492859 c:\users\owner\desktop\rr\src\include\sdl_types.h
+1375462158 c:\users\owner\desktop\rr\src\include\sdl_types.h
 	"SDL_stdinc.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\normal.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\normal.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\octa.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\octa.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\octaedit.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\octaedit.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\octarender.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\octarender.cpp
 	"engine.h"
 
-1376689861 source:c:\users\owner\desktop\rr\src\engine\physics.cpp
+1376672772 source:c:\users\owner\desktop\rr\src\engine\physics.cpp
 	"engine.h"
 	"mpr.h"
 
-1375492862 c:\users\owner\desktop\rr\src\engine\mpr.h
+1375462158 c:\users\owner\desktop\rr\src\engine\mpr.h
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\pvs.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\pvs.cpp
 	"engine.h"
 	"SDL_thread.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\rendergl.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\rendergl.cpp
 	"engine.h"
 	"varray.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\renderlights.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\renderlights.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\rendermodel.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\rendermodel.cpp
 	"engine.h"
 	"ragdoll.h"
 	"animmodel.h"
@@ -1767,61 +1767,61 @@
 	"smd.h"
 	"iqm.h"
 
-1375492863 c:\users\owner\desktop\rr\src\engine\ragdoll.h
+1375462158 c:\users\owner\desktop\rr\src\engine\ragdoll.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\animmodel.h
+1375462158 c:\users\owner\desktop\rr\src\engine\animmodel.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\vertmodel.h
+1375462158 c:\users\owner\desktop\rr\src\engine\vertmodel.h
 
-1375492862 c:\users\owner\desktop\rr\src\engine\skelmodel.h
+1375462158 c:\users\owner\desktop\rr\src\engine\skelmodel.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\hitzone.h
+1375462158 c:\users\owner\desktop\rr\src\engine\hitzone.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\md2.h
+1375462158 c:\users\owner\desktop\rr\src\engine\md2.h
 
-1375492862 c:\users\owner\desktop\rr\src\engine\md3.h
+1375462158 c:\users\owner\desktop\rr\src\engine\md3.h
 
-1375492862 c:\users\owner\desktop\rr\src\engine\md5.h
+1375462158 c:\users\owner\desktop\rr\src\engine\md5.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\obj.h
+1375462158 c:\users\owner\desktop\rr\src\engine\obj.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\smd.h
+1375462158 c:\users\owner\desktop\rr\src\engine\smd.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\iqm.h
+1375462158 c:\users\owner\desktop\rr\src\engine\iqm.h
 
-1376689861 source:c:\users\owner\desktop\rr\src\engine\renderparticles.cpp
+1376672772 source:c:\users\owner\desktop\rr\src\engine\renderparticles.cpp
 	"engine.h"
 	"explosion.h"
 	"lensflare.h"
 	"lightning.h"
 
-1375492862 c:\users\owner\desktop\rr\src\engine\explosion.h
+1375462158 c:\users\owner\desktop\rr\src\engine\explosion.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\lensflare.h
+1375462158 c:\users\owner\desktop\rr\src\engine\lensflare.h
 
-1375492863 c:\users\owner\desktop\rr\src\engine\lightning.h
+1375462158 c:\users\owner\desktop\rr\src\engine\lightning.h
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\rendersky.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\rendersky.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\rendertext.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\rendertext.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\renderva.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\renderva.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\server.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\server.cpp
 	"engine.h"
 	"shellapi.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\serverbrowser.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\serverbrowser.cpp
 	"engine.h"
 	"SDL_thread.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\shader.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\shader.cpp
 	"engine.h"
 
-1375492863 source:c:\users\owner\desktop\rr\src\engine\sound.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\sound.cpp
 	"engine.h"
 	"SDL_mixer.h"
 	<wchar.h>
@@ -1832,44 +1832,44 @@
 	<fcntl.h>
 	<wchar.h>
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\texture.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\texture.cpp
 	"engine.h"
 	"scale.h"
 	"scale.h"
 	"scale.h"
 	"scale.h"
 
-1375492863 c:\users\owner\desktop\rr\src\engine\scale.h
+1375462158 c:\users\owner\desktop\rr\src\engine\scale.h
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\water.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\water.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\world.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\world.cpp
 	"engine.h"
 
-1375492862 source:c:\users\owner\desktop\rr\src\engine\worldio.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\engine\worldio.cpp
 	"engine.h"
 
-1376689861 source:c:\users\owner\desktop\rr\src\fpsgame\ai.cpp
+1376672772 source:c:\users\owner\desktop\rr\src\fpsgame\ai.cpp
 	"game.h"
 
-1377346660 c:\users\owner\desktop\rr\src\fpsgame\game.h
+1377343423 c:\users\owner\desktop\rr\src\fpsgame\game.h
 	"cube.h"
 	"ai.h"
 
-1376689861 source:c:\users\owner\desktop\rr\src\fpsgame\entities.cpp
+1376672772 source:c:\users\owner\desktop\rr\src\fpsgame\entities.cpp
 	"game.h"
 
-1376689861 source:c:\users\owner\desktop\rr\src\fpsgame\fps.cpp
+1376672772 source:c:\users\owner\desktop\rr\src\fpsgame\fps.cpp
 	"game.h"
 
-1375492837 source:c:\users\owner\desktop\rr\src\fpsgame\render.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\fpsgame\render.cpp
 	"game.h"
 
-1375492837 source:c:\users\owner\desktop\rr\src\fpsgame\scoreboard.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\fpsgame\scoreboard.cpp
 	"game.h"
 
-1377346660 source:c:\users\owner\desktop\rr\src\fpsgame\server.cpp
+1377343423 source:c:\users\owner\desktop\rr\src\fpsgame\server.cpp
 	"game.h"
 	"capture.h"
 	"ctf.h"
@@ -1880,29 +1880,29 @@
 	"extinfo.h"
 	"aiman.h"
 
-1377346660 c:\users\owner\desktop\rr\src\fpsgame\capture.h
+1380240696 c:\users\owner\desktop\rr\src\fpsgame\capture.h
 
-1375492837 c:\users\owner\desktop\rr\src\fpsgame\ctf.h
+1380240696 c:\users\owner\desktop\rr\src\fpsgame\ctf.h
 
-1375492837 c:\users\owner\desktop\rr\src\fpsgame\collect.h
+1380240696 c:\users\owner\desktop\rr\src\fpsgame\collect.h
 
-1375492837 c:\users\owner\desktop\rr\src\fpsgame\extinfo.h
+1375462158 c:\users\owner\desktop\rr\src\fpsgame\extinfo.h
 
-1375492837 c:\users\owner\desktop\rr\src\fpsgame\aiman.h
+1375462158 c:\users\owner\desktop\rr\src\fpsgame\aiman.h
 
-1375492837 source:c:\users\owner\desktop\rr\src\fpsgame\waypoint.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\fpsgame\waypoint.cpp
 	"game.h"
 
-1377346660 source:c:\users\owner\desktop\rr\src\fpsgame\weapon.cpp
+1377343423 source:c:\users\owner\desktop\rr\src\fpsgame\weapon.cpp
 	"game.h"
 
-1375492866 source:c:\users\owner\desktop\rr\src\shared\crypto.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\shared\crypto.cpp
 	"cube.h"
 
-1375492867 source:c:\users\owner\desktop\rr\src\shared\geom.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\shared\geom.cpp
 	"cube.h"
 
-1375492867 source:c:\users\owner\desktop\rr\src\shared\stream.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\shared\stream.cpp
 	"cube.h"
 	<shlobj.h>
 	<unistd.h>
@@ -1910,16 +1910,25 @@
 	<sys/types.h>
 	<dirent.h>
 
-1375492866 source:c:\users\owner\desktop\rr\src\shared\tools.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\shared\tools.cpp
 	"cube.h"
 	<unistd.h>
 
-1375492866 source:c:\users\owner\desktop\rr\src\shared\zip.cpp
+1375462158 source:c:\users\owner\desktop\rr\src\shared\zip.cpp
 	"cube.h"
 
-1375492872 source:c:\users\owner\desktop\rr\src\vcpp\mingw.rc
+1375462158 source:c:\users\owner\desktop\rr\src\vcpp\mingw.rc
 	"tesseract.rc"
 
-1375492872 c:\users\owner\desktop\rr\src\vcpp\tesseract.rc
+1375462158 c:\users\owner\desktop\rr\src\vcpp\tesseract.rc
 	"winresrc.h"
+
+1380236993 source:c:\users\owner\desktop\rr\src\fpsgame\client.cpp
+	"game.h"
+	"capture.h"
+	"ctf.h"
+	"collect.h"
+	"capture.h"
+	"ctf.h"
+	"collect.h"
 
