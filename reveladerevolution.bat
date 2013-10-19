@@ -6,4 +6,4 @@ set RR_BIN=bin64
 IF /I "%PROCESSOR_ARCHITEW6432%" == "amd64" (
 set RR_BIN=bin64
 )
-start %RR_BIN%\reveladerevolution.exe "-q$HOME\My Games\ReveladeRevolution" -glog.txt %* 
+start %RR_BIN%\rr_game.exe "-q$HOME\My Games\ReveladeRevolution" -glog.txt %* 
