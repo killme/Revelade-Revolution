@@ -21,12 +21,13 @@ int findFreePort()
     uv_tcp_init(loop, &serverPortLookUp);
    
     struct sockaddr sockname = {0};
-    struct sockaddr_in bind_addr = uv_ip4_addr("0.0.0.0", 0);
-    result = uv_tcp_bind(&serverPortLookUp, bind_addr);
+    struct sockaddr_in bind_addr;
+    uv_ip4_addr("0.0.0.0", 0, &bind_addr);
+    result = uv_tcp_bind(&serverPortLookUp, (sockaddr *)&bind_addr, 0);
    
-    if(result != 0)
+    if(result < 0)
     {
-        conoutf("Could not find free port, bind failed: %s\n", uv_err_name(uv_last_error(loop)));
+        conoutf("Could not find free port, bind failed %s: %s\n", uv_err_name(result), uv_strerror(result));
         return -1;
     }
    
@@ -35,7 +36,7 @@ int findFreePort()
    
     if(result != 0)
     {
-        conoutf("Could not find free port, sockname failed: %s\n", uv_err_name(uv_last_error(loop)));
+        conoutf("Could not find free port, sockname failed %s: %s\n", uv_err_name(result), uv_strerror(result));
         return -1;
     }
    
@@ -49,7 +50,7 @@ int findFreePort()
 bool running = false;
 uv_process_t serverProcess = {0};
 
-static void _onExit(uv_process_s*, int, int)
+static void _onExit(uv_process_s*, long, int)
 {
     running = false;
 }
@@ -111,10 +112,10 @@ void startLocalServer(int port)
    
     serverProcessOptions.exit_cb = _onExit;
    
-   
-    if (uv_spawn(uv_default_loop(), &serverProcess, serverProcessOptions))
+    int result = 0;
+    if ((result = uv_spawn(uv_default_loop(), &serverProcess, &serverProcessOptions)) < 0)
     {
-        conoutf(CON_ERROR, "Could not start server: %s", uv_strerror(uv_last_error(uv_default_loop())));
+        conoutf(CON_ERROR, "Could not start server: %s: %s\n", uv_err_name(result), uv_strerror(result));
         return;
     }
    

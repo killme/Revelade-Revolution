@@ -131,7 +131,7 @@ namespace webRadio
     /**
      * Callback called on receiving a tcp chunk.
      */
-    static void readCallback(uv_stream_t *stream, ssize_t nread, uv_buf_t buf)
+    static void readCallback(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
     {
         static http_parser_settings httpParserSettings = {0};
         httpParserSettings.on_body = readBodyCallback;
@@ -145,12 +145,15 @@ namespace webRadio
             return;
         }
 
+        char *bufferString = buf->base;
+        size_t bufferLen = buf->len;
+
         int skip = 0;
-        if(con->httpParser.nread == 0 && buf.base[0] == 'I' && buf.base[1] == 'C' && buf.base[2] == 'Y' && buf.base[3] == ' ' && buf.base[4] == '2' && buf.base[5] == '0' && buf.base[6] == '0' && buf.base[7] == ' ' && buf.base[8] == 'O' && buf.base[9] == 'K' && buf.base[10] == '\r' && buf.base[11] == '\n')
+        if(con->httpParser.nread == 0 && bufferString[0] == 'I' && bufferString[1] == 'C' && bufferString[2] == 'Y' && bufferString[3] == ' ' && bufferString[4] == '2' && bufferString[5] == '0' && bufferString[6] == '0' && bufferString[7] == ' ' && bufferString[8] == 'O' && bufferString[9] == 'K' && bufferString[10] == '\r' && bufferString[11] == '\n')
         {
             skip = 12;
-            buf.base += skip;
-            buf.len -= skip;
+            bufferString += skip;
+            bufferLen -= skip;
             const char *msg = "HTTP/1.1 200 OK";
             ssize_t len = strlen(msg);
             ssize_t parsed = http_parser_execute(&con->httpParser, &httpParserSettings, msg, len);
@@ -159,7 +162,7 @@ namespace webRadio
             {
                 conoutf(CON_ERROR, "Error parsing the HTTP chunk: %s", http_errno_name(HTTP_PARSER_ERRNO(&con->httpParser)));
 
-                char *string = newstring(buf.base, buf.len);
+                char *string = newstring(bufferString, bufferLen);
                 conoutf(CON_ERROR, "Chunk:\n%s", string);
                 delete[] string;
 
@@ -168,13 +171,13 @@ namespace webRadio
             }
         }
 
-        ssize_t parsed = http_parser_execute(&con->httpParser, &httpParserSettings, buf.base, nread);
+        ssize_t parsed = http_parser_execute(&con->httpParser, &httpParserSettings, bufferString, nread);
 
         if(parsed != nread)
         {
             conoutf(CON_ERROR, "Error parsing the HTTP chunk: %s", http_errno_name(HTTP_PARSER_ERRNO(&con->httpParser)));
 
-            char *string = newstring(buf.base, buf.len);
+            char *string = newstring(bufferString, bufferLen);
             conoutf(CON_ERROR, "Chunk:\n%s", string);
             delete[] string;
 
@@ -182,19 +185,17 @@ namespace webRadio
             return;
         }
 
-        char *p = buf.base - skip;
+        char *p = bufferString - skip;
         DELETEP(p);
     }
    
     /**
      * Callback called when uv wants another chunk
      */
-    static uv_buf_t allocCallback(uv_handle_t* handle, size_t suggested_size)
+    static void allocCallback(uv_handle_t* handle, size_t suggested_size, uv_buf_t *buf)
     {
-        uv_buf_t buf;
-        buf.base = new char [suggested_size];
-        buf.len = suggested_size;
-        return buf;
+        buf->base = new char [suggested_size];
+        buf->len = suggested_size;
     }
    
     /**
@@ -202,10 +203,10 @@ namespace webRadio
      */
     static void writeCallback(uv_write_t *req, int status)
     {
-        if(status != 0)
+        if(status < 0)
         {
             ConnectionData *con = (ConnectionData *)req->data;
-            conoutf(CON_ERROR, "Could not send GET: %s\n", uv_err_name(uv_last_error(req->handle->loop)));
+            conoutf(CON_ERROR, "Could not send GET %s: %s\n", uv_err_name(status), uv_strerror(status));
             uv_close((uv_handle_t *)&con->stream, closeCallback);
         }
         //delete[] req->buf.base;
@@ -220,9 +221,9 @@ namespace webRadio
     {
         ConnectionData *con = (ConnectionData *)req->data;
        
-        if(status != 0)
+        if(status < 0)
         {
-            conoutf(CON_ERROR, "Could not connect to web radio: %s\n", uv_err_name(uv_last_error(req->handle->loop)));
+            conoutf(CON_ERROR, "Could not connect to web radio %s: %s\n", uv_err_name(status), uv_strerror(status));
         }
         else
         {
@@ -266,10 +267,11 @@ namespace webRadio
             buf.len = strlen(cmd);
             buf.base = new char [buf.len];
             strncpy(buf.base, cmd, buf.len);
-           
-            if(uv_write(req, (uv_stream_t *)&con->stream, &buf, 1, writeCallback))
+
+            int result = 0;
+            if((result = uv_write(req, (uv_stream_t *)&con->stream, &buf, 1, writeCallback)) < 0)
             {
-                conoutf(CON_ERROR, "Could not send master request: %s\n", uv_err_name(uv_last_error(con->stream.loop)));
+                conoutf(CON_ERROR, "Could not send master request %s: %s\n", uv_err_name(result), uv_strerror(result));
                 uv_close((uv_handle_t *)&con->stream, closeCallback);
                 return;
             }
@@ -286,10 +288,9 @@ namespace webRadio
     static void resolvedMasterCallback(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
     {
         ConnectionData *con = (ConnectionData *)resolver->data;
-       
-        if (status == -1)
+        if (status < 0)
         {
-            conoutf(CON_ERROR, "Could not resolve radio host: %s\n", uv_err_name(uv_last_error(resolver->loop)));
+            conoutf(CON_ERROR, "Could not resolve radio host %s: %s\n", uv_err_name(status), uv_strerror(status));
             freeConnection(con);
             return;
         }
@@ -305,7 +306,7 @@ namespace webRadio
             uv_tcp_init(resolver->loop, &con->stream);
             con->stream.data = con;
            
-            uv_tcp_connect(req, &con->stream, *(struct sockaddr_in*) res->ai_addr, connectCallback);
+            uv_tcp_connect(req, &con->stream, res->ai_addr, connectCallback);
         }
        
         uv_freeaddrinfo(res);
@@ -328,10 +329,11 @@ namespace webRadio
         uv_getaddrinfo_t *req = new uv_getaddrinfo_t();
        
         req->data = data;
-       
-        if (uv_getaddrinfo(uv_default_loop(), req, resolvedMasterCallback, name, port, &hints) != 0)
+
+        int status = 0;
+        if ((status = uv_getaddrinfo(uv_default_loop(), req, resolvedMasterCallback, name, port, &hints)) < 0)
         {
-            conoutf(CON_ERROR, "Could not start resolving the json ticker host: %s\n", uv_err_name(uv_last_error(uv_default_loop())));
+            conoutf(CON_ERROR, "Could not start resolving the web radio host: %s: %s\n", uv_err_name(status), uv_strerror(status));
             freeConnection(data);
             delete req;
         }

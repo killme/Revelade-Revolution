@@ -829,10 +829,10 @@ int main(int argc, char* argv[])
     /* make sure the path is correct */
     if (!fileexists("resources", "r"))
     {
-        uv_err_t err = uv_chdir("..");
-        if (err.code != UV_OK)
+        int err = uv_chdir("..");
+        if (err < 0)
         {
-            fatal("unable to change directory! (%i: %s)", err.code, uv_err_name(err));
+            fatal("unable to change directory! (%i: %s) %s", err, uv_err_name(err), uv_strerror(err));
         }
     }
     

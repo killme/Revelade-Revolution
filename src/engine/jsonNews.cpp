@@ -235,7 +235,7 @@ namespace jsonNews
     /**
      * Callback called on receiving a tcp chunk.
      */
-    static void readCallback(uv_stream_t *stream, ssize_t nread, uv_buf_t buf)
+    static void readCallback(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
     {
         static http_parser_settings httpParserSettings = {0};
         httpParserSettings.on_body = readBodyCallback;
@@ -249,30 +249,30 @@ namespace jsonNews
             return;
         }
        
-        ssize_t parsed = http_parser_execute(&con->httpParser, &httpParserSettings, buf.base, nread);
+        ssize_t parsed = http_parser_execute(&con->httpParser, &httpParserSettings, buf->base, nread);
        
         if(parsed != nread)
         {
             conoutf(CON_ERROR, "Error parsing the HTTP chunk: %s", http_errno_name(HTTP_PARSER_ERRNO(&con->httpParser)));
            
-            char *string = newstring(buf.base, buf.len);
+            char *string = newstring(buf->base, buf->len);
             conoutf(CON_ERROR, "Chunk:\n%s", string);
             delete[] string;
        
             uv_close((uv_handle_t *)&con->stream, closeCallback);
             return;
         }
+        
+        delete[] buf->base;
     }
    
     /**
      * Callback called when uv wants another chunk
      */
-    static uv_buf_t allocCallback(uv_handle_t* handle, size_t suggested_size)
+    static void allocCallback(uv_handle_t* handle, size_t suggested_size, uv_buf_t *buf)
     {
-        uv_buf_t buf;
-        buf.base = new char [suggested_size];
-        buf.len = suggested_size;
-        return buf;
+        buf->base = new char [suggested_size];
+        buf->len = suggested_size;
     }
    
     /**
@@ -280,10 +280,10 @@ namespace jsonNews
      */
     static void writeCallback(uv_write_t *req, int status)
     {
-        if(status != 0)
+        if(status < 0)
         {
             ConnectionData *con = (ConnectionData *)req->data;
-            conoutf(CON_ERROR, "Could not send GET: %s\n", uv_err_name(uv_last_error(req->handle->loop)));
+            conoutf(CON_ERROR, "Could not send GET %s: %s\n", uv_err_name(status), uv_strerror(status));
             uv_close((uv_handle_t *)&con->stream, closeCallback);
         }
         //delete[] req->buf.base;
@@ -298,9 +298,9 @@ namespace jsonNews
     {
         ConnectionData *con = (ConnectionData *)req->data;
        
-        if(status != 0)
+        if(status < 0)
         {
-            conoutf(CON_ERROR, "Could not connect to master: %s\n", uv_err_name(uv_last_error(req->handle->loop)));
+            conoutf(CON_ERROR, "Could not connect to master %s: %s\n", uv_err_name(status), uv_strerror(status));
         }
         else
         {
@@ -343,17 +343,18 @@ namespace jsonNews
             buf.len = strlen(cmd);
             buf.base = new char [buf.len];
             strncpy(buf.base, cmd, buf.len);
-           
-            if(uv_write(req, (uv_stream_t *)&con->stream, &buf, 1, writeCallback))
+
+            int result = 0;
+            if((result = uv_write(req, (uv_stream_t *)&con->stream, &buf, 1, writeCallback)) < 0)
             {
-                conoutf(CON_ERROR, "Could not send master request: %s\n", uv_err_name(uv_last_error(con->stream.loop)));
+                conoutf(CON_ERROR, "Could not send master request %s: %s\n", uv_err_name(result), uv_strerror(result));
                 uv_close((uv_handle_t *)&con->stream, closeCallback);
                 return;
             }
            
             http_parser_init(&con->httpParser, HTTP_RESPONSE);
             con->httpParser.data = con;
-           
+
             uv_read_start((uv_stream_t *)&con->stream, allocCallback, readCallback);
         }
        
@@ -366,10 +367,10 @@ namespace jsonNews
     static void resolvedMasterCallback(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
     {
         ConnectionData *con = (ConnectionData *)resolver->data;
-       
-        if (status == -1)
+
+        if (status < 0)
         {
-            conoutf(CON_ERROR, "Could not resolve master host: %s\n", uv_err_name(uv_last_error(resolver->loop)));
+            conoutf(CON_ERROR, "Could not resolve master host %s: %s\n", uv_err_name(status), uv_strerror(status));
             freeConnection(con);
             return;
         }
@@ -381,7 +382,7 @@ namespace jsonNews
             uv_tcp_init(resolver->loop, &con->stream);
             con->stream.data = con;
            
-            uv_tcp_connect(req, &con->stream, *(struct sockaddr_in*) res->ai_addr, connectCallback);
+            uv_tcp_connect(req, &con->stream, res->ai_addr, connectCallback);
         }
        
         uv_freeaddrinfo(res);
@@ -409,10 +410,11 @@ namespace jsonNews
         uv_getaddrinfo_t *req = new uv_getaddrinfo_t();
            
         req->data = data;
-           
-        if (uv_getaddrinfo(uv_default_loop(), req, resolvedMasterCallback, name, port, &hints) != 0)
+        
+        int result = 0;
+        if ((result = uv_getaddrinfo(uv_default_loop(), req, resolvedMasterCallback, name, port, &hints)) < 0)
         {
-            conoutf(CON_ERROR, "Could not start resolving the json ticker host: %s\n", uv_err_name(uv_last_error(uv_default_loop())));
+            conoutf(CON_ERROR, "Could not start resolving the json ticker host %s: %s\n", uv_err_name(result), uv_strerror(result));
             freeConnection(data);
             delete req;
         }

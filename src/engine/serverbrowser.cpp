@@ -68,10 +68,10 @@ namespace serverbrowser
     
     static void writeCallback(uv_write_t* req, int status)
     {
-        if(status != 0)
+        if(status < 0)
         {
-            MasterServerConnection *con = (MasterServerConnection *)req->data;
-            conoutf(CON_ERROR, "Could not send GET: %s\n", uv_err_name(uv_last_error(con->loop)));
+            //MasterServerConnection *con = (MasterServerConnection *)req->data;
+            conoutf(CON_ERROR, "Could not send GET %s: %s\n", uv_err_name(status), uv_strerror(status));
         }
         //delete[] req->buf.base;
         //delete req->buf;
@@ -161,18 +161,17 @@ namespace serverbrowser
             server->wasUpdated = false;
         });
         
-        if(uv_write(req, (uv_stream_t *)con->handle, &buf, 1, writeCallback))
+        int err = 0;
+        if((err = uv_write(req, (uv_stream_t *)con->handle, &buf, 1, writeCallback)) < 0)
         {
-            conoutf(CON_ERROR, "Could not send master request: %s\n", uv_err_name(uv_last_error(con->loop)));
+            conoutf(CON_ERROR, "Could not send master request %s: %s\n", uv_err_name(err), uv_strerror(err));
         }
     }
     
-    static uv_buf_t allocCallback(uv_handle_t* handle, size_t suggested_size)
+    static void allocCallback(uv_handle_t* handle, size_t suggested_size, uv_buf_t *buf)
     {
-        uv_buf_t buf;
-        buf.base = new char [suggested_size];
-        buf.len = suggested_size;
-        return buf;
+        buf->base = new char [suggested_size];
+        buf->len = suggested_size;
     }
     struct ParsingContext
     {
@@ -354,7 +353,7 @@ namespace serverbrowser
         return 0;
     }
     
-    static void readCallback(uv_stream_t* stream, ssize_t nread, uv_buf_t buf)
+    static void readCallback(uv_stream_t* stream, ssize_t nread, const uv_buf_t *buf)
     {
         MasterServerConnection *con = (MasterServerConnection *)stream->data;
         
@@ -368,7 +367,7 @@ namespace serverbrowser
         settings.on_body = readBodyCallback;
         settings.on_message_complete = completeBodyCallback;
         
-        ssize_t parsed = http_parser_execute(con->parser, &settings, buf.base, nread);
+        ssize_t parsed = http_parser_execute(con->parser, &settings, buf->base, nread);
         
         if(parsed != nread)
         {
@@ -377,7 +376,7 @@ namespace serverbrowser
             
             //Add \0 terminator
             char *string = newstring(nread);
-            strncpy(string, buf.base, nread);
+            strncpy(string, buf->base, nread);
             string[nread+1] = '\0';
 
             conoutf(CON_ERROR, "Chunk:\n%s", string);
@@ -385,6 +384,8 @@ namespace serverbrowser
             delete[] string;
             
         }
+
+        delete[] buf->base;
     }
     
     static void connectCallback(uv_connect_t* req, int status)
@@ -393,7 +394,7 @@ namespace serverbrowser
         
         if(status != 0)
         {
-            conoutf(CON_ERROR, "Could not connect to master: %s\n", uv_err_name(uv_last_error(con->loop)));
+            conoutf(CON_ERROR, "Could not connect to master %s: %s\n", uv_err_name(status), uv_strerror(status));
             con->status = MasterServerConnection::Failed;
         }
         else
@@ -409,9 +410,9 @@ namespace serverbrowser
     {
         MasterServerConnection *con = (MasterServerConnection *)resolver->data;
         
-        if (status == -1)
+        if (status < -1)
         {
-            conoutf(CON_ERROR, "Could not resolve master host: %s\n", uv_err_name(uv_last_error(con->loop)));
+            conoutf(CON_ERROR, "Could not resolve master host %s: %s\n", uv_err_name(status), uv_strerror(status));
             con->status = MasterServerConnection::Failed;
         }
         else
@@ -425,7 +426,7 @@ namespace serverbrowser
             con->handle->data = con;
             uv_tcp_init(con->loop, con->handle);
             
-            uv_tcp_connect(req, con->handle, *(struct sockaddr_in*) res->ai_addr, connectCallback);
+            uv_tcp_connect(req, con->handle, res->ai_addr, connectCallback);
         }
         
         uv_freeaddrinfo(res);
@@ -458,10 +459,11 @@ namespace serverbrowser
             uv_getaddrinfo_t *req = new uv_getaddrinfo_t();
             
             req->data = connection;
-            
-            if (uv_getaddrinfo(connection->loop, req, resolvedMasterCallback, name, port, hints) != 0)
+
+            int error = 0;
+            if ((error = uv_getaddrinfo(connection->loop, req, resolvedMasterCallback, name, port, hints)) < 0)
             {
-                conoutf(CON_ERROR, "Could not start resolving the master host: %s\n", uv_err_name(uv_last_error(uv_default_loop())));
+                conoutf(CON_ERROR, "Could not start resolving the master host: %s: %s\n", uv_err_name(error), uv_strerror(error));
                 DELETEP(connection);
                 delete req;
             }
@@ -653,7 +655,7 @@ namespace serverbrowser
         return 0;
     }
     
-    static void readVersionCallback(uv_stream_t* stream, ssize_t nread, uv_buf_t buf)
+    static void readVersionCallback(uv_stream_t* stream, ssize_t nread, const uv_buf_t *buf)
     {
         if( nread < 0 )
         {
@@ -661,28 +663,29 @@ namespace serverbrowser
             DELETEP(lastversionParser);
             return;
         }
-        
+
         http_parser_settings settings = { 0 };
         settings.on_body = readBodyVersionCallback;
         settings.on_message_complete = completeVersionBodyCallback;
-        
-        
-        ssize_t parsed = http_parser_execute(lastversionParser, &settings, buf.base, nread);
-        
+
+        ssize_t parsed = http_parser_execute(lastversionParser, &settings, buf->base, nread);
+
         if(parsed != nread)
         {
             conoutf(CON_ERROR, "Error parsing the HTTP chunk: %s", http_errno_name(HTTP_PARSER_ERRNO(lastversionParser)));
-                
+
             //Add \0 terminator
             char *string = newstring(nread);
-            strncpy(string, buf.base, nread);
+            strncpy(string, buf->base, nread);
             string[nread+1] = '\0';
-            
+
             conoutf(CON_ERROR, "Chunk:\n%s", string);
-            
+
             delete[] string;
-            
+
         }
+
+        delete[] buf->base;
     }
     static void writeVersionGet(uv_stream_t *stream)
     {
@@ -732,9 +735,10 @@ namespace serverbrowser
         lastversionParser->data = stream;
         
         uv_write_t *req = new uv_write_t;
-        if(uv_write(req, stream, &buf, 1, writeCallback))
+        int err = 0;
+        if((err = uv_write(req, stream, &buf, 1, writeCallback)) < 0)
         {
-            conoutf(CON_ERROR, "Could not send master request: %s\n", uv_err_name(uv_last_error(stream->loop)));
+            conoutf(CON_ERROR, "Could not send master request %s: %s\n", uv_err_name(err), uv_strerror(err));
         }
     }
     
@@ -742,7 +746,7 @@ namespace serverbrowser
     {
         if(status < 0)
         {
-            conoutf(CON_ERROR, "Could not connect to master: %s\n", uv_err_name(uv_last_error(req->handle->loop)));
+            conoutf(CON_ERROR, "Could not connect to master %s: %s\n", uv_err_name(status), uv_strerror(status));
         }
         else
         {
@@ -757,7 +761,7 @@ namespace serverbrowser
     {
         if (status < 0)
         {
-            conoutf(CON_ERROR, "Could not resolve master host: %s\n", uv_err_name(uv_last_error(resolver->loop)));
+            conoutf(CON_ERROR, "Could not resolve master host %s: %s\n", uv_err_name(status), uv_strerror(status));
         }
         else
         {
@@ -765,10 +769,10 @@ namespace serverbrowser
 
             uv_tcp_t *handle = new uv_tcp_t;
             uv_tcp_init(resolver->loop, handle);
-            
-            uv_tcp_connect(req, handle, *(struct sockaddr_in*) res->ai_addr, connectVersionCallback);
+
+            uv_tcp_connect(req, handle, res->ai_addr, connectVersionCallback);
         }
-        
+
         uv_freeaddrinfo(res);
         delete resolver;
     }
@@ -792,9 +796,10 @@ namespace serverbrowser
             
             uv_getaddrinfo_t *req = new uv_getaddrinfo_t();
             
-            if (uv_getaddrinfo(uv_default_loop(), req, resolvedVersionMasterCallback, name, port, hints) != 0)
+			int err = 0;
+            if ((err = uv_getaddrinfo(uv_default_loop(), req, resolvedVersionMasterCallback, name, port, hints)) < 0)
             {
-                conoutf(CON_ERROR, "Could not start resolving the master host: %s\n", uv_err_name(uv_last_error(uv_default_loop())));
+                conoutf(CON_ERROR, "Could not start resolving the master host %s: %s\n", uv_err_name(err), uv_strerror(err));
                 delete req;
             }
             

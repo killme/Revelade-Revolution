@@ -9,7 +9,7 @@ extern "C"
     #include "lauxlib.h"
     
     #include "uv.h" 
-    #include "luvit_init.h"
+    #include "luvit/luvit_init.h"
 }
 
 /**

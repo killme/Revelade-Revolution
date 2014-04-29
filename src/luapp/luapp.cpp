@@ -6,9 +6,9 @@ extern "C"
 
     #include "uv.h"
 
-    #include "luvit.h"
-    #include "luvit_init.h"
-    #include "luv.h"
+    #include "luvit/luvit.h"
+    #include "luvit/luvit_init.h"
+    #include "luvit/luv.h"
 }
 
 int main(int argc, char *argv[])

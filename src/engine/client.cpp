@@ -89,9 +89,9 @@ static void resolveCallback(uv_getaddrinfo_t *resolver, int status, struct addri
 {
     ConnectData *data = (ConnectData *)resolver->data;
 
-    if (status == -1)
+    if (status < 0)
     {
-        conoutf(CON_ERROR, "getaddrinfo callback error %s\n", uv_err_name(uv_last_error(resolver->loop)));
+        conoutf(CON_ERROR, "getaddrinfo callback error %s: %s\n", uv_err_name(status), uv_strerror(status));
     }
     else
     {
@@ -170,9 +170,10 @@ void connectserv(const char *servername, int serverport, const char *serverpassw
 
         uv_loop_t *loop = uv_default_loop();
 
-        if(uv_getaddrinfo(loop, resolver, resolveCallback, servername, lookupPort, hints))
+        int err = 0;
+        if((err = uv_getaddrinfo(loop, resolver, resolveCallback, servername, lookupPort, hints)) < 0)
         {
-            conoutf("getaddrinfo call error %s\n", uv_err_name(uv_last_error(loop)));
+            conoutf("getaddrinfo call error %s: %s\n", uv_err_name(err), uv_strerror(err));
             return;
         }
     }
