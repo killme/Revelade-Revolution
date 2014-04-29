@@ -1,712 +1,808 @@
-// serverbrowser.cpp: eihrul's concurrent resolver, and server browser window management
-
 #include "engine.h"
-#include "SDL_thread.h"
+#include "shared/version.h"
 
-struct resolverthread
+extern "C"
 {
-    SDL_Thread *thread;
-    const char *query;
-    int starttime;
-};
-
-struct resolverresult
-{
-    const char *query;
-    ENetAddress address;
-};
-
-vector<resolverthread> resolverthreads;
-vector<const char *> resolverqueries;
-vector<resolverresult> resolverresults;
-SDL_mutex *resolvermutex;
-SDL_cond *querycond, *resultcond;
-
-#define RESOLVERTHREADS 2
-#define RESOLVERLIMIT 3000
-
-int resolverloop(void * data)
-{
-    resolverthread *rt = (resolverthread *)data;
-    SDL_LockMutex(resolvermutex);
-    SDL_Thread *thread = rt->thread;
-    SDL_UnlockMutex(resolvermutex);
-    if(!thread || SDL_GetThreadID(thread) != SDL_ThreadID())
-        return 0;
-    while(thread == rt->thread)
-    {
-        SDL_LockMutex(resolvermutex);
-        while(resolverqueries.empty()) SDL_CondWait(querycond, resolvermutex);
-        rt->query = resolverqueries.pop();
-        rt->starttime = totalmillis;
-        SDL_UnlockMutex(resolvermutex);
-
-        ENetAddress address = { ENET_HOST_ANY, ENET_PORT_ANY };
-        enet_address_set_host(&address, rt->query);
-
-        SDL_LockMutex(resolvermutex);
-        if(rt->query && thread == rt->thread)
-        {
-            resolverresult &rr = resolverresults.add();
-            rr.query = rt->query;
-            rr.address = address;
-            rt->query = NULL;
-            rt->starttime = 0;
-            SDL_CondSignal(resultcond);
-        }
-        SDL_UnlockMutex(resolvermutex);
-    }
-    return 0;
+    #include "uv.h"
+    #include "http_parser.h"
+    #include "yajl/yajl_parse.h"
 }
 
-void resolverinit()
+void addserver( const char *name, int port, const char *password, bool keep)
 {
-    resolvermutex = SDL_CreateMutex();
-    querycond = SDL_CreateCond();
-    resultcond = SDL_CreateCond();
-
-    SDL_LockMutex(resolvermutex);
-    loopi(RESOLVERTHREADS)
-    {
-        resolverthread &rt = resolverthreads.add();
-        rt.query = NULL;
-        rt.starttime = 0;
-        rt.thread = SDL_CreateThread(resolverloop, &rt);
-    }
-    SDL_UnlockMutex(resolvermutex);
-}
-
-void resolverstop(resolverthread &rt)
-{
-    SDL_LockMutex(resolvermutex);
-    if(rt.query)
-    {
-#ifndef __APPLE__
-        SDL_KillThread(rt.thread);
-#endif
-        rt.thread = SDL_CreateThread(resolverloop, &rt);
-    }
-    rt.query = NULL;
-    rt.starttime = 0;
-    SDL_UnlockMutex(resolvermutex);
-} 
-
-void resolverclear()
-{
-    if(resolverthreads.empty()) return;
-
-    SDL_LockMutex(resolvermutex);
-    resolverqueries.shrink(0);
-    resolverresults.shrink(0);
-    loopv(resolverthreads)
-    {
-        resolverthread &rt = resolverthreads[i];
-        resolverstop(rt);
-    }
-    SDL_UnlockMutex(resolvermutex);
-}
-
-void resolverquery(const char *name)
-{
-    if(resolverthreads.empty()) resolverinit();
-
-    SDL_LockMutex(resolvermutex);
-    resolverqueries.add(name);
-    SDL_CondSignal(querycond);
-    SDL_UnlockMutex(resolvermutex);
-}
-
-bool resolvercheck(const char **name, ENetAddress *address)
-{
-    bool resolved = false;
-    SDL_LockMutex(resolvermutex);
-    if(!resolverresults.empty())
-    {
-        resolverresult &rr = resolverresults.pop();
-        *name = rr.query;
-        address->host = rr.address.host;
-        resolved = true;
-    }
-    else loopv(resolverthreads)
-    {
-        resolverthread &rt = resolverthreads[i];
-        if(rt.query && totalmillis - rt.starttime > RESOLVERLIMIT)        
-        {
-            resolverstop(rt);
-            *name = rt.query;
-            resolved = true;
-        }    
-    }
-    SDL_UnlockMutex(resolvermutex);
-    return resolved;
-}
-
-bool resolverwait(const char *name, ENetAddress *address)
-{
-    if(resolverthreads.empty()) resolverinit();
-
-    defformatstring(text)("resolving %s... (esc to abort)", name);
-    renderprogress(0, text);
-
-    SDL_LockMutex(resolvermutex);
-    resolverqueries.add(name);
-    SDL_CondSignal(querycond);
-    int starttime = SDL_GetTicks(), timeout = 0;
-    bool resolved = false;
-    for(;;) 
-    {
-        SDL_CondWaitTimeout(resultcond, resolvermutex, 250);
-        loopv(resolverresults) if(resolverresults[i].query == name) 
-        {
-            address->host = resolverresults[i].address.host;
-            resolverresults.remove(i);
-            resolved = true;
-            break;
-        }
-        if(resolved) break;
     
-        timeout = SDL_GetTicks() - starttime;
-        renderprogress(min(float(timeout)/RESOLVERLIMIT, 1.0f), text);
-        if(interceptkey(SDLK_ESCAPE)) timeout = RESOLVERLIMIT + 1;
-        if(timeout > RESOLVERLIMIT) break;    
-    }
-    if(!resolved && timeout > RESOLVERLIMIT)
-    {
-        loopv(resolverthreads)
-        {
-            resolverthread &rt = resolverthreads[i];
-            if(rt.query == name) { resolverstop(rt); break; }
-        }
-    }
-    SDL_UnlockMutex(resolvermutex);
-    return resolved;
 }
-
-SDL_Thread *connthread = NULL;
-SDL_mutex *connmutex = NULL;
-SDL_cond *conncond = NULL;
-
-struct connectdata
-{
-    ENetSocket sock;
-    ENetAddress address;
-    int result;
-};
-
-// do this in a thread to prevent timeouts
-// could set timeouts on sockets, but this is more reliable and gives more control
-int connectthread(void *data)
-{
-    SDL_LockMutex(connmutex);
-    if(!connthread || SDL_GetThreadID(connthread) != SDL_ThreadID())
-    {
-        SDL_UnlockMutex(connmutex);
-        return 0;
-    }
-    connectdata cd = *(connectdata *)data;
-    SDL_UnlockMutex(connmutex);
-
-    int result = enet_socket_connect(cd.sock, &cd.address);
-
-    SDL_LockMutex(connmutex);
-    if(!connthread || SDL_GetThreadID(connthread) != SDL_ThreadID())
-    {
-        enet_socket_destroy(cd.sock);
-        SDL_UnlockMutex(connmutex);
-        return 0;
-    }
-    ((connectdata *)data)->result = result;
-    SDL_CondSignal(conncond);
-    SDL_UnlockMutex(connmutex);
-
-    return 0;
-}
-
-#define CONNLIMIT 20000
-
-int connectwithtimeout(ENetSocket sock, const char *hostname, const ENetAddress &address)
-{
-    defformatstring(text)("connecting to %s... (esc to abort)", hostname);
-    renderprogress(0, text);
-
-    if(!connmutex) connmutex = SDL_CreateMutex();
-    if(!conncond) conncond = SDL_CreateCond();
-    SDL_LockMutex(connmutex);
-    connectdata cd = { sock, address, -1 };
-    connthread = SDL_CreateThread(connectthread, &cd);
-
-    int starttime = SDL_GetTicks(), timeout = 0;
-    for(;;)
-    {
-        if(!SDL_CondWaitTimeout(conncond, connmutex, 250))
-        {
-            if(cd.result<0) enet_socket_destroy(sock);
-            break;
-        }      
-        timeout = SDL_GetTicks() - starttime;
-        renderprogress(min(float(timeout)/CONNLIMIT, 1.0f), text);
-        if(interceptkey(SDLK_ESCAPE)) timeout = CONNLIMIT + 1;
-        if(timeout > CONNLIMIT) break;
-    }
-
-    /* thread will actually timeout eventually if its still trying to connect
-     * so just leave it (and let it destroy socket) instead of causing problems on some platforms by killing it 
-     */
-    connthread = NULL;
-    SDL_UnlockMutex(connmutex);
-
-    return cd.result;
-}
- 
-enum { UNRESOLVED = 0, RESOLVING, RESOLVED };
-
-struct serverinfo
-{
-    enum 
-    { 
-        WAITING = INT_MAX,
-
-        MAXPINGS = 3 
-    };
-
-    string name, map, sdesc;
-    int port, numplayers, resolved, ping, lastping, nextping;
-    int pings[MAXPINGS];
-    vector<int> attr;
-    ENetAddress address;
-    bool keep;
-    const char *password;
-
-    serverinfo()
-     : port(-1), numplayers(0), resolved(UNRESOLVED), keep(false), password(NULL)
-    {
-        name[0] = map[0] = sdesc[0] = '\0';
-        clearpings();
-    }
-
-    ~serverinfo()
-    {
-        DELETEA(password);
-    }
-
-    void clearpings()
-    {
-        ping = WAITING;
-        loopk(MAXPINGS) pings[k] = WAITING;
-        nextping = 0;
-        lastping = -1;
-    }
-
-    void cleanup()
-    {
-        clearpings();
-        attr.setsize(0);
-        numplayers = 0;
-    }
-
-    void reset()
-    {
-        lastping = -1;
-    }
-
-    void checkdecay(int decay)
-    {
-        if(lastping >= 0 && totalmillis - lastping >= decay)
-            cleanup();
-        if(lastping < 0) lastping = totalmillis;
-    }
-
-    void calcping()
-    {
-        int numpings = 0, totalpings = 0;
-        loopk(MAXPINGS) if(pings[k] != WAITING) { totalpings += pings[k]; numpings++; }
-        ping = numpings ? totalpings/numpings : WAITING;
-    }
-
-    void addping(int rtt, int millis)
-    {
-        if(millis >= lastping) lastping = -1;
-        pings[nextping] = rtt;
-        nextping = (nextping+1)%MAXPINGS;
-        calcping();
-    }
-
-    static bool compare(serverinfo *a, serverinfo *b)
-    {
-        bool ac = server::servercompatible(a->name, a->sdesc, a->map, a->ping, a->attr, a->numplayers),
-             bc = server::servercompatible(b->name, b->sdesc, b->map, b->ping, b->attr, b->numplayers);
-        if(ac > bc) return true;
-        if(bc > ac) return false;
-        if(a->keep > b->keep) return true;
-        if(a->keep < b->keep) return false;
-        if(a->numplayers < b->numplayers) return false;
-        if(a->numplayers > b->numplayers) return true;
-        if(a->ping > b->ping) return false;
-        if(a->ping < b->ping) return true;
-        int cmp = strcmp(a->name, b->name);
-        if(cmp != 0) return cmp < 0;
-        if(a->port < b->port) return true;
-        if(a->port > b->port) return false;
-        return false;
-    }
-};
-
-vector<serverinfo *> servers;
-ENetSocket pingsock = ENET_SOCKET_NULL;
-int lastinfo = 0;
-
-static serverinfo *newserver(const char *name, int port, uint ip = ENET_HOST_ANY)
-{
-    serverinfo *si = new serverinfo;
-    si->address.host = ip;
-    si->address.port = server::serverinfoport(port);
-    if(ip!=ENET_HOST_ANY) si->resolved = RESOLVED;
-
-    si->port = port;
-    if(name) copystring(si->name, name);
-    else if(ip==ENET_HOST_ANY || enet_address_get_host_ip(&si->address, si->name, sizeof(si->name)) < 0)
-    {
-        delete si;
-        return NULL;
-
-    }
-
-    servers.add(si);
-
-    return si;
-}
-
-void addserver(const char *name, int port, const char *password, bool keep)
-{
-    if(port <= 0) port = server::serverport();
-    loopv(servers)
-    {
-        serverinfo *s = servers[i];
-        if(strcmp(s->name, name) || s->port != port) continue;
-        if(password && (!s->password || strcmp(s->password, password)))
-        {
-            DELETEA(s->password);
-            s->password = newstring(password);
-        }
-        if(keep && !s->keep) s->keep = true;
-        return;
-    }
-    serverinfo *s = newserver(name, port);
-    if(!s) return;
-    if(password) s->password = newstring(password);
-    s->keep = keep;
-}
-
-VARP(searchlan, 0, 0, 1);
-VARP(servpingrate, 1000, 5000, 60000);
-VARP(servpingdecay, 1000, 15000, 60000);
-VARP(maxservpings, 0, 10, 1000);
-
-void pingservers()
-{
-    if(pingsock == ENET_SOCKET_NULL) 
-    {
-        pingsock = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
-        if(pingsock == ENET_SOCKET_NULL)
-        {
-            lastinfo = totalmillis;
-            return;
-        }
-        enet_socket_set_option(pingsock, ENET_SOCKOPT_NONBLOCK, 1);
-        enet_socket_set_option(pingsock, ENET_SOCKOPT_BROADCAST, 1);
-    }
-    ENetBuffer buf;
-    uchar ping[MAXTRANS];
-    ucharbuf p(ping, sizeof(ping));
-    putint(p, totalmillis);
-
-    static int lastping = 0;
-    if(lastping >= servers.length()) lastping = 0;
-    loopi(maxservpings ? min(servers.length(), maxservpings) : servers.length())
-    {
-        serverinfo &si = *servers[lastping];
-        if(++lastping >= servers.length()) lastping = 0;
-        if(si.address.host == ENET_HOST_ANY) continue;
-        buf.data = ping;
-        buf.dataLength = p.length();
-        enet_socket_send(pingsock, &si.address, &buf, 1);
-        
-        si.checkdecay(servpingdecay);
-    }
-    if(searchlan)
-    {
-        ENetAddress address;
-        address.host = ENET_HOST_BROADCAST;
-        address.port = server::laninfoport();
-        buf.data = ping;
-        buf.dataLength = p.length();
-        enet_socket_send(pingsock, &address, &buf, 1);
-    }
-    lastinfo = totalmillis;
-}
-  
-void checkresolver()
-{
-    int resolving = 0;
-    loopv(servers)
-    {
-        serverinfo &si = *servers[i];
-        if(si.resolved == RESOLVED) continue;
-        if(si.address.host == ENET_HOST_ANY)
-        {
-            if(si.resolved == UNRESOLVED) { si.resolved = RESOLVING; resolverquery(si.name); }
-            resolving++;
-        }
-    }
-    if(!resolving) return;
-
-    const char *name = NULL;
-    for(;;)
-    {
-        ENetAddress addr = { ENET_HOST_ANY, ENET_PORT_ANY };
-        if(!resolvercheck(&name, &addr)) break;
-        loopv(servers)
-        {
-            serverinfo &si = *servers[i];
-            if(name == si.name)
-            {
-                si.resolved = RESOLVED; 
-                si.address.host = addr.host;
-                break;
-            }
-        }
-    }
-}
-
-static int lastreset = 0;
-
-void checkpings()
-{
-    if(pingsock==ENET_SOCKET_NULL) return;
-    enet_uint32 events = ENET_SOCKET_WAIT_RECEIVE;
-    ENetBuffer buf;
-    ENetAddress addr;
-    uchar ping[MAXTRANS];
-    char text[MAXTRANS];
-    buf.data = ping; 
-    buf.dataLength = sizeof(ping);
-    while(enet_socket_wait(pingsock, &events, 0) >= 0 && events)
-    {
-        int len = enet_socket_receive(pingsock, &addr, &buf, 1);
-        if(len <= 0) return;  
-        serverinfo *si = NULL;
-        loopv(servers) if(addr.host == servers[i]->address.host && addr.port == servers[i]->address.port) { si = servers[i]; break; }
-        if(!si && searchlan) si = newserver(NULL, server::serverport(addr.port), addr.host); 
-        if(!si) continue;
-        ucharbuf p(ping, len);
-        int millis = getint(p), rtt = clamp(totalmillis - millis, 0, min(servpingdecay, totalmillis));
-        if(millis >= lastreset && rtt < servpingdecay) si->addping(rtt, millis);
-        si->numplayers = getint(p);
-        int numattr = getint(p);
-        si->attr.setsize(0);
-        loopj(numattr) { int attr = getint(p); if(p.overread()) break; si->attr.add(attr); }
-        getstring(text, p);
-        filtertext(si->map, text, false);
-        getstring(text, p);
-        filtertext(si->sdesc, text);
-    }
-}
-
-void sortservers()
-{
-    servers.sort(serverinfo::compare);
-}
-COMMAND(sortservers, "");
-
-VARP(autosortservers, 0, 1, 1);
-VARP(autoupdateservers, 0, 1, 1);
-
-void refreshservers()
-{
-    static int lastrefresh = 0;
-    if(lastrefresh==totalmillis) return;
-    if(totalmillis - lastrefresh > 1000) 
-    {
-        loopv(servers) servers[i]->reset();
-        lastreset = totalmillis;
-    }
-    lastrefresh = totalmillis;
-
-    checkresolver();
-    checkpings();
-    if(totalmillis - lastinfo >= servpingrate/(maxservpings ? max(1, (servers.length() + maxservpings - 1) / maxservpings) : 1)) pingservers();
-    if(autosortservers) sortservers();
-}
-
-serverinfo *selectedserver = NULL;
-
-const char *showservers(g3d_gui *cgui, uint *header, int pagemin, int pagemax)
-{
-    refreshservers();
-    if(servers.empty())
-    {
-        if(header) execute(header);
-        return NULL;
-    }
-    serverinfo *sc = NULL;
-    for(int start = 0; start < servers.length();)
-    {
-        if(start > 0) cgui->tab();
-        if(header) execute(header);
-        int end = servers.length();
-        cgui->pushlist();
-        loopi(10)
-        {
-            if(!game::serverinfostartcolumn(cgui, i)) break;
-            for(int j = start; j < end; j++)
-            {
-                if(!i && j+1 - start >= pagemin && (j+1 - start >= pagemax || cgui->shouldtab())) { end = j; break; }
-                serverinfo &si = *servers[j];
-                const char *sdesc = si.sdesc;
-                if(si.address.host == ENET_HOST_ANY) sdesc = "[unknown host]";
-                else if(si.ping == serverinfo::WAITING) sdesc = "[waiting for response]";
-                if(game::serverinfoentry(cgui, i, si.name, si.port, sdesc, si.map, sdesc == si.sdesc ? si.ping : -1, si.attr, si.numplayers))
-                    sc = &si;
-            }
-            game::serverinfoendcolumn(cgui, i);
-        }
-        cgui->poplist();
-        start = end;
-    }
-    if(selectedserver || !sc) return NULL;
-    selectedserver = sc;
-    return "connectselected";
-}
-
-void connectselected()
-{
-    if(!selectedserver) return;
-    connectserv(selectedserver->name, selectedserver->port, selectedserver->password);
-    selectedserver = NULL;
-}
-
-COMMAND(connectselected, "");
-
-void clearservers(bool full = false)
-{
-    resolverclear();
-    if(full) servers.deletecontents();
-    else loopvrev(servers) if(!servers[i]->keep) delete servers.remove(i);
-    selectedserver = NULL;
-}
-
-#define RETRIEVELIMIT 20000
-
-void retrieveservers(vector<char> &data)
-{
-    ENetSocket sock = connectmaster();
-    if(sock == ENET_SOCKET_NULL) return;
-
-    extern char *mastername;
-    defformatstring(text)("retrieving servers from %s... (esc to abort)", mastername);
-    renderprogress(0, text);
-
-    int starttime = SDL_GetTicks(), timeout = 0;
-    const char *req = "list\n";
-    int reqlen = strlen(req);
-    ENetBuffer buf;
-    while(reqlen > 0)
-    {
-        enet_uint32 events = ENET_SOCKET_WAIT_SEND;
-        if(enet_socket_wait(sock, &events, 250) >= 0 && events) 
-        {
-            buf.data = (void *)req;
-            buf.dataLength = reqlen;
-            int sent = enet_socket_send(sock, NULL, &buf, 1);
-            if(sent < 0) break;
-            req += sent;
-            reqlen -= sent;
-            if(reqlen <= 0) break;
-        }
-        timeout = SDL_GetTicks() - starttime;
-        renderprogress(min(float(timeout)/RETRIEVELIMIT, 1.0f), text);
-        if(interceptkey(SDLK_ESCAPE)) timeout = RETRIEVELIMIT + 1;
-        if(timeout > RETRIEVELIMIT) break;
-    }
-
-    if(reqlen <= 0) for(;;)
-    {
-        enet_uint32 events = ENET_SOCKET_WAIT_RECEIVE;
-        if(enet_socket_wait(sock, &events, 250) >= 0 && events)
-        {
-            if(data.length() >= data.capacity()) data.reserve(4096);
-            buf.data = data.getbuf() + data.length();
-            buf.dataLength = data.capacity() - data.length();
-            int recv = enet_socket_receive(sock, NULL, &buf, 1);
-            if(recv <= 0) break;
-            data.advance(recv);
-        }
-        timeout = SDL_GetTicks() - starttime;
-        renderprogress(min(float(timeout)/RETRIEVELIMIT, 1.0f), text);
-        if(interceptkey(SDLK_ESCAPE)) timeout = RETRIEVELIMIT + 1;
-        if(timeout > RETRIEVELIMIT) break;
-    }
-
-    if(data.length()) data.add('\0');
-    enet_socket_destroy(sock);
-}
-
-bool updatedservers = false;
-
-void updatefrommaster()
-{
-    vector<char> data;
-    retrieveservers(data);
-    if(data.empty()) conoutf("master server not replying");
-    else
-    {
-        clearservers();
-        execute(data.getbuf());
-    }
-    refreshservers();
-    updatedservers = true;
-}
-
-void initservers()
-{
-    selectedserver = NULL;
-    if(autoupdateservers && !updatedservers) updatefrommaster();
-}
-
-ICOMMAND(addserver, "sis", (const char *name, int *port, const char *password), addserver(name, *port, password[0] ? password : NULL));
-ICOMMAND(keepserver, "sis", (const char *name, int *port, const char *password), addserver(name, *port, password[0] ? password : NULL, true));
-ICOMMAND(clearservers, "i", (int *full), clearservers(*full!=0));
-COMMAND(updatefrommaster, "");
-COMMAND(initservers, "");
 
 void writeservercfg()
 {
-    if(!game::savedservers()) return;
-    stream *f = openutf8file(path(game::savedservers(), true), "w");
-    if(!f) return;
-    int kept = 0;
-    loopv(servers)
-    {
-        serverinfo *s = servers[i];
-        if(s->keep)
-        {
-            if(!kept) f->printf("// servers that should never be cleared from the server list\n\n");
-            if(s->password) f->printf("keepserver %s %d %s\n", escapeid(s->name), s->port, escapestring(s->password));
-            else f->printf("keepserver %s %d\n", escapeid(s->name), s->port);
-            kept++;
-        }
-    }
-    if(kept) f->printf("\n");
-    f->printf("// servers connected to are added here automatically\n\n");
-    loopv(servers) 
-    {
-        serverinfo *s = servers[i];
-        if(!s->keep) 
-        {
-            if(s->password) f->printf("addserver %s %d %s\n", escapeid(s->name), s->port, escapestring(s->password));
-            else f->printf("addserver %s %d\n", escapeid(s->name), s->port);
-        }
-    }
-    delete f;
 }
 
+namespace serverbrowser
+{
+    struct MasterServerConnection;
+    
+    static MasterServerConnection *connection = NULL;
+    
+    SVARP(mastername, server::defaultmaster());
+    VARP(masterport, 0, server::masterport(), 65535);
+    SVAR(masterpath, "/");
+    string port;
+    string name;
+    
+    struct MasterServerConnection
+    {
+        enum Status
+        {
+            Idle,
+            Resolving,
+            Connecting,
+            Connected,
+            Reading,
+            Failed,
+        };
+        
+        Status status;
+        uv_tcp_t *handle;
+        uv_stream_t *stream;
+        uv_loop_t *loop;
+        http_parser *parser;
+        yajl_handle jsonParser;
+        
+        MasterServerConnection() : status(MasterServerConnection::Idle), handle(NULL), stream(NULL), parser(NULL), jsonParser(NULL)
+        {
+        }
+        
+        ~MasterServerConnection()
+        {
+            if(stream)
+            {
+                uv_read_stop(stream);
+            }
+            
+            if(parser)
+            {
+                delete parser;
+            }
+        }
+    };
+    
+    static void writeCallback(uv_write_t* req, int status)
+    {
+        if(status != 0)
+        {
+            MasterServerConnection *con = (MasterServerConnection *)req->data;
+            conoutf(CON_ERROR, "Could not send GET: %s\n", uv_err_name(uv_last_error(con->loop)));
+        }
+        //delete[] req->buf.base;
+        //delete req->buf;
+        delete req;
+    }
+    
+    
+    
+    struct ServerField
+    {
+        string key;
+        string value;
+    };
+    
+    struct ServerInfo
+    {
+        const char *uuid;
+        bool wasUpdated;
+        vector<ServerField> info;
+        
+        ~ServerInfo()
+        {
+            DELETEA(uuid);
+        }
+    };
+    
+    hashtable<const char *, ServerInfo *> servers;
+    ServerInfo *currentServer = NULL;
+    
+    static void writeGet(MasterServerConnection *con)
+    {
+        con->status = MasterServerConnection::Reading;
+        
+        if(!con->parser)
+        {
+            con->parser = new http_parser;
+            con->parser->data = con;
+        }
+        
+        uv_write_t *req = new uv_write_t;
+        req->data = con;
+        
+        string filtered;
+        
+        //TODO: urlencode
+        int i = 0;
+        for(const char *c = masterpath;*c;c++)
+        {
+            while(*c)
+            {
+                filtered[i] = *c;
+                
+                if(isalnum(filtered[i]) || filtered[i] == '.' || filtered[i] == '/' || filtered[i] == '?' || filtered[i] == '&')
+                {
+                    break;
+                }
+                
+                c++;
+            }
+            
+            if(*c)
+            {
+                i++;
+            }
+        }
+        filtered[i] = '\0';
+        
+        defformatstring(cmd)(
+            "GET %s?version=%s&protocol=%i HTTP/1.1\r\n"
+            "Host: %s\r\n"
+            "User-Agent: ReveladeRevolution-client/%s (protocol-%i)\r\n"
+            //"Connection: Keep-Alive\r\n"
+            "\r\n"
+            , filtered, version::getVersionString(), server::protocolversion(), mastername
+            , version::getVersionString(), server::protocolversion());
+        
+        uv_buf_t buf;
+        buf.len = strlen(cmd);
+        buf.base = new char [buf.len];
+        strncpy(buf.base, cmd, buf.len);
+        
+        //Reset
+        http_parser_init(con->parser, HTTP_RESPONSE);
+        
+        enumerate(servers, ServerInfo *, server,
+        {
+            server->wasUpdated = false;
+        });
+        
+        if(uv_write(req, (uv_stream_t *)con->handle, &buf, 1, writeCallback))
+        {
+            conoutf(CON_ERROR, "Could not send master request: %s\n", uv_err_name(uv_last_error(con->loop)));
+        }
+    }
+    
+    static uv_buf_t allocCallback(uv_handle_t* handle, size_t suggested_size)
+    {
+        uv_buf_t buf;
+        buf.base = new char [suggested_size];
+        buf.len = suggested_size;
+        return buf;
+    }
+    struct ParsingContext
+    {
+        const char *key;
+    };
+    
+    ParsingContext context = { 0 };
+    
+    static int ignore(void *data)
+    {
+        return 1;
+    }
+    
+    static int onNull(void *data)
+    {
+        ASSERT(currentServer);
+        copystring(currentServer->info.last().value, "0");
+        
+        return 1;
+    }
+    
+    static int onBool(void *data, int val)
+    {
+        ASSERT(currentServer);
+        copystring(currentServer->info.last().value, val ? "1" : "0");
+        
+        return 1;
+
+    }
+
+    
+    static int onNumber(void *data, const char *str, size_t len)
+    {
+        ASSERT(currentServer);
+        
+        char * x = newstring(str, len);
+        copystring(currentServer->info.last().value, x);
+        delete[] x;
+        
+        return 1;
+    }
+    
+    static int onString(void *data, const unsigned char *str, size_t len)
+    {
+        ASSERT(currentServer);
+        
+        char * x = newstring((const char *)str, len);
+        copystring(currentServer->info.last().value, x);
+        
+        if(context.key && 0 == strcmp(context.key, "uuid"))
+        {
+            currentServer->uuid = x;
+        }
+        else
+        {
+            delete[] x;
+        }
+        
+        return 1;
+    }
+    
+    static int onStartMap(void *data)
+    {
+        currentServer = new ServerInfo;
+        
+        return 1;
+    }
+    
+    static int onMapKey(void *data, const unsigned char * key, size_t stringLen)
+    {
+        currentServer->info.add();
+        
+        char *string = newstring((const char *)key, stringLen);
+        
+        DELETEA(context.key);
+        context.key = string;
+        
+        copystring(currentServer->info.last().key, string);
+        
+        return 1;
+    }
+    
+    static int onEndMap(void *data)
+    {
+        ASSERT(currentServer);
+        
+        ServerInfo **server = servers.access(currentServer->uuid);
+        
+        if(server != NULL)
+        {
+            servers.remove(currentServer->uuid);
+            //delete server; // TODO do we need this?
+        }
+        
+        servers[currentServer->uuid] = currentServer;
+        
+        currentServer->wasUpdated = true;
+        
+        return 1;
+    }
+    
+    static yajl_callbacks lyajl_callbacks = {
+        onNull, onBool,
+        NULL, NULL, onNumber,
+        onString,
+        onStartMap, onMapKey, onEndMap,
+        ignore, ignore
+    };
+    
+    static int readBodyCallback(http_parser *parser, const char *buf, size_t len)
+    {
+        MasterServerConnection *con = (MasterServerConnection *)parser->data;
+        
+        if(!con->jsonParser)
+        {
+            con->jsonParser = yajl_alloc(&lyajl_callbacks, NULL, (void*)con);
+        }
+        
+        yajl_status status = yajl_parse(con->jsonParser, (const unsigned char*)buf, len);
+        
+        if (status != yajl_status_ok)
+        {
+            con->status = MasterServerConnection::Failed;
+            unsigned char * str = yajl_get_error(con->jsonParser, 1, (const unsigned char*)buf, len);
+            
+            conoutf(CON_ERROR, "Json parser error: %s", str);
+            
+            char *string = newstring(len);
+            strncpy(string, buf, len);
+            string[len+1] = '\0';
+            
+            yajl_free_error(con->jsonParser, str);
+        }
+        
+
+        
+        return 0;
+    }
+    
+    static int completeBodyCallback(http_parser *parser)
+    {
+        MasterServerConnection *con = (MasterServerConnection *)parser->data;
+        
+        if(con->status == MasterServerConnection::Reading)
+        {
+            yajl_status status = yajl_complete_parse(con->jsonParser);
+            
+            if (status != yajl_status_ok)
+            {
+                con->status = MasterServerConnection::Failed;
+                unsigned char * str = yajl_get_error(con->jsonParser, 1, NULL, 0);
+                
+                conoutf(CON_ERROR, "Json parser error: %s", str);
+                
+                yajl_free_error(con->jsonParser, str);
+                
+            }
+            else
+            {
+                connection->status = MasterServerConnection::Connected;
+            
+                //Time out servers
+                enumerate(servers, ServerInfo *, server,
+                {
+                    if (!server->wasUpdated)
+                    {
+                        servers.remove(server->uuid);
+                        delete server;
+                    }
+                });
+            }
+                
+            if(con->jsonParser)
+            {
+                yajl_free(con->jsonParser);
+                con->jsonParser = NULL;
+            }
+        }
+        return 0;
+    }
+    
+    static void readCallback(uv_stream_t* stream, ssize_t nread, uv_buf_t buf)
+    {
+        MasterServerConnection *con = (MasterServerConnection *)stream->data;
+        
+        if( nread < 0 )
+        {
+            con->status = MasterServerConnection::Failed;
+            return;
+        }
+        
+        http_parser_settings settings = { 0 };
+        settings.on_body = readBodyCallback;
+        settings.on_message_complete = completeBodyCallback;
+        
+        ssize_t parsed = http_parser_execute(con->parser, &settings, buf.base, nread);
+        
+        if(parsed != nread)
+        {
+            con->status = MasterServerConnection::Failed;
+            conoutf(CON_ERROR, "Error parsing the HTTP chunk: %s", http_errno_name(HTTP_PARSER_ERRNO(con->parser)));
+            
+            //Add \0 terminator
+            char *string = newstring(nread);
+            strncpy(string, buf.base, nread);
+            string[nread+1] = '\0';
+
+            conoutf(CON_ERROR, "Chunk:\n%s", string);
+            
+            delete[] string;
+            
+        }
+    }
+    
+    static void connectCallback(uv_connect_t* req, int status)
+    {
+        MasterServerConnection *con = (MasterServerConnection *)req->data;
+        
+        if(status != 0)
+        {
+            conoutf(CON_ERROR, "Could not connect to master: %s\n", uv_err_name(uv_last_error(con->loop)));
+            con->status = MasterServerConnection::Failed;
+        }
+        else
+        {
+            writeGet(con); //Skip connected go into read
+            uv_read_start((uv_stream_t *)con->handle, allocCallback, readCallback);
+        }
+        
+        delete req;
+    }
+    
+    static void resolvedMasterCallback(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
+    {
+        MasterServerConnection *con = (MasterServerConnection *)resolver->data;
+        
+        if (status == -1)
+        {
+            conoutf(CON_ERROR, "Could not resolve master host: %s\n", uv_err_name(uv_last_error(con->loop)));
+            con->status = MasterServerConnection::Failed;
+        }
+        else
+        {
+            con->status = MasterServerConnection::Connecting;
+            
+            uv_connect_t *req = new uv_connect_t;
+            req->data = con;
+            
+            con->handle = new uv_tcp_t;
+            con->handle->data = con;
+            uv_tcp_init(con->loop, con->handle);
+            
+            uv_tcp_connect(req, con->handle, *(struct sockaddr_in*) res->ai_addr, connectCallback);
+        }
+        
+        uv_freeaddrinfo(res);
+        delete resolver;
+    }
+    void update()
+    {
+        if(connection && connection->status == MasterServerConnection::Failed)
+        {
+            DELETEP(connection);
+        }
+        
+        if(!connection)
+        {
+            connection = new MasterServerConnection();
+            connection->status = MasterServerConnection::Resolving;
+            connection->loop = uv_default_loop();
+            
+            addrinfo *hints = new addrinfo();
+            hints->ai_family = PF_INET;
+            hints->ai_socktype = SOCK_STREAM;
+            hints->ai_protocol = IPPROTO_TCP;
+            hints->ai_flags = 0;
+            
+            defformatstring(port)("%i", masterport);
+            defformatstring(name)("%s", mastername);
+
+            conoutf(CON_INFO, "connecting to master at %s:%s", name, port);
+            
+            uv_getaddrinfo_t *req = new uv_getaddrinfo_t();
+            
+            req->data = connection;
+            
+            if (uv_getaddrinfo(connection->loop, req, resolvedMasterCallback, name, port, hints) != 0)
+            {
+                conoutf(CON_ERROR, "Could not start resolving the master host: %s\n", uv_err_name(uv_last_error(uv_default_loop())));
+                DELETEP(connection);
+                delete req;
+            }
+        }
+        else
+        {
+            if(connection->status == MasterServerConnection::Connected)
+            {
+                writeGet(connection);
+            }
+            
+        }
+        
+        
+        
+    }
+    
+    void stop()
+    {
+        DELETEP(connection);
+    }
+    
+    COMMANDN(updatefrommaster, update, "");
+}
+
+    extern void aliasa(const char *name, char *action);
+    extern void pushident(ident &id, char *val);
+    extern void popident(ident &id);
+
+namespace serverbrowser
+{
+    #define find_key(server, keyV) loopv(server->info) if(strcmp(server->info[i].key, keyV) == 0)
+    int sortServers(ServerInfo **a_, ServerInfo **b_)
+    {
+        ServerInfo *a = *a_;
+        ServerInfo *b = *b_;
+
+        int pCountA = -1;
+        int pCountB = -1;
+
+        find_key(a, "playercount")
+        {
+            pCountA = parseint(a->info[i].value);
+            break;
+        }
+        
+        find_key(b, "playercount")
+        {
+            pCountB = parseint(b->info[i].value);
+            break;
+        }
+
+        if(pCountA != pCountB)
+        {
+            return pCountB > pCountA  ? 1 : -1;
+        }
+
+        enum 
+        {
+            VERIFIED_NONE = 0,
+            VERIFIED_SPONSORED,
+            VERIFIED_OFFICIAL,
+        };
+        
+        int verifiedLevelA = VERIFIED_NONE;
+        int verifiedLevelB = VERIFIED_NONE;
+        
+        find_key(a, "name")
+        {
+            if(NULL != strstr(a->info[i].value, "[Official Server]"))
+            {
+                verifiedLevelA = VERIFIED_OFFICIAL;
+            }
+            else if(NULL != strstr(a->info[i].value, "[Sponsored Server]"))
+            {
+                verifiedLevelA = VERIFIED_SPONSORED;
+            }
+            break;
+        }
+        
+        find_key(b, "name")
+        {
+            if(NULL != strstr(b->info[i].value, "[Official Server]"))
+            {
+                verifiedLevelB = VERIFIED_OFFICIAL;
+            }
+            else if(NULL != strstr(b->info[i].value, "[Sponsored Server]"))
+            {
+                verifiedLevelB = VERIFIED_SPONSORED;
+            }
+            break;
+        }
+        
+        if(verifiedLevelA != verifiedLevelB)
+        {
+            return verifiedLevelB > verifiedLevelA ? 1 : -1;
+        }
+
+        return 0;
+    }
+    #undef find_key
+    
+    void loopServers (char *var, char *body)
+    {
+        hashtable<const char *, ident *> keys;
+        
+        vector<ServerInfo *> sortedServers;
+        
+        enumerate(servers, ServerInfo *, v, {
+            sortedServers.add(v);
+        });
+        
+        sortedServers.sort(sortServers);
+        
+        loopvj(sortedServers)
+        {
+            ServerInfo *v = sortedServers[j];
+            
+            string key;
+            string keyList = {0};
+            
+            loopv(v->info)
+            {
+                formatstring(key)("%s.%s", var, v->info[i].key);
+                concatstring(keyList, key);
+                concatstring(keyList, " ");
+                
+                if(keys.access(key) != NULL)
+                {
+                    aliasa(key, newstring(v->info[i].value));
+                }
+                else
+                {
+                    ident *id = newident(key);
+                    if(id->type==ID_ALIAS)
+                    {
+                        pushident(*id, newstring(v->info[i].value));
+                        keys[newstring(key)] = id;
+                    }
+                }
+                
+            }
+            
+            if(keys.access(var) != NULL)
+            {
+                aliasa(var, newstring(keyList));
+            }
+            else
+            {
+                ident *id = newident(var);
+                if(id->type==ID_ALIAS)
+                {
+                    pushident(*id, newstring(keyList));
+                    keys[newstring(var)] = id;
+                }
+            }
+            
+            execute(body);
+        }
+        
+        enumeratekt(keys, const char *, key, ident *, id, {
+            popident(*id);
+            delete [] key;
+        });
+             
+    }
+    
+    COMMAND(loopServers, "ss");
+    
+    bool isLastVersion = true;
+    http_parser *lastversionParser = NULL;
+    
+    static int readBodyVersionCallback(http_parser *parser, const char *buf, size_t len)
+    {
+        isLastVersion = buf[0] == '1';
+        
+        return 0;
+    }    
+    
+    static void closeCallback(uv_handle_t *handle)
+    {
+        delete handle;
+    }
+    
+    static int completeVersionBodyCallback(http_parser *parser)
+    {
+        uv_close((uv_handle_t *)parser->data,  closeCallback);
+        DELETEP(lastversionParser);
+        return 0;
+    }
+    
+    static void readVersionCallback(uv_stream_t* stream, ssize_t nread, uv_buf_t buf)
+    {
+        if( nread < 0 )
+        {
+            uv_close((uv_handle_t *)stream, closeCallback);
+            DELETEP(lastversionParser);
+            return;
+        }
+        
+        http_parser_settings settings = { 0 };
+        settings.on_body = readBodyVersionCallback;
+        settings.on_message_complete = completeVersionBodyCallback;
+        
+        
+        ssize_t parsed = http_parser_execute(lastversionParser, &settings, buf.base, nread);
+        
+        if(parsed != nread)
+        {
+            conoutf(CON_ERROR, "Error parsing the HTTP chunk: %s", http_errno_name(HTTP_PARSER_ERRNO(lastversionParser)));
+                
+            //Add \0 terminator
+            char *string = newstring(nread);
+            strncpy(string, buf.base, nread);
+            string[nread+1] = '\0';
+            
+            conoutf(CON_ERROR, "Chunk:\n%s", string);
+            
+            delete[] string;
+            
+        }
+    }
+    static void writeVersionGet(uv_stream_t *stream)
+    {
+        lastversionParser = new http_parser();
+        
+        string filtered;
+        
+        //TODO: urlencode
+        int i = 0;
+        for(const char *c = masterpath;*c;c++)
+        {
+            while(*c)
+            {
+                filtered[i] = *c;
+                
+                if(isalnum(filtered[i]) || filtered[i] == '.' || filtered[i] == '/' || filtered[i] == '?' || filtered[i] == '&')
+                {
+                    break;
+                }
+                
+                c++;
+            }
+            
+            if(*c)
+            {
+                i++;
+            }
+        }
+        filtered[i] = '\0';
+        
+        defformatstring(cmd)(
+            "GET %s%sversion/check-last?version=%s&protocol=%i HTTP/1.1\r\n"
+            "Host: %s\r\n"
+            "User-Agent: ReveladeRevolution-client/%s (protocol-%i)\r\n"
+            //"Connection: Keep-Alive\r\n"
+            "\r\n"
+            , filtered, filtered[i-1] == '/' ? "" : "/", version::getVersionString(), server::protocolversion(), mastername
+            , version::getVersionString(), server::protocolversion());
+        
+        uv_buf_t buf;
+        buf.len = strlen(cmd);
+        buf.base = new char [buf.len];
+        strncpy(buf.base, cmd, buf.len);
+        
+        //Reset
+        http_parser_init(lastversionParser, HTTP_RESPONSE);
+        lastversionParser->data = stream;
+        
+        uv_write_t *req = new uv_write_t;
+        if(uv_write(req, stream, &buf, 1, writeCallback))
+        {
+            conoutf(CON_ERROR, "Could not send master request: %s\n", uv_err_name(uv_last_error(stream->loop)));
+        }
+    }
+    
+    static void connectVersionCallback(uv_connect_t* req, int status)
+    {
+        if(status < 0)
+        {
+            conoutf(CON_ERROR, "Could not connect to master: %s\n", uv_err_name(uv_last_error(req->handle->loop)));
+        }
+        else
+        {
+            writeVersionGet((uv_stream_t *)req->handle); //Skip connected go into read
+            uv_read_start((uv_stream_t *)req->handle, allocCallback, readVersionCallback);
+        }
+        
+        delete req;
+    }
+    
+    static void resolvedVersionMasterCallback(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
+    {
+        if (status < 0)
+        {
+            conoutf(CON_ERROR, "Could not resolve master host: %s\n", uv_err_name(uv_last_error(resolver->loop)));
+        }
+        else
+        {
+            uv_connect_t *req = new uv_connect_t;
+
+            uv_tcp_t *handle = new uv_tcp_t;
+            uv_tcp_init(resolver->loop, handle);
+            
+            uv_tcp_connect(req, handle, *(struct sockaddr_in*) res->ai_addr, connectVersionCallback);
+        }
+        
+        uv_freeaddrinfo(res);
+        delete resolver;
+    }
+    
+    bool get_isLastVersion()
+    {
+        static bool requested = false;
+        
+        if(!requested)
+        {
+            addrinfo *hints = new addrinfo();
+            hints->ai_family = PF_INET;
+            hints->ai_socktype = SOCK_STREAM;
+            hints->ai_protocol = IPPROTO_TCP;
+            hints->ai_flags = 0;
+            
+            defformatstring(port)("%i", masterport);
+            defformatstring(name)("%s", mastername);
+            
+            conoutf(CON_INFO, "connecting to master at %s:%s", name, port);
+            
+            uv_getaddrinfo_t *req = new uv_getaddrinfo_t();
+            
+            if (uv_getaddrinfo(uv_default_loop(), req, resolvedVersionMasterCallback, name, port, hints) != 0)
+            {
+                conoutf(CON_ERROR, "Could not start resolving the master host: %s\n", uv_err_name(uv_last_error(uv_default_loop())));
+                delete req;
+            }
+            
+            requested = true;
+        }
+        
+        return isLastVersion;
+    }
+    
+    ICOMMAND(islastversion, "", (), intret(get_isLastVersion() ? 1 : 0));
+}

@@ -1,0 +1,49 @@
+{
+    /**
+     *  server.ip
+     *  The remote address to bind to
+     *  Optional
+     */
+    
+    "server.ip": null,
+    
+    /**
+     *  server.port
+     *  The port to listen to
+     *  Default: 16960
+     */
+    "server.port": 16960,
+    
+    /**
+     * server.maxclients
+     * Maximum amount of clients that can be connected at once
+     * Default: 24
+     */
+    "server.maxclients": 24,
+
+    /**
+     * server.name
+     * Name of the server.
+     * As showed in the stats gui
+     * Default: "Unnamed server"
+     */
+    "server.name": "Unnamed server",
+    
+    /**
+     * server.hostname
+     * Hostname of the server.
+     * Used to give users an easier way to remember how to connect to your server.
+     * Optional
+     */
+    "server.hostname": null,
+    
+    /**
+     * server.modules
+     * Modules that the server should try to load at startup
+     * Default : [ "core.modules.motd", "core.modules.masterclient" ]
+     */
+    "server.modules": [
+        "core.modules.motd",
+        "core.modules.masterclient"
+    ]
+}

@@ -67,7 +67,7 @@ int WINAPI Create_Window_Transparent(HINSTANCE hInstance, HINSTANCE hPrevInstanc
 	//SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_TOPMOST);
 	//ShowWindow(hWnd, nShowCmd);
 	//UpdateWindow(hWnd);
-	ShellExecute(GetDesktopWindow(), "open", "bin\\R+R_tes.exe", NULL, NULL, SW_SHOWNORMAL);
+	ShellExecute(GetDesktopWindow(), "open", "bin\\RR_GAME.exe", NULL, NULL, SW_SHOWNORMAL);
 	//system("www.google.com");
 	return -1;
         // Simple Message loop

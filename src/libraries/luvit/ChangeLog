@@ -1,0 +1,137 @@
+* Changes between 0.5.0 to 0.6.0
+
+  API Changes
+
+  * Streams now act like node's in all known cases
+    the "closed" event is now gone (Brandon Philips)
+  * nil timers are now accepted (AJ ONeal)
+
+  New features
+
+  * UDP support (Ryan Phillips)
+  * Tons of tests! (Hiroaki Nakamura)
+  * Object.instanceof (Hiroaki Nakamura)
+  * Add get/set UID/GID function on POSIX (andrey)
+  * add getProcessTitle/setProcessTitle (Tim Caswell)
+  * Using luajit 2.0.0 final
+  * Using libuv nodev0.8.16 (Brandon Philips/Tim Caswell)
+  * Add uninstall to Makefile (Matt Sullivan)
+  * Gyp build has install target (Hiroaki Nakamura)
+
+  Bugfixes
+
+  * Improved Makefile options (hasufell)
+  * Fix a close() call on a wrong Timer object (Tomaz Muraus) #376, #377
+  * Fixup Windows process spawning (Bert Belder)
+  * tls pull fixes (Brandon Philips)
+  * Normalize CRLF/LF for Windows (Rob Emanuele)
+  * Fix long paths for Windows (Rob Emanuele)
+  * Fix test-ffi.lua to work on Windows (Rob Emanuele)
+  * Fix Socket destroyed flag (Brandon Philips)
+  * Fix Socket pipe implementation (Brandon Philips)
+  * Fix pipe implementation in general (Brandon Philips)
+  * Fix stream reading crash on exception (Matt Kaniaris)
+  * Compiler warning fixes (Brandon Philips)
+  * Fix up S_IS* macros on Windows (Brad Morgan)
+  * Fix Object:extend (Matt Kaniaris)
+  * Fix fverify leaking errors in lcrypto (Brandon Philips)
+  * Free req when TCP connect fails (Ryan Phillips)
+  * Fix test runner (Matt Kaniaris)
+  * Fix SyncWriteStream and _G.len (Kengo Nakajima)
+  * luv_close fixes (Ryan Phillips)
+  * make clean now cleans up zlib/lcrypto (Brandon Philips)
+  * Fixes to the windows build (Ryan Phillips)
+  * Fixup stdin/stdout/stderr logic (Brandon Philips/Ryan Phillips)
+  * Fix listeners on http missing events (Brandon Philips)
+  * Don't call pauseNoRef on lua stream like objects (Tomaz Muraus)
+  * Fix util.bind memory leak and to preserve nil (Tim Caswell)
+  * Fix double close on Handle/Timers (Brandon Philips)
+  * Close stdin only if already closed (Paul Querna)
+  * Hold coroutine when handler created in coroutine (Andrew Tsao)
+
+* Changes between 0.4.0 to 0.5.0
+
+  API Changes
+
+  * http module has been largely refactored/rewritten to be node-like.
+
+  New Features
+
+  * New http module - posts, chunking, and headers now work (Ryan Phillips)
+  * New https module - leverages the new http submodule (Ryan Phillips)
+  * Improved fiber module (Tim Caswell)
+
+* Changes between 0.3.1 to 0.4.0
+
+  API Changes
+
+  * dns.isIPv* has been renamed and moved to net.*
+
+  New Features
+
+  * Memory usage improvements (Ryan Phillips, Paul Querna, Brandon Philips, Tim Caswell)
+  * Callback State infrastructure (Brandon Philips)
+  * TLS Ticketing (Michael Kandrashoff)
+  * Reference counting (Tim Caswell)
+  * Improve timers (Ryan Phillips)
+  * Add os.clock (Tadeusz Wojcik)
+  * process.pid (Michael Kandrashoff)
+
+  Upgrade
+
+  * zlib (Paul Querna)
+  * OpenSSL  w/ Skinny Option (Paul Querna)
+
+  Bug Fixes
+
+  * C89 Improvements (Antal Szabó)
+  * Assertion fixes (Antal Szabó)
+  * url.parse parseQueryString (Tomaz Muraus)
+  * process.spawn environment passing on windows (Ryan Phillips)
+  * Solaris build fixes (Ben Noordhuis)
+  * DNS IPv6 resolving (Ryan Phillips)
+  * TCP Connect IPv6 (Ryan Phillips)
+  * TLS Fixes (Brandon Philips)
+  * TLS Tests (Brandon Philips)
+  * Various Windows fixes (Brandon Philips, Ryan Phillips)
+  * luv_zlib uninitialized variable (Paul Querna)
+  * Use gyp submodule (Brandon Philips)
+
+* Changes between 0.3.0 to 0.3.1
+
+  Bug Fixes
+
+  * Fix socket double 'error' emit
+  * Fix clearTimer
+
+* Changes between 0.2.0 to 0.3.0
+
+  API Changes
+
+  * Stream objects now call destroy() instead of close()
+
+  New Features
+
+  * TLS/SSL Support (Ryan Phillips)
+  * Crypto Support (Brandon Philips)
+  * Zlib Binding (Vladimir Dronnikov)
+  * Chaining Emitters (Vladimir Dronnikov)
+  * Socket Timeout (Ryan Phillips)
+  * Socket Drain (Ryan Phillips)
+  * OS Path Module (Brandon Philips)
+  * Suppress color output (-n switch) (radare)
+  * Listen() now supports backlog size (Vladimir Dronnikov)
+  * obj:removeListener(name, nil) will remove all listeners (Vladimir Dronnikov)
+  * Buffer writes before a connect (Ryan Phillips)
+  * Debug Interface (Ryan Phillips)
+  * Add process.nextTick() (Brandon Philips)
+
+  Bug Fixes
+
+  * Timer (Ryan Phillips)
+  * Module loading with relative paths (Brandon Philips)
+  * Chunking HTTP Fixes (Vladimir Dronnikov)
+  * HTTP Parser Fixes (Paul Querna)
+  * Keep Alive EPIPE Fix (Vladimir Dronnikov)
+  * Windows Fixes (Brandon Philips)
+  * Socket error handling (Brandon Philips)

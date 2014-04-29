@@ -1,21 +1,20 @@
 #include "engine.h"
 
-VARNP(dynlights, usedynlights, 0, 1, 1);
+VARP(ffdynlights, 0, min(5, DYNLIGHTMASK), DYNLIGHTMASK);
+VARP(maxdynlights, 0, min(3, MAXDYNLIGHTS), MAXDYNLIGHTS);
 VARP(dynlightdist, 0, 1024, 10000);
 
 struct dynlight
 {
-    vec o, hud;
+    vec o;
     float radius, initradius, curradius, dist;
     vec color, initcolor, curcolor;
     int fade, peak, expire, flags;
     physent *owner;
-    vec dir;
-    int spot;
 
     void calcradius()
     {
-        if(fade + peak > 0)
+        if(fade + peak)
         {
             int remaining = expire - lastmillis;
             if(flags&DL_EXPAND)
@@ -31,7 +30,7 @@ struct dynlight
 
     void calccolor()
     {
-        if(flags&DL_FLASH || peak <= 0) curcolor = color;
+        if(flags&DL_FLASH || !peak) curcolor = color;
         else
         {
             int peaking = expire - lastmillis - fade;
@@ -40,7 +39,7 @@ struct dynlight
         }
 
         float intensity = 1.0f;
-        if(fade > 0)
+        if(fade)
         {
             int fading = expire - lastmillis;
             if(fading < fade) intensity = float(fading)/fade;
@@ -54,15 +53,15 @@ struct dynlight
 vector<dynlight> dynlights;
 vector<dynlight *> closedynlights;
 
-void adddynlight(const vec &o, float radius, const vec &color, int fade, int peak, int flags, float initradius, const vec &initcolor, physent *owner, const vec &dir, int spot)
+void adddynlight(const vec &o, float radius, const vec &color, int fade, int peak, int flags, float initradius, const vec &initcolor, physent *owner)
 {
-    if(!usedynlights) return;
-    if(o.dist(camera1->o) > dynlightdist || radius <= 0) return;
+    if(renderpath==R_FIXEDFUNCTION ? !ffdynlights || maxtmus<3 : !maxdynlights) return;
+    if(o.dist(camera1->o) > dynlightdist) return;
 
     int insert = 0, expire = fade + peak + lastmillis;
     loopvrev(dynlights) if(expire>=dynlights[i].expire) { insert = i+1; break; }
     dynlight d;
-    d.o = d.hud = o;
+    d.o = o;
     d.radius = radius;
     d.initradius = initradius;
     d.color = color;
@@ -72,8 +71,6 @@ void adddynlight(const vec &o, float radius, const vec &color, int fade, int pea
     d.expire = expire;
     d.flags = flags;
     d.owner = owner;
-    d.dir = dir;
-    d.spot = spot;
     dynlights.insert(insert, d);
 }
 
@@ -98,7 +95,7 @@ void updatedynlights()
     loopv(dynlights)
     {
         dynlight &d = dynlights[i];
-        if(d.owner) game::dynlighttrack(d.owner, d.o, d.hud);
+        if(d.owner) game::dynlighttrack(d.owner, d.o);
         d.calcradius();
         d.calccolor();
     }
@@ -107,7 +104,7 @@ void updatedynlights()
 int finddynlights()
 {
     closedynlights.setsize(0);
-    if(!usedynlights) return 0;
+    if(renderpath==R_FIXEDFUNCTION ? !ffdynlights || maxtmus<3 : !maxdynlights) return 0;
     physent e;
     e.type = ENT_CAMERA;
     e.collidetype = COLLIDE_AABB;
@@ -118,6 +115,11 @@ int finddynlights()
         d.dist = camera1->o.dist(d.o) - d.curradius;
         if(d.dist > dynlightdist || isfoggedsphere(d.curradius, d.o) || pvsoccluded(d.o, 2*int(d.curradius+1))) 
             continue;
+        if(reflecting || refracting > 0)
+        {
+            if(d.o.z + d.curradius < reflectz) continue;
+        }
+        else if(refracting < 0 && d.o.z - d.curradius > reflectz) continue;
         e.o = d.o;
         e.radius = e.xradius = e.yradius = e.eyeheight = e.aboveeye = d.curradius;
         if(collide(&e, vec(0, 0, 0), 0, false)) continue;
@@ -125,24 +127,24 @@ int finddynlights()
         int insert = 0;
         loopvrev(closedynlights) if(d.dist >= closedynlights[i]->dist) { insert = i+1; break; }
         closedynlights.insert(insert, &d);
-        //if(closedynlights.length() >= DYNLIGHTMASK) break;
+        if(closedynlights.length() >= DYNLIGHTMASK) break;
     }
+    if(renderpath==R_FIXEDFUNCTION && closedynlights.length() > ffdynlights)
+        closedynlights.setsize(ffdynlights);
     return closedynlights.length();
 }
 
-bool getdynlight(int n, vec &o, float &radius, vec &color, vec &dir, int &spot)
+bool getdynlight(int n, vec &o, float &radius, vec &color)
 {
     if(!closedynlights.inrange(n)) return false;
     dynlight &d = *closedynlights[n];
     o = d.o;
     radius = d.curradius;
     color = d.curcolor;
-    spot = d.spot;
-    dir = d.dir;
     return true;
 }
 
-void dynlightreaching(const vec &target, vec &color, vec &dir, bool hud)
+void dynlightreaching(const vec &target, vec &color, vec &dir)
 {
     vec dyncolor(0, 0, 0);//, dyndir(0, 0, 0);
     loopv(dynlights)
@@ -150,21 +152,13 @@ void dynlightreaching(const vec &target, vec &color, vec &dir, bool hud)
         dynlight &d = dynlights[i];
         if(d.curradius<=0) continue;
 
-        vec ray(target);
-        ray.sub(hud ? d.hud : d.o);
-        float mag = ray.squaredlen();
-        if(mag >= d.curradius*d.curradius) continue;
-
-        float intensity = 1 - sqrtf(mag)/d.curradius;
-        if(d.spot > 0)
-        {
-            float maxatten = sincos360[d.spot].x, spotatten = (ray.dot(d.dir) - maxatten) / (1 - maxatten);
-            if(spotatten <= 0) continue;
-            intensity *= spotatten;
-        }
+        vec ray(d.o);
+        ray.sub(target);
+        float mag = ray.magnitude();
+        if(mag >= d.curradius) continue;
 
         vec color = d.curcolor;
-        color.mul(intensity);
+        color.mul(1 - mag/d.curradius);
         dyncolor.add(color);
         //dyndir.add(ray.mul(intensity/mag));
     }
@@ -184,5 +178,58 @@ void dynlightreaching(const vec &target, vec &color, vec &dir, bool hud)
     }
 #endif
     color.add(dyncolor);
+}
+
+void calcdynlightmask(vtxarray *va)
+{
+    uint mask = 0;
+    int offset = 0;
+    loopv(closedynlights)
+    {
+        dynlight &d = *closedynlights[i];
+        if(d.o.dist_to_bb(va->geommin, va->geommax) >= d.curradius) continue;
+
+        mask |= (i+1)<<offset;
+        offset += DYNLIGHTBITS;
+        if(offset >= maxdynlights*DYNLIGHTBITS) break;
+    }
+    va->dynlightmask = mask;
+}
+
+int setdynlights(vtxarray *va)
+{
+    if(closedynlights.empty() || !va->dynlightmask) return 0;
+
+    static string posparams[MAXDYNLIGHTS] = { "" }, colorparams[MAXDYNLIGHTS] = { "" }, offsetparams[MAXDYNLIGHTS] = { "" };
+    if(!*posparams[0]) loopi(MAXDYNLIGHTS)
+    {
+        formatstring(posparams[i])("dynlight%dpos", i);
+        formatstring(colorparams[i])("dynlight%dcolor", i);
+        formatstring(offsetparams[i])("dynlight%doffset", i);
+    }
+
+    int index = 0;
+    float scale0 = 1;
+    vec origin0(0, 0, 0);
+    for(uint mask = va->dynlightmask; mask; mask >>= DYNLIGHTBITS, index++)
+    {
+        dynlight &d = *closedynlights[(mask&DYNLIGHTMASK)-1];
+
+        float scale = 1.0f/d.curradius;
+        vec origin = vec(d.o).mul(-scale);
+        setenvparamf(posparams[index], SHPARAM_VERTEX, 10+index, origin.x, origin.y, origin.z, scale);
+
+        if(index<=0) { scale0 = scale; origin0 = origin; }
+        else
+        {
+            scale /= scale0;
+            origin.sub(vec(origin0).mul(scale));
+            setenvparamf(offsetparams[index], SHPARAM_PIXEL, index-1, origin.x, origin.y, origin.z, scale);
+        }
+
+        setenvparamf(colorparams[index], SHPARAM_PIXEL, 10+index, d.curcolor.x, d.curcolor.y, d.curcolor.z);
+    }
+
+    return index;
 }
 

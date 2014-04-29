@@ -85,6 +85,7 @@ void BlendMapNode::splitsolid(uchar &type, uchar val)
 
 uchar BlendMapBranch::shrink(BlendMapNode &child, int quadrant)
 {
+    loopi(4) if(i != quadrant) children[i].cleanup(type[i]);
     uchar childtype = type[quadrant];
     child = children[quadrant];
     type[quadrant] = BM_SOLID;
@@ -118,7 +119,7 @@ struct BlendMapCache
 {
     BlendMapRoot node;
     int scale;
-    ivec2 origin;
+    ivec origin;
 };
 
 BlendMapCache *newblendmapcache() { return new BlendMapCache; }
@@ -131,7 +132,7 @@ bool setblendmaporigin(BlendMapCache *cache, const ivec &o, int size)
     {
         cache->node = blendmap;
         cache->scale = worldscale-BM_SCALE;
-        cache->origin = ivec2(0, 0);
+        cache->origin = ivec(0, 0, 0);
         return cache->node.solid!=&bmsolids[0xFF];
     }
 
@@ -150,7 +151,7 @@ bool setblendmaporigin(BlendMapCache *cache, const ivec &o, int size)
         {
             cache->node = BlendMapRoot(bm->type[n], bm->children[n]);
             cache->scale = bmscale;
-            cache->origin = ivec2(x1&(~0U<<bmscale), y1&(~0U<<bmscale));
+            cache->origin = ivec(x1&(~0U<<bmscale), y1&(~0U<<bmscale), 0);
             return cache->node.solid!=&bmsolids[0xFF];
         }
         bm = bm->children[n].branch;
@@ -159,7 +160,7 @@ bool setblendmaporigin(BlendMapCache *cache, const ivec &o, int size)
     cache->node.type = BM_BRANCH;
     cache->node.branch = bm;
     cache->scale = bmscale;
-    cache->origin = ivec2(x1&(~0U<<bmscale), y1&(~0U<<bmscale));
+    cache->origin = ivec(x1&(~0U<<bmscale), y1&(~0U<<bmscale), 0);
     return true;
 }
 
@@ -359,20 +360,20 @@ VARF(blendpaintmode, 0, 0, 5,
     if(!blendpaintmode) stoppaintblendmap();
 });
 
-static void blitblendmap(uchar &type, BlendMapNode &node, int bmx, int bmy, int bmsize, uchar *src, int sx, int sy, int sw, int sh, int smode)
+static void blitblendmap(uchar &type, BlendMapNode &node, int bmx, int bmy, int bmsize, uchar *src, int sx, int sy, int sw, int sh)
 {
     if(type==BM_BRANCH)
     {
         bmsize /= 2;
         if(sy < bmy + bmsize)
         {
-            if(sx < bmx + bmsize) blitblendmap(node.branch->type[0], node.branch->children[0], bmx, bmy, bmsize, src, sx, sy, sw, sh, smode);
-            if(sx + sw > bmx + bmsize) blitblendmap(node.branch->type[1], node.branch->children[1], bmx+bmsize, bmy, bmsize, src, sx, sy, sw, sh, smode);
+            if(sx < bmx + bmsize) blitblendmap(node.branch->type[0], node.branch->children[0], bmx, bmy, bmsize, src, sx, sy, sw, sh);
+            if(sx + sw > bmx + bmsize) blitblendmap(node.branch->type[1], node.branch->children[1], bmx+bmsize, bmy, bmsize, src, sx, sy, sw, sh);
         }
         if(sy + sh > bmy + bmsize)
         {
-            if(sx < bmx + bmsize) blitblendmap(node.branch->type[2], node.branch->children[2], bmx, bmy+bmsize, bmsize, src, sx, sy, sw, sh, smode);
-            if(sx + sw > bmx + bmsize) blitblendmap(node.branch->type[3], node.branch->children[3], bmx+bmsize, bmy+bmsize, bmsize, src, sx, sy, sw, sh, smode);
+            if(sx < bmx + bmsize) blitblendmap(node.branch->type[2], node.branch->children[2], bmx, bmy+bmsize, bmsize, src, sx, sy, sw, sh);
+            if(sx + sw > bmx + bmsize) blitblendmap(node.branch->type[3], node.branch->children[3], bmx+bmsize, bmy+bmsize, bmsize, src, sx, sy, sw, sh);
         }
         return;
     }
@@ -382,7 +383,7 @@ static void blitblendmap(uchar &type, BlendMapNode &node, int bmx, int bmy, int 
         if(bmsize > BM_IMAGE_SIZE)
         {
             node.splitsolid(type, val);
-            blitblendmap(type, node, bmx, bmy, bmsize, src, sx, sy, sw, sh, smode);
+            blitblendmap(type, node, bmx, bmy, bmsize, src, sx, sy, sw, sh);
             return;
         }
 
@@ -397,7 +398,7 @@ static void blitblendmap(uchar &type, BlendMapNode &node, int bmx, int bmy, int 
     src += max(bmy - sy, 0)*sw + max(bmx - sx, 0);
     loopi(y2-y1)
     {
-        switch(smode)
+        switch(blendpaintmode)
         {
             case 1:
                 memcpy(dst, src, x2 - x1);
@@ -424,16 +425,15 @@ static void blitblendmap(uchar &type, BlendMapNode &node, int bmx, int bmy, int 
     } 
 }
 
-void blitblendmap(uchar *src, int sx, int sy, int sw, int sh, int smode)
+void blitblendmap(uchar *src, int sx, int sy, int sw, int sh)
 {
     int bmsize = worldsize>>BM_SCALE;
     if(max(sx, sy) >= bmsize || min(sx+sw, sy+sh) <= 0 || min(sw, sh) <= 0) return;
-    blitblendmap(blendmap.type, blendmap, 0, 0, bmsize, src, sx, sy, sw, sh, smode);
+    blitblendmap(blendmap.type, blendmap, 0, 0, bmsize, src, sx, sy, sw, sh);
 }
         
 void resetblendmap()
 {
-    clearblendtextures();
     blendmap.cleanup();
     blendmap.type = BM_SOLID;
     blendmap.solid = &bmsolids[0xFF];
@@ -458,104 +458,7 @@ void shrinkblendmap(int octant)
 {
     blendmap.shrink(octant&3);
 }
-
-static int calcblendlayer(uchar &type, BlendMapNode &node, int bmx, int bmy, int bmsize, int cx, int cy, int cw, int ch)
-{
-    if(type==BM_BRANCH)
-    {
-        bmsize /= 2;
-        int layer = -1;
-        if(cy < bmy + bmsize)
-        {
-            if(cx < bmx + bmsize) 
-            {
-                int clayer = calcblendlayer(node.branch->type[0], node.branch->children[0], bmx, bmy, bmsize, cx, cy, cw, ch);
-                if(layer < 0) layer = clayer; else if(clayer != layer) return LAYER_BLEND;
-            }
-            if(cx + cw > bmx + bmsize)
-            {
-                int clayer = calcblendlayer(node.branch->type[1], node.branch->children[1], bmx+bmsize, bmy, bmsize, cx, cy, cw, ch);
-                if(layer < 0) layer = clayer; else if(clayer != layer) return LAYER_BLEND;
-            }
-        }
-        if(cy + ch > bmy + bmsize)
-        {
-            if(cx < bmx + bmsize) 
-            {
-                int clayer = calcblendlayer(node.branch->type[2], node.branch->children[2], bmx, bmy+bmsize, bmsize, cx, cy, cw, ch);
-                if(layer < 0) layer = clayer; else if(clayer != layer) return LAYER_BLEND;
-            }
-            if(cx + cw > bmx + bmsize) 
-            {
-                int clayer = calcblendlayer(node.branch->type[3], node.branch->children[3], bmx+bmsize, bmy+bmsize, bmsize, cx, cy, cw, ch);
-                if(layer < 0) layer = clayer; else if(clayer != layer) return LAYER_BLEND;
-            }
-        }
-        return layer >= 0 ? layer : LAYER_TOP;
-    }
-    uchar val;
-    if(type == BM_SOLID) val = node.solid->val;
-    else
-    {
-        int x1 = clamp(cx - bmx, 0, bmsize), y1 = clamp(cy - bmy, 0, bmsize),
-            x2 = clamp(cx+cw - bmx, 0, bmsize), y2 = clamp(cy+ch - bmy, 0, bmsize);
-        uchar *src = &node.image->data[y1*BM_IMAGE_SIZE + x1];
-        val = src[0];
-        loopi(y2-y1)
-        {
-            loopj(x2-x1) if(src[j] != val) return LAYER_BLEND;
-            src += BM_IMAGE_SIZE;
-        }
-    }
-    switch(val)
-    {
-        case 0xFF: return LAYER_TOP;
-        case 0: return LAYER_BOTTOM;
-        default: return LAYER_BLEND;
-    }
-}
-
-int calcblendlayer(int x1, int y1, int x2, int y2)
-{
-    int bmsize = worldsize>>BM_SCALE,
-        ux1 = max(x1, 0) >> BM_SCALE,
-        ux2 = (min(x2, worldsize) + (1<<BM_SCALE)-1) >> BM_SCALE,
-        uy1 = max(y1, 0) >> BM_SCALE,
-        uy2 = (min(y2, worldsize) + (1<<BM_SCALE)-1) >> BM_SCALE;
-    if(ux1 >= ux2 || uy1 >= uy2) return LAYER_TOP;
-    return calcblendlayer(blendmap.type, blendmap, 0, 0, bmsize, ux1, uy1, ux2-ux1, uy2-uy1);
-}
-
-void moveblendmap(uchar type, BlendMapNode &node, int size, int x, int y, int dx, int dy)
-{
-    if(type == BM_BRANCH)
-    {
-        size /= 2;
-        moveblendmap(node.branch->type[0], node.branch->children[0], size, x, y, dx, dy);
-        moveblendmap(node.branch->type[1], node.branch->children[1], size, x + size, y, dx, dy);
-        moveblendmap(node.branch->type[2], node.branch->children[2], size, x, y + size, dx, dy);
-        moveblendmap(node.branch->type[3], node.branch->children[3], size, x + size, y + size, dx, dy);
-        return;
-    }
-    else if(type == BM_SOLID)
-    {
-        fillblendmap(x+dx, y+dy, size, size, node.solid->val);
-    }
-    else if(type == BM_IMAGE)
-    {
-        blitblendmap(node.image->data, x+dx, y+dy, size, size, 1);
-    }
-}
-
-void moveblendmap(int dx, int dy)
-{
-    BlendMapRoot old = blendmap;
-    blendmap.type = BM_SOLID;
-    blendmap.solid = &bmsolids[0xFF];
-    moveblendmap(old.type, old, worldsize>>BM_SCALE, 0, 0, dx, dy);
-    old.cleanup();
-}
-
+ 
 struct BlendBrush
 {
     char *name;
@@ -582,21 +485,23 @@ struct BlendBrush
     void gentex()
     {
         if(!tex) glGenTextures(1, &tex);
-        uchar *buf = new uchar[2*w*h];
-        uchar *dst = buf, *src = data;
+        uchar *buf = new uchar[2*(w+2)*(h+2)];
+        memset(buf, 0, 2*(w+2));
+        uchar *dst = &buf[2*(w+2)], *src = data;
         loopi(h)
         {
+            *dst++ = 0; 
+            *dst++ = 0;
             loopj(w)
             {
                 *dst++ = 255 - *src;
                 *dst++ = 255 - *src++;
             }
+            *dst++ = 0;
+            *dst++ = 0;
         }
-        createtexture(tex, w, h, buf, 3, 1, GL_LUMINANCE_ALPHA);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        GLfloat border[4] = { 0, 0, 0, 0 };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+        memset(dst, 0, 2*(w+2));
+        createtexture(tex, w+2, h+2, buf, 3, 1, GL_LUMINANCE_ALPHA);
         delete[] buf;
     }
     
@@ -628,246 +533,9 @@ struct BlendBrush
 static vector<BlendBrush *> brushes;
 static int curbrush = -1;
 
-VARFP(blendtexsize, 0, 9, 12-BM_SCALE, { clearblendtextures(); updateblendtextures(); });
-
-struct BlendTexture
-{
-    int x, y, size;
-    uchar *data;
-    GLuint tex;
-    bool valid;
-
-    BlendTexture() : x(0), y(0), size(0), data(NULL), tex(0), valid(false)
-    {}
-
-    ~BlendTexture()
-    {
-        cleanup();
-    }
-
-    bool setup(int sz)
-    {
-        if(!tex) glGenTextures(1, &tex);
-        sz = min(sz, maxtexsize ? min(maxtexsize, hwtexsize) : hwtexsize);
-        if(sz == size) return false;
-        size = sz;
-        if(data) delete[] data;
-        data = new uchar[size*size];
-        createtexture(tex, size, size, NULL, 3, 1, GL_LUMINANCE);
-        valid = false;
-        return true;
-    }
-
-    void cleanup()
-    {
-        if(tex) { glDeleteTextures(1, &tex); tex = 0; }
-        if(data) { delete[] data; data = NULL; }
-        size = 0;
-        valid = false;
-    }
-
-    bool contains(int px, int py) const
-    {
-        return px >= x && py >= y && px < x + 0x1000 && py < y + 0x1000;
-    }
-
-    bool contains(const ivec &p) const { return contains(p.x, p.y); }
-};
-
-static vector<BlendTexture> blendtexs;
-
-void dumpblendtexs()
-{
-    loopv(blendtexs)
-    {
-        BlendTexture &bt = blendtexs[i];
-        if(!bt.size || !bt.valid) continue;
-        ImageData temp(bt.size, bt.size, 1, blendtexs[i].data);
-        const char *map = game::getclientmap(), *name = strrchr(map, '/');
-        defformatstring(buf)("blendtex_%s_%d.png", name ? name+1 : map, i);
-        savepng(buf, temp, true);
-    }
-}
-
-COMMAND(dumpblendtexs, "");
-
-static void renderblendtexture(uchar &type, BlendMapNode &node, int bmx, int bmy, int bmsize, uchar *dst, int dsize, int dx, int dy, int dw, int dh)
-{
-    if(type==BM_BRANCH)
-    {
-        bmsize /= 2;
-        if(dy < bmy + bmsize)
-        {
-            if(dx < bmx + bmsize) renderblendtexture(node.branch->type[0], node.branch->children[0], bmx, bmy, bmsize, dst, dsize, dx, dy, dw, dh);
-            if(dx + dw > bmx + bmsize) renderblendtexture(node.branch->type[1], node.branch->children[1], bmx+bmsize, bmy, bmsize, dst, dsize, dx, dy, dw, dh);
-        }
-        if(dy + dh > bmy + bmsize)
-        {
-            if(dx < bmx + bmsize) renderblendtexture(node.branch->type[2], node.branch->children[2], bmx, bmy+bmsize, bmsize, dst, dsize, dx, dy, dw, dh);
-            if(dx + dw > bmx + bmsize) renderblendtexture(node.branch->type[3], node.branch->children[3], bmx+bmsize, bmy+bmsize, bmsize, dst, dsize, dx, dy, dw, dh);
-        }
-        return;
-    }
-
-    int x1 = clamp(dx - bmx, 0, bmsize), y1 = clamp(dy - bmy, 0, bmsize),
-        x2 = clamp(dx+dw - bmx, 0, bmsize), y2 = clamp(dy+dh - bmy, 0, bmsize),
-        tsize = 1<<(min(worldscale, 12)-BM_SCALE), 
-        step = tsize/dsize, stepw = (x2 - x1)/step, steph = (y2 - y1)/step;
-    dst += max(bmy - dy, 0)/step*dsize + max(bmx - dx, 0)/step;
-    if(type == BM_SOLID) loopi(steph)
-    {
-        memset(dst, node.solid->val, stepw);
-        dst += dsize;
-    }
-    else 
-    {
-        uchar *src = &node.image->data[y1*BM_IMAGE_SIZE + x1];
-        loopi(steph)
-        {
-            if(step <= 1) memcpy(dst, src, stepw);
-            else for(int j = 0, k = 0; j < stepw; j++, k += step) dst[j] = src[k];
-            src += step*BM_IMAGE_SIZE;
-            dst += dsize;
-        }
-    }
-}
-
-void renderblendtexture(uchar *dst, int dsize, int dx, int dy, int dw, int dh)
-{
-    int bmsize = worldsize>>BM_SCALE;
-    if(max(dx, dy) >= bmsize || min(dx+dw, dy+dh) <= 0 || min(dw, dh) <= 0) return;
-    renderblendtexture(blendmap.type, blendmap, 0, 0, bmsize, dst, dsize, dx, dy, dw, dh);
-}
-
-static bool usesblendmap(uchar &type, BlendMapNode &node, int bmx, int bmy, int bmsize, int ux, int uy, int uw, int uh)
-{
-    if(type==BM_BRANCH)
-    {
-        bmsize /= 2;
-        if(uy < bmy + bmsize)
-        {
-            if(ux < bmx + bmsize && usesblendmap(node.branch->type[0], node.branch->children[0], bmx, bmy, bmsize, ux, uy, uw, uh))
-                return true;
-            if(ux + uw > bmx + bmsize && usesblendmap(node.branch->type[1], node.branch->children[1], bmx+bmsize, bmy, bmsize, ux, uy, uw, uh))
-                return true;
-        }
-        if(uy + uh > bmy + bmsize)
-        {
-            if(ux < bmx + bmsize && usesblendmap(node.branch->type[2], node.branch->children[2], bmx, bmy+bmsize, bmsize, ux, uy, uw, uh))
-                return true;
-            if(ux + uw > bmx + bmsize && usesblendmap(node.branch->type[3], node.branch->children[3], bmx+bmsize, bmy+bmsize, bmsize, ux, uy, uw, uh))
-                return true;
-        }
-        return false;
-    }
-    return type!=BM_SOLID || node.solid->val != 0xFF;
-}
-
-bool usesblendmap(int x1, int y1, int x2, int y2)
-{
-    int bmsize = worldsize>>BM_SCALE,
-        ux1 = max(x1, 0) >> BM_SCALE,
-        ux2 = (min(x2, worldsize) + (1<<BM_SCALE)-1) >> BM_SCALE,
-        uy1 = max(y1, 0) >> BM_SCALE,
-        uy2 = (min(y2, worldsize) + (1<<BM_SCALE)-1) >> BM_SCALE;
-    if(ux1 >= ux2 || uy1 >= uy2) return false;
-    return usesblendmap(blendmap.type, blendmap, 0, 0, bmsize, ux1, uy1, ux2-ux1, uy2-uy1);
-}
-
-void bindblendtexture(const ivec &p)
-{
-    loopv(blendtexs) if(blendtexs[i].contains(p))
-    {
-        BlendTexture &bt = blendtexs[i];
-        int tsize = 1<<min(worldscale, 12);
-        GLOBALPARAMF(blendmapparams, (bt.x, bt.y, 1.0f/tsize, 1.0f/tsize));
-        glBindTexture(GL_TEXTURE_2D, bt.tex);
-        break;
-    }
-}
-
-static void updateblendtextures(uchar &type, BlendMapNode &node, int bmx, int bmy, int bmsize, int ux, int uy, int uw, int uh) 
-{
-    if(type==BM_BRANCH)
-    {
-        if(bmsize > 0x1000>>BM_SCALE)
-        {
-            bmsize /= 2;
-            if(uy < bmy + bmsize)
-            {
-                if(ux < bmx + bmsize) updateblendtextures(node.branch->type[0], node.branch->children[0], bmx, bmy, bmsize, ux, uy, uw, uh);
-                if(ux + uw > bmx + bmsize) updateblendtextures(node.branch->type[1], node.branch->children[1], bmx+bmsize, bmy, bmsize, ux, uy, uw, uh);
-            }
-            if(uy + uh > bmy + bmsize)
-            {
-                if(ux < bmx + bmsize) updateblendtextures(node.branch->type[2], node.branch->children[2], bmx, bmy+bmsize, bmsize, ux, uy, uw, uh);
-                if(ux + uw > bmx + bmsize) updateblendtextures(node.branch->type[3], node.branch->children[3], bmx+bmsize, bmy+bmsize, bmsize, ux, uy, uw, uh);
-            }
-            return;
-        }
-        if(!usesblendmap(type, node, bmx, bmy, bmsize, ux, uy, uw, uh)) return;
-    }
-    else if(type==BM_SOLID && node.solid->val == 0xFF) return;
-   
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
- 
-    int tx1 = max(bmx, ux)&~((0x1000>>BM_SCALE)-1),
-        tx2 = (min(bmx+bmsize, ux+uw) + (0x1000>>BM_SCALE)-1)&~((0x1000>>BM_SCALE)-1),
-        ty1 = max(bmy, uy)&~((0x1000>>BM_SCALE)-1), 
-        ty2 = (min(bmy+bmsize, uy+uh) + (0x1000>>BM_SCALE)-1)&~((0x1000>>BM_SCALE)-1);
-    for(int ty = ty1; ty < ty2; ty += 0x1000>>BM_SCALE) for(int tx = tx1; tx < tx2; tx += 0x1000>>BM_SCALE)
-    {
-        BlendTexture *bt = NULL;
-        loopv(blendtexs) if(blendtexs[i].contains(tx<<BM_SCALE, ty<<BM_SCALE)) { bt = &blendtexs[i]; break; }
-        if(!bt)
-        {
-            bt = &blendtexs.add();
-            bt->x = tx<<BM_SCALE;
-            bt->y = ty<<BM_SCALE;
-        }
-        bt->setup(1<<min(worldscale-BM_SCALE, blendtexsize));
-        int tsize = 1<<(min(worldscale, 12)-BM_SCALE), 
-            ux1 = tx, ux2 = tx + tsize, uy1 = ty, uy2 = ty + tsize,
-            step = tsize/bt->size;
-        if(!bt->valid)
-        {
-            ux1 = max(ux1, ux&~(step-1));
-            ux2 = min(ux2, (ux+uw+step-1)&~(step-1));
-            uy1 = max(uy1, uy&~(step-1));
-            uy2 = min(uy2, (uy+uh+step-1)&~(step-1));
-            bt->valid = true;
-        }
-        uchar *data = bt->data + (uy1-ty)/step*bt->size + (ux1-tx)/step;
-        renderblendtexture(type, node, bmx, bmy, bmsize, data, bt->size, ux1, uy1, ux2-ux1, uy2-uy1);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, bt->size);
-        glBindTexture(GL_TEXTURE_2D, bt->tex);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, (ux1-tx)/step, (uy1-ty)/step, (ux2-ux1)/step, (uy2-uy1)/step, GL_LUMINANCE, GL_UNSIGNED_BYTE, data); 
-    }
-
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-}
-
-void updateblendtextures(int x1, int y1, int x2, int y2)
-{
-    int bmsize = worldsize>>BM_SCALE,
-        ux1 = max(x1, 0) >> BM_SCALE,
-        ux2 = (min(x2, worldsize) + (1<<BM_SCALE)-1) >> BM_SCALE,
-        uy1 = max(y1, 0) >> BM_SCALE,
-        uy2 = (min(y2, worldsize) + (1<<BM_SCALE)-1) >> BM_SCALE;
-    if(ux1 >= ux2 || uy1 >= uy2) return;        
-    updateblendtextures(blendmap.type, blendmap, 0, 0, bmsize, ux1, uy1, ux2-ux1, uy2-uy1);
-}
-
-void clearblendtextures()
-{
-    loopv(blendtexs) blendtexs[i].cleanup();
-    blendtexs.shrink(0);
-}
-
 void cleanupblendmap()
 {
     loopv(brushes) brushes[i]->cleanup();
-    loopv(blendtexs) blendtexs[i].cleanup();
 }
 
 void clearblendbrushes()
@@ -966,7 +634,7 @@ void rotateblendbrush(int *val)
 {
     if(!canpaintblendmap()) return;
     
-    int numrots = *val < 0 ? 3 : clamp(*val, 1, 5);
+    int numrots = clamp(*val, 1, 5);
     BlendBrush *brush = brushes[curbrush];
     brush->reorient(numrots>=2 && numrots<=4, numrots<=2 || numrots==5, (numrots&5)==1);
 }
@@ -980,7 +648,7 @@ void paintblendmap(bool msg)
     BlendBrush *brush = brushes[curbrush];
     int x = (int)floor(clamp(worldpos.x, 0.0f, float(worldsize))/(1<<BM_SCALE) - 0.5f*brush->w),
         y = (int)floor(clamp(worldpos.y, 0.0f, float(worldsize))/(1<<BM_SCALE) - 0.5f*brush->h);
-    blitblendmap(brush->data, x, y, brush->w, brush->h, blendpaintmode);
+    blitblendmap(brush->data, x, y, brush->w, brush->h);
     previewblends(ivec((x-1)<<BM_SCALE, (y-1)<<BM_SCALE, 0),
                   ivec((brush->w+2)<<BM_SCALE, (brush->h+2)<<BM_SCALE, worldsize));
 }
@@ -1070,30 +738,15 @@ ICOMMAND(clearblendmap, "", (),
     showblendmap();
 });
 
-ICOMMAND(moveblendmap, "ii", (int *dx, int *dy),
-{
-    if(noedit(true) || (nompedit && multiplayer())) return;
-    if(*dx%(BM_IMAGE_SIZE<<BM_SCALE) || *dy%(BM_IMAGE_SIZE<<BM_SCALE)) 
-    {
-        conoutf(CON_ERROR, "blendmap movement must be in multiples of %d", BM_IMAGE_SIZE<<BM_SCALE);
-        return;
-    }
-    if(*dx <= -worldsize || *dx >= worldsize || *dy <= -worldsize || *dy >= worldsize)
-        resetblendmap();
-    else
-        moveblendmap(*dx>>BM_SCALE, *dy>>BM_SCALE);
-    showblendmap();
-});
-
 void renderblendbrush()
 {
     if(!blendpaintmode || !brushes.inrange(curbrush)) return;
 
     BlendBrush *brush = brushes[curbrush];
-    int x1 = (int)floor(clamp(worldpos.x, 0.0f, float(worldsize))/(1<<BM_SCALE) - 0.5f*brush->w) << BM_SCALE,
-        y1 = (int)floor(clamp(worldpos.y, 0.0f, float(worldsize))/(1<<BM_SCALE) - 0.5f*brush->h) << BM_SCALE,
-        x2 = x1 + (brush->w << BM_SCALE),
-        y2 = y1 + (brush->h << BM_SCALE);
+    int x1 = (int)floor(clamp(worldpos.x, 0.0f, float(worldsize))/(1<<BM_SCALE) - 0.5f*(brush->w+2)) << BM_SCALE,
+        y1 = (int)floor(clamp(worldpos.y, 0.0f, float(worldsize))/(1<<BM_SCALE) - 0.5f*(brush->h+2)) << BM_SCALE,
+        x2 = x1 + ((brush->w+2) << BM_SCALE),
+        y2 = y1 + ((brush->h+2) << BM_SCALE);
 
     if(max(x1, y1) >= worldsize || min(x2, y2) <= 0 || x1>=x2 || y1>=y2) return;
 

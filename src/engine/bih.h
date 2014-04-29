@@ -23,7 +23,6 @@ struct BIH
     tri *tris, *noclip;
 
     vec bbmin, bbmax;
-    float radius;
 
     BIH(vector<tri> *t);
 

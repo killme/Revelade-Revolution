@@ -13,6 +13,14 @@ struct entity                                   // persistent map entity
     uchar reserved;
 };
 
+struct entitylight
+{
+    vec color, dir;
+    int millis;
+
+    entitylight() : color(1, 1, 1), dir(0, 0, 1), millis(-1) {}
+};
+
 struct extentity : entity                       // part of the entity that doesn't get saved to disk
 {
     enum
@@ -24,6 +32,7 @@ struct extentity : entity                       // part of the entity that doesn
     };
 
     uchar spawned, inoctanode, visible, flags;  // the only dynamic state of a map entity
+    entitylight light;
     extentity *attached;
 
     extentity() : visible(false), flags(0), attached(NULL) {}
@@ -37,7 +46,7 @@ enum { CS_ALIVE = 0, CS_DEAD, CS_SPAWNING, CS_LAGGED, CS_EDITING, CS_SPECTATOR }
 
 enum { PHYS_FLOAT = 0, PHYS_FALL, PHYS_SLIDE, PHYS_SLOPE, PHYS_FLOOR, PHYS_STEP_UP, PHYS_STEP_DOWN, PHYS_BOUNCE };
 
-enum { ENT_PLAYER = 0, ENT_CAMERA, ENT_BOUNCE };
+enum { ENT_PLAYER = 0, ENT_AI, ENT_INANIMATE, ENT_CAMERA, ENT_BOUNCE };
 
 enum { COLLIDE_AABB = 0, COLLIDE_OBB, COLLIDE_ELLIPSE };
 
@@ -52,9 +61,8 @@ struct physent                                  // base entity type, can be affe
     float xradius, yradius, zmargin;
     vec floor;                                  // the normal of floor the dynent is on
 
-    int inwater;
+    int inwater, quake;
     bool jumping;
-	int jumpwait;
     char move, strafe;
 
     uchar physstate;                            // one of PHYS_* above
@@ -65,7 +73,6 @@ struct physent                                  // base entity type, can be affe
     bool blocked;                               // used by physics to signal ai
 
     physent() : o(0, 0, 0), deltapos(0, 0, 0), newpos(0, 0, 0), yaw(0), pitch(0), roll(0), maxspeed(100), 
-		// radius(7.8f), eyeheight(14+35), aboveeye(1+2), xradius(7.8f), yradius(7.8f), zmargin(0),
                radius(4.1f), eyeheight(14), aboveeye(1), xradius(4.1f), yradius(4.1f), zmargin(0),
                state(CS_ALIVE), editstate(CS_ALIVE), type(ENT_PLAYER),
                collidetype(COLLIDE_ELLIPSE),
@@ -80,18 +87,23 @@ struct physent                                  // base entity type, can be affe
 
     void reset()
     {
-    	inwater = 0;
+        inwater = 0;
         timeinair = 0;
         strafe = move = 0;
         physstate = PHYS_FALL;
         vel = falling = vec(0, 0, 0);
         floor = vec(0, 0, 1);
+        quake = 0;
     }
 
     vec feetpos(float offset = 0) const { return vec(o).add(vec(0, 0, offset - eyeheight)); }
     vec headpos(float offset = 0) const { return vec(o).add(vec(0, 0, offset)); }
 
     bool maymove() const { return timeinair || physstate < PHYS_FLOOR || vel.squaredlen() > 1e-4f || deltapos.squaredlen() > 1e-4f; } 
+    void addquake(int time)
+    {
+        quake = max(time, quake);
+    }
 };
 
 enum
@@ -129,7 +141,6 @@ static const char * const animnames[] =
 #define ANIM_START       (1<<8)
 #define ANIM_END         (1<<9)
 #define ANIM_REVERSE     (1<<10)
-#define ANIM_CLAMP       (ANIM_START|ANIM_END)
 #define ANIM_DIR         0x780
 #define ANIM_SECONDARY   11
 #define ANIM_NOSKIN      (1<<22)
@@ -139,8 +150,7 @@ static const char * const animnames[] =
 #define ANIM_NORENDER    (1<<26)
 #define ANIM_RAGDOLL     (1<<27)
 #define ANIM_SETSPEED    (1<<28)
-#define ANIM_NOPITCH     (1<<29)
-#define ANIM_GHOST       (1<<30)
+#define ANIM_GHOST       (1<<29)
 #define ANIM_FLAGS       (0x1FF<<22)
 
 struct animinfo // description of a character's animation
@@ -162,8 +172,6 @@ struct animinterpinfo // used for animation blending of animated characters
     void *lastmodel;
 
     animinterpinfo() : lastswitch(-1), lastmodel(NULL) {}
-
-    void reset() { lastswitch = -1; }
 };
 
 #define MAXANIMPARTS 3
@@ -175,12 +183,15 @@ struct dynent : physent                         // animated characters, or chara
 {
     bool k_left, k_right, k_up, k_down;         // see input code
 
+    entitylight light;
     animinterpinfo animinterp[MAXANIMPARTS];
     ragdolldata *ragdoll;
     occludequery *query;
     int occluded, lastrendered;
+    int onfire, burnmillis, lastburnpain, burngun, irsm;
+    dynent *fireattacker;
 
-    dynent() : ragdoll(NULL), query(NULL), occluded(0), lastrendered(0)
+    dynent() : ragdoll(NULL), query(NULL), occluded(0), lastrendered(0), onfire(0), burnmillis(0), lastburnpain(0), irsm(0)
     { 
         reset(); 
     }
@@ -203,7 +214,7 @@ struct dynent : physent                         // animated characters, or chara
     {
         physent::reset();
         stopmoving();
-        loopi(MAXANIMPARTS) animinterp[i].reset();
+        burnmillis = 0;
     }
 
     vec abovehead() { return vec(o).add(vec(0, 0, aboveeye+4)); }

@@ -1,5 +1,8 @@
 replace fx/ctf with new sounds
 (these have been "borrowed from AssaultCube, with permission from Makke to reuse in Sauerbraten", we may need permission to use them in RR too)
+-Flagpickup -> done, timov
+-Flagdrop -> done, Same ^
+
 
 replace fx/splosh(2/3).ogg with new sounds
 review fx/press.ogg

@@ -1,6 +1,8 @@
 struct md2;
 
-static const float md2normaltable[256][3] =
+md2 *loadingmd2 = 0;
+
+float md2normaltable[256][3] =
 {
     { -0.525731f,  0.000000f,  0.850651f },     { -0.442863f,  0.238856f,  0.864188f },     { -0.295242f,  0.000000f,  0.955423f },     { -0.309017f,  0.500000f,  0.809017f }, 
     { -0.162460f,  0.262866f,  0.951056f },     {  0.000000f,  0.000000f,  1.000000f },     {  0.000000f,  0.850651f,  0.525731f },     { -0.147621f,  0.716567f,  0.681718f }, 
@@ -45,7 +47,7 @@ static const float md2normaltable[256][3] =
     { -0.587785f, -0.425325f, -0.688191f },     { -0.688191f, -0.587785f, -0.425325f }
 };
 
-struct md2 : vertmodel, vertloader<md2>
+struct md2 : vertmodel
 {
     struct md2_header
     {
@@ -73,9 +75,6 @@ struct md2 : vertmodel, vertloader<md2>
     
     md2(const char *name) : vertmodel(name) {}
 
-    static const char *formatname() { return "md2"; }
-    static bool multiparted() { return false; }
-    static bool multimeshed() { return false; }
     int type() const { return MDL_MD2; }
 
     int linktype(animmodel *m) const { return LINK_COOP; }
@@ -125,7 +124,7 @@ struct md2 : vertmodel, vertloader<md2>
             }
         }
         
-        bool load(const char *filename)
+        bool load(char *filename)
         {
             stream *file = openfile(filename, "rb");
             if(!file) return false;
@@ -207,10 +206,10 @@ struct md2 : vertmodel, vertloader<md2>
         {
             //                      0              3              6   7   8   9   10   11  12  13   14  15  16  17
             //                      D    D    D    D    D    D    A   P   I   R,  E    J   T   W    FO  SA  GS  GI
-            static const int _frame[] = { 178, 184, 190, 183, 189, 197, 46, 54, 0,  40, 162, 67, 95, 112, 72, 84, 7,  6 };
-            static const int _range[] = { 6,   6,   8,   1,   1,   1,   8,  4,  40, 6,  1,   1,  17, 11,  12, 11, 18, 1 };
+            static int _frame[] = { 178, 184, 190, 183, 189, 197, 46, 54, 0,  40, 162, 67, 95, 112, 72, 84, 7,  6 };
+            static int _range[] = { 6,   6,   8,   1,   1,   1,   8,  4,  40, 6,  1,   1,  17, 11,  12, 11, 18, 1 };
             //                      DE DY I  F  B  L  R  H1 H2 H3 H4 H5 H6 H7 A1 A2 A3 A4 A5 A6 A7 PA J   SI SW ED  LA  T   WI  LO  GI  GS
-            static const int animfr[] = { 5, 2, 8, 9, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 7, 11, 8, 9, 10, 14, 12, 13, 15, 17, 16 };
+            static int animfr[] = { 5, 2, 8, 9, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 7, 11, 8, 9, 10, 14, 12, 13, 15, 17, 16 };
             
             anim &= ANIM_INDEX;
             if((size_t)anim >= sizeof(animfr)/sizeof(animfr[0]))
@@ -239,7 +238,7 @@ struct md2 : vertmodel, vertloader<md2>
         }
     };
 
-    meshgroup *loadmeshes(const char *name, va_list args)
+    meshgroup *loadmeshes(char *name, va_list args)
     {
         md2meshgroup *group = new md2meshgroup;
         if(!group->load(name)) { delete group; return NULL; }
@@ -266,22 +265,56 @@ struct md2 : vertmodel, vertloader<md2>
         loadskin(loadname, pname, tex, masks);
         mdl.initskins(tex, masks);
         if(tex==notexture) conoutf("could not load model skin for %s", name1);
-        loading = this;
-        identflags &= ~IDF_PERSIST;
+        loadingmd2 = this;
+        persistidents = false;
         defformatstring(name3)("packages/models/%s/md2.cfg", loadname);
         if(!execfile(name3, false))
         {
             formatstring(name3)("packages/models/%s/md2.cfg", pname);
             execfile(name3, false);
         }
-        identflags |= IDF_PERSIST;
-        loading = 0;
+        persistidents = true;
+        loadingmd2 = 0;
         scale /= 4;
         translate.y = -translate.y;
+        parts[0]->translate = translate;
         loopv(parts) parts[i]->meshes->shared++;
+        preloadshaders();
         return loaded = true;
     }
 };
 
-vertcommands<md2> md2commands;
+void md2pitch(float *pitchscale, float *pitchoffset, float *pitchmin, float *pitchmax)
+{
+    if(!loadingmd2 || loadingmd2->parts.empty()) { conoutf("not loading an md2"); return; }
+    md2::part &mdl = *loadingmd2->parts.last();
+
+    mdl.pitchscale = *pitchscale;
+    mdl.pitchoffset = *pitchoffset;
+    if(*pitchmin || *pitchmax)
+    {
+        mdl.pitchmin = *pitchmin;
+        mdl.pitchmax = *pitchmax;
+    }
+    else
+    {
+        mdl.pitchmin = -360*mdl.pitchscale;
+        mdl.pitchmax = 360*mdl.pitchscale;
+    }
+}
+
+void md2anim(char *anim, int *frame, int *range, float *speed, int *priority)
+{
+    if(!loadingmd2 || loadingmd2->parts.empty()) { conoutf("not loading an md2"); return; }
+    vector<int> anims;
+    findanims(anim, anims);
+    if(anims.empty()) conoutf("could not find animation %s", anim);
+    else loopv(anims)
+    {
+        loadingmd2->parts.last()->setanim(0, anims[i], *frame, *range, *speed, *priority);
+    }
+}
+
+COMMAND(md2pitch, "ffff");
+COMMAND(md2anim, "siifi");
 

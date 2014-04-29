@@ -7,7 +7,7 @@ namespace aiman
 
     void calcteams(vector<teamscore> &teams)
     {
-        static const char * const defaults[2] = { "blue", "red" };
+        const char *defaults[2] = { TEAM_0, TEAM_1 };
         loopv(clients)
         {
             clientinfo *ci = clients[i];
@@ -20,7 +20,12 @@ namespace aiman
         teams.sort(teamscore::compare);
         if(teams.length() < int(sizeof(defaults)/sizeof(defaults[0])))
         {
-            loopi(sizeof(defaults)/sizeof(defaults[0])) if(teams.htfind(defaults[i]) < 0) teams.add(teamscore(defaults[i], 0));
+            loopi(sizeof(defaults)/sizeof(defaults[0]))
+            {
+                loopvj(teams) if(!strcmp(teams[j].team, defaults[i])) goto nextteam;
+                teams.add(teamscore(defaults[i], 0));
+            nextteam:;
+            }
         }
     }
 
@@ -65,31 +70,78 @@ namespace aiman
 
     static inline bool validaiclient(clientinfo *ci)
     {
-        return ci->clientnum >= 0 && ci->state.aitype == AI_NONE && (ci->state.state!=CS_SPECTATOR || ci->local || ci->privilege);
+        return ci->clientnum >= 0 && ci->state.aitype == AI_NONE && (ci->state.state!=CS_SPECTATOR || ci->local || ci->privilege >= PRIV_MASTER);
     }
 
-	clientinfo *findaiclient(clientinfo *exclude = NULL)
-	{
+    clientinfo *findaiclient(clientinfo *exclude = NULL)
+    {
         clientinfo *least = NULL;
-		loopv(clients)
-		{
-			clientinfo *ci = clients[i];
-			if(!validaiclient(ci) || ci==exclude) continue;
+        loopv(clients)
+        {
+            clientinfo *ci = clients[i];
+            if(!validaiclient(ci) || ci==exclude) continue;
             if(!least || ci->bots.length() < least->bots.length()) least = ci;
-		}
+        }
         return least;
-	}
+    }
 
-	int addai(int skill, int limit)
-	{
-		int numai = 0, cn = -1, maxai = limit >= 0 ? min(limit, MAXBOTS) : MAXBOTS;
-		loopv(bots)
+    char randletter(bool vowel, char exclude = 0)
+    {
+        static const int vpos[] = {0, 4, 8, 14, 20, 24};
+        char letter = rnd(26);
+        bool isv = false;
+        exclude = (exclude)? exclude-'a': 40;
+        loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
+        if (isv == vowel) return letter+'a';
+        while (isv != vowel || letter == exclude)
+        {
+            letter = (letter+1)%26;
+            isv = false;
+            loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
+        }
+        return letter+'a';
+    }
+
+    const char *generatename()
+    {
+        static const char *ntemplates[4] = { "cvcvc", "vcvc", "cvcvv", "cvcv" };
+        const char *t = ntemplates[rnd(4)];
+        static char name[6];
+        for (int i=0, l=strlen(t); i <= l; i++) name[i] = (i==l)? '\0': randletter((t[i]=='v')? true: false, (i)? name[i-1]: 0);
+        name[0] = toupper(name[0]);
+        return name;
+    }
+
+    const char *getbotname()
+    {
+        if (ai::botnames.length())
+        {
+            const char *name;
+            name = ai::botnames[rnd(ai::botnames.length())];
+            if (bots.length() > ai::botnames.length()) return name;
+            loopv(bots)
+            {
+                if (bots[i] && !strcmp(bots[i]->name, name))
+                {
+                    name = ai::botnames[rnd(ai::botnames.length())];
+                    i = -1;
+                }
+            }
+            return name;
+        }
+        return generatename();
+    }
+
+    bool addai(int skill, int limit)
+    {
+        int numai = 0, cn = -1, maxai = limit >= 0 ? min(limit, MAXBOTS) : MAXBOTS;
+        loopv(bots)
         {
             clientinfo *ci = bots[i];
             if(!ci || ci->ownernum < 0) { if(cn < 0) cn = i; continue; }
-			numai++;
-		}
-		if(numai >= maxai) return -1;
+            numai++;
+        }
+        if(numai >= maxai) return false;
         if(bots.inrange(cn))
         {
             clientinfo *ci = bots[cn];
@@ -98,38 +150,46 @@ namespace aiman
 
                 clientinfo *owner = findaiclient();
                 ci->ownernum = owner ? owner->clientnum : -1;
-                if(owner) owner->bots.add(ci);
                 ci->aireinit = 2;
                 dorefresh = true;
+#ifdef XRRS
+                SbPy::triggerEventInt("game_bot_added", ci->clientnum);
+#endif
                 return true;
             }
         }
         else { cn = bots.length(); bots.add(NULL); }
-        const char *team = m_teammode ? chooseteam() : "";
+        const char *team = m_oneteam? TEAM_0: (m_teammode ? chooseteam() : "");
         if(!bots[cn]) bots[cn] = new clientinfo;
         clientinfo *ci = bots[cn];
-		ci->state.pclass = rnd(4); //change to NUMPCS
-		ci->clientnum = MAXCLIENTS + cn;
-		ci->state.aitype = AI_BOT;
+        ci->clientnum = MAXCLIENTS + cn;
+        ci->state.aitype = AI_BOT;
         clientinfo *owner = findaiclient();
-		ci->ownernum = owner ? owner->clientnum : -1;
+        ci->ownernum = owner ? owner->clientnum : -1;
         if(owner) owner->bots.add(ci);
         ci->state.skill = skill <= 0 ? rnd(50) + 51 : clamp(skill, 1, 101);
-	    clients.add(ci);
-		ci->state.lasttimeplayed = lastmillis;
-		copystring(ci->name, "bot", MAXNAMELEN+1);
-		ci->state.state = CS_DEAD;
+        clients.add(ci);
+        ci->state.lasttimeplayed = lastmillis;
+        copystring(ci->name, getbotname(), MAXNAMELEN+1);
+        ci->state.state = CS_DEAD;
         copystring(ci->team, team, MAXTEAMLEN+1);
         ci->playermodel = rnd(128);
-		ci->aireinit = 2;
-		ci->connected = true;
+        ci->state.playerclass = rnd(NUMPCS);
+        ci->aireinit = 2;
+        ci->connected = true;
         dorefresh = true;
-		//sendf(-1, 1, "ri3x", N_SETCLASS, ci->clientnum, ci->state.pclass);
-		return ci->clientnum;
-	}
+        if(smode) smode->entergame(ci);
+#ifdef XRRS
+        SbPy::triggerEventInt("game_bot_added", ci->clientnum);
+#endif
+        return true;
+    }
 
-	void deleteai(clientinfo *ci)
-	{
+    void deleteai(clientinfo *ci)
+    {
+#ifdef XRRS
+        SbPy::triggerEventInt("game_bot_removed", ci->clientnum);
+#endif
         int cn = ci->clientnum - MAXCLIENTS;
         if(!bots.inrange(cn)) return;
         if(smode) smode->leavegame(ci, true);
@@ -138,107 +198,121 @@ namespace aiman
         if(owner) owner->bots.removeobj(ci);
         clients.removeobj(ci);
         DELETEP(bots[cn]);
-		dorefresh = true;
-	}
+        dorefresh = true;
+    }
 
-	bool deleteai()
-	{
+    bool deleteai()
+    {
         loopvrev(bots) if(bots[i] && bots[i]->ownernum >= 0)
         {
-			deleteai(bots[i]);
-			return true;
-		}
-		return false;
-	}
+            deleteai(bots[i]);
+            return true;
+        }
+        return false;
+    }
 
-	void reinitai(clientinfo *ci)
-	{
-		if(ci->ownernum < 0) deleteai(ci);
-		else if(ci->aireinit >= 1)
-		{
-			sendf(-1, 1, "ri6ss", N_INITAI, ci->clientnum, ci->ownernum, ci->state.aitype, ci->state.skill, ci->state.pclass, ci->name, ci->team);
-			if(ci->aireinit == 2)
+    void reinitai(clientinfo *ci)
+    {
+        if(ci->ownernum < 0) deleteai(ci);
+        else if(ci->aireinit >= 1)
+        {
+            sendf(-1, 1, "ri7ss", N_INITAI, ci->clientnum, ci->ownernum, ci->state.aitype, ci->state.skill, ci->playermodel, ci->state.playerclass, ci->name, ci->team);
+            if(ci->aireinit == 2)
             {
                 ci->reassign();
                 if(ci->state.state==CS_ALIVE) sendspawn(ci);
                 else sendresume(ci);
             }
-			ci->aireinit = 0;
-		}
-	}
+            ci->aireinit = 0;
+        }
+    }
 
-	void shiftai(clientinfo *ci, clientinfo *owner = NULL)
-	{
+    void shiftai(clientinfo *ci, clientinfo *owner)
+    {
         clientinfo *prevowner = (clientinfo *)getclientinfo(ci->ownernum);
         if(prevowner) prevowner->bots.removeobj(ci);
-		if(!owner) { ci->aireinit = 0; ci->ownernum = -1; }
-		else if(ci->clientnum != owner->clientnum) { ci->aireinit = 2; ci->ownernum = owner->clientnum; owner->bots.add(ci); }
+        if(!owner) { ci->aireinit = 0; ci->ownernum = -1; }
+        else { ci->aireinit = 2; ci->ownernum = owner->clientnum; owner->bots.add(ci); }
         dorefresh = true;
-	}
+    }
 
-	void removeai(clientinfo *ci)
-	{ // either schedules a removal, or someone else to assign to
+    void removeai(clientinfo *ci)
+    { // either schedules a removal, or someone else to assign to
 
-		loopvrev(ci->bots) shiftai(ci->bots[i], findaiclient(ci));
-	}
+        loopvrev(ci->bots) shiftai(ci->bots[i], findaiclient(ci));
+    }
 
-	bool reassignai()
-	{
+    bool reassignai()
+    {
         clientinfo *hi = NULL, *lo = NULL;
-		loopv(clients)
-		{
-			clientinfo *ci = clients[i];
-			if(!validaiclient(ci)) continue;
+        loopv(clients)
+        {
+            clientinfo *ci = clients[i];
+            if(!validaiclient(ci)) continue;
             if(!lo || ci->bots.length() < lo->bots.length()) lo = ci;
             if(!hi || ci->bots.length() > hi->bots.length()) hi = ci;
-		}
-		if(hi && lo && hi->bots.length() - lo->bots.length() > 1)
-		{
-			loopvrev(hi->bots)
-			{
-				shiftai(hi->bots[i], lo);
-				return true;
-			}
-		}
-		return false;
-	}
+        }
+        if(hi && lo && hi->bots.length() - lo->bots.length() > 1)
+        {
+            loopvrev(hi->bots)
+            {
+                shiftai(hi->bots[i], lo);
+                return true;
+            }
+        }
+        return false;
+    }
 
 
-	void checksetup()
-	{
-	    if(m_teammode && botbalance) balanceteams();
-		loopvrev(bots) if(bots[i]) reinitai(bots[i]);
-	}
+    void checksetup()
+    {
+        if(m_teammode && ((!smode && botbalance) || (smode && smode->shouldBalanceBots(botbalance)))) balanceteams();
+        loopvrev(bots) if(bots[i]) reinitai(bots[i]);
+    }
 
-	void clearai()
-	{ // clear and remove all ai immediately
+    void clearai()
+    { // clear and remove all ai immediately
         loopvrev(bots) if(bots[i]) deleteai(bots[i]);
-	}
+        bots.setsize(0);
+    }
 
-	void checkai()
-	{
+    void resetai()
+    {
+        vector<int> skills;
+        loopv(bots)
+        {
+            if(bots[i] != NULL)
+            {
+                skills.add(bots[i]->state.skill);
+            }
+        }
+        clearai();
+        loopv(skills) addai(skills[i], -1);
+    }
+
+    void checkai()
+    {
         if(!dorefresh) return;
         dorefresh = false;
         if(m_botmode && numclients(-1, false, true))
-		{
-			checksetup();
-			while(reassignai());
-		}
-		else clearai();
-	}
+        {
+            checksetup();
+            while(reassignai());
+        }
+        else clearai();
+    }
 
-	void reqadd(clientinfo *ci, int skill)
-	{
-        if(!ci->local && !ci->privilege) return;
-		int a = addai(skill, !ci->local && ci->privilege < PRIV_ADMIN ? botlimit : -1);
-		if(a<0){ sendf(ci->clientnum, 1, "ris", N_SERVMSG, "failed to create or assign bot"); return;}
-	}
+    void reqadd(clientinfo *ci, int skill)
+    {
+        if(!ci->local && ci->privilege < PRIV_MASTER) return;
+        if(!addai(skill, !ci->local && ci->privilege < PRIV_ADMIN ? botlimit : -1)) sendf(ci->clientnum, 1, "ris", N_SERVMSG, "failed to create or assign bot");
+    }
 
-	void reqdel(clientinfo *ci)
-	{
-        if(!ci->local && !ci->privilege) return;
+    void reqdel(clientinfo *ci)
+    {
+        if(!ci->local && ci->privilege < PRIV_MASTER) return;
         if(!deleteai()) sendf(ci->clientnum, 1, "ris", N_SERVMSG, "failed to remove any bots");
-	}
+    }
 
     void setbotlimit(clientinfo *ci, int limit)
     {
@@ -251,7 +325,7 @@ namespace aiman
 
     void setbotbalance(clientinfo *ci, bool balance)
     {
-        if(ci && !ci->local && !ci->privilege) return;
+        if(ci && !ci->local && ci->privilege < PRIV_MASTER) return;
         botbalance = balance ? 1 : 0;
         dorefresh = true;
         defformatstring(msg)("bot team balancing is now %s", botbalance ? "enabled" : "disabled");
@@ -262,7 +336,7 @@ namespace aiman
     void changemap()
     {
         dorefresh = true;
-        loopv(clients) if(clients[i]->local || clients[i]->privilege) return;
+        loopv(clients) if(clients[i]->local || clients[i]->privilege >= PRIV_MASTER) return;
         if(!botbalance) setbotbalance(NULL, true);
     }
 

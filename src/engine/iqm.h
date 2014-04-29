@@ -1,5 +1,19 @@
 struct iqm;
 
+iqm *loadingiqm = NULL;
+
+string iqmdir;
+
+struct iqmadjustment
+{
+    float yaw, pitch, roll;
+    vec translate;
+
+    iqmadjustment(float yaw, float pitch, float roll, const vec &translate) : yaw(yaw), pitch(pitch), roll(roll), translate(translate) {}
+};
+
+vector<iqmadjustment> iqmadjustments;
+
 struct iqmheader
 {
     char magic[16];
@@ -27,7 +41,7 @@ struct iqmmesh
 };
 
 enum
-{        
+{       
     IQM_POSITION     = 0,
     IQM_TEXCOORD     = 1,
     IQM_NORMAL       = 2,
@@ -36,7 +50,7 @@ enum
     IQM_BLENDWEIGHTS = 5,
     IQM_COLOR        = 6,
     IQM_CUSTOM       = 0x10
-};  
+}; 
 
 enum
 {
@@ -60,9 +74,10 @@ struct iqmjoint
 {
     uint name;
     int parent;
-    vec pos; 
-    quat orient; 
+    vec pos;
+    quat orient;
     vec size;
+   
 };
 
 struct iqmpose
@@ -94,16 +109,15 @@ struct iqmvertexarray
     uint offset;
 };
 
-struct iqm : skelmodel, skelloader<iqm>
+struct iqm : skelmodel
 {
     iqm(const char *name) : skelmodel(name) {}
 
-    static const char *formatname() { return "iqm"; }
     int type() const { return MDL_IQM; }
 
     struct iqmmeshgroup : skelmeshgroup
     {
-        iqmmeshgroup() 
+        iqmmeshgroup()
         {
         }
 
@@ -140,10 +154,10 @@ struct iqm : skelmodel, skelloader<iqm>
                 if(skel->numbones <= 0)
                 {
                     skel->numbones = hdr.num_joints;
-                    skel->bones = new boneinfo[skel->numbones]; 
+                    skel->bones = new boneinfo[skel->numbones];
                     loopi(hdr.num_joints)
                     {
-                        iqmjoint &j = joints[i]; 
+                        iqmjoint &j = joints[i];
                         boneinfo &b = skel->bones[i];
                         if(!b.name) b.name = newstring(&str[j.name]);
                         b.parent = j.parent;
@@ -153,7 +167,7 @@ struct iqm : skelmodel, skelloader<iqm>
                             j.orient.x = -j.orient.x;
                             j.orient.z = -j.orient.z;
                             j.orient.normalize();
-                            b.base = dualquat(j.orient, j.pos);      
+                            b.base = dualquat(j.orient, j.pos);
                             if(b.parent >= 0) b.base.mul(skel->bones[b.parent].base, dualquat(b.base));
                             (b.invbase = b.base).invert();
                         }
@@ -168,11 +182,11 @@ struct iqm : skelmodel, skelloader<iqm>
             {
                 iqmmesh &im = imeshes[i];
                 skelmesh *m = new skelmesh;
-                m->group = this;   
+                m->group = this;  
                 meshes.add(m);
                 m->name = newstring(&str[im.name]);
                 m->numverts = im.num_vertexes;
-                if(m->numverts) 
+                if(m->numverts)
                 {
                     m->verts = new vert[m->numverts];
                     if(vtan) m->bumpverts = new bumpvert[m->numverts];
@@ -181,11 +195,11 @@ struct iqm : skelmodel, skelloader<iqm>
                 {
                     int fj = j + im.first_vertex;
                     vert &v = m->verts[j];
-                    loopk(3) v.pos[k] = vpos[3*fj + k];    
+                    loopk(3) v.pos[k] = vpos[3*fj + k];   
                     v.pos.y = -v.pos.y;
                     v.u = vtc[2*fj + 0];
                     v.v = vtc[2*fj + 1];
-                    if(vnorm) 
+                    if(vnorm)
                     {
                         loopk(3) v.norm[k] = vnorm[3*fj + k];
                         v.norm.y = -v.norm.y;
@@ -193,10 +207,11 @@ struct iqm : skelmodel, skelloader<iqm>
                         {
                             bumpvert &bv = m->bumpverts[j];
                             loopk(3) bv.tangent[k] = vtan[4*fj + k];
-                            bv.tangent.y = -bv.tangent.y;
+                            bv.tangent.x = -bv.tangent.x;
+                            bv.tangent.z = -bv.tangent.z;
                             bv.bitangent = vtan[4*fj + 3];
                         }
-                    } 
+                    }
                     blendcombo c;
                     int sorted = 0;
                     if(vindex && vweight) loopk(4) sorted = c.addweight(sorted, vweight[4*fj + k], vindex[4*fj + k]);
@@ -204,7 +219,7 @@ struct iqm : skelmodel, skelloader<iqm>
                     v.blend = m->addblendcombo(c);
                 }
                 m->numtris = im.num_triangles;
-                if(m->numtris) m->tris = new tri[m->numtris]; 
+                if(m->numtris) m->tris = new tri[m->numtris];
                 loopj(im.num_triangles)
                 {
                     int fj = j + im.first_triangle;
@@ -219,7 +234,7 @@ struct iqm : skelmodel, skelloader<iqm>
             }
 
             sortblendcombos();
-                
+               
             return true;
         }
 
@@ -278,40 +293,77 @@ struct iqm : skelmodel, skelloader<iqm>
                             if(p.mask&0x200) animdata++;
                         }
                         frame[k] = dualquat(orient, pos);
-                        if(adjustments.inrange(k)) adjustments[k].adjust(frame[k]);
+                        if(iqmadjustments.inrange(k))
+                        {
+                            if(iqmadjustments[k].yaw) frame[k].mulorient(quat(vec(0, 0, 1), iqmadjustments[k].yaw*RAD));
+                            if(iqmadjustments[k].pitch) frame[k].mulorient(quat(vec(0, -1, 0), iqmadjustments[k].pitch*RAD));
+                            if(iqmadjustments[k].roll) frame[k].mulorient(quat(vec(-1, 0, 0), iqmadjustments[k].roll*RAD));
+                            if(!iqmadjustments[k].translate.iszero()) frame[k].translate(iqmadjustments[k].translate);
+                        }
                         boneinfo &b = skel->bones[k];
                         frame[k].mul(b.invbase);
                         if(b.parent >= 0) frame[k].mul(skel->bones[b.parent].base, dualquat(frame[k]));
                         frame[k].fixantipodal(skel->framebones[k]);
                     }
-                } 
+                }
             }
-     
+    
             return true;
         }
 
         bool loadiqm(const char *filename, bool doloadmesh, bool doloadanim)
         {
-            stream *f = openfile(filename, "rb");
+            stream *f = openfile(filename, "r");
             if(!f) return false;
-
+           
+            string errorName = {0};
             uchar *buf = NULL;
             iqmheader hdr;
-            if(f->read(&hdr, sizeof(hdr)) != sizeof(hdr) || memcmp(hdr.magic, "INTERQUAKEMODEL", sizeof(hdr.magic))) goto error;
+            if(f->read(&hdr, sizeof(hdr)) != sizeof(hdr) || memcmp(hdr.magic, "INTERQUAKEMODEL", sizeof(hdr.magic)))
+            {
+                formatstring(errorName)("Invalid magic string");
+                goto error;
+            }
             lilswap(&hdr.version, (sizeof(hdr) - sizeof(hdr.magic))/sizeof(uint));
-            if(hdr.version != 2) goto error;
-            if(hdr.filesize > (16<<20)) goto error; // sanity check... don't load files bigger than 16 MB
+            if(hdr.version != 2)
+            {
+                formatstring(errorName)("Invalid version: %i", hdr.version);
+                goto error;
+            }
+            if(hdr.filesize > (16<<20))// sanity check... don't load files bigger than 16 MB
+            {
+                formatstring(errorName)("File is larger than acceptable: %i > %i", hdr.filesize, (16<<20));
+                goto error;
+            }
             buf = new uchar[hdr.filesize];
-            if(f->read(buf + sizeof(hdr), hdr.filesize - sizeof(hdr)) != int(hdr.filesize - sizeof(hdr))) goto error;
+           
+            {
+                int readSize = f->read(buf + sizeof(hdr), hdr.filesize - sizeof(hdr));
+                int expectedSize = int(hdr.filesize - sizeof(hdr));
+                if(readSize != expectedSize)
+                {
+                    formatstring(errorName)("File size mismatch: %i != %i", readSize, expectedSize);
+                    goto error;
+                }
+            }
 
-            if(doloadmesh && !loadiqmmeshes(filename, hdr, buf)) goto error;
-            if(doloadanim && !loadiqmanims(filename, hdr, buf)) goto error;
+            if(doloadmesh && !loadiqmmeshes(filename, hdr, buf))
+            {
+                formatstring(errorName)("Failed to load iqm mesh");
+                goto error;
+            }
+            if(doloadanim && !loadiqmanims(filename, hdr, buf))
+            {
+                formatstring(errorName)("Failed to load iqm anims");
+                goto error;
+            }
 
             delete[] buf;
             delete f;
             return true;
 
         error:
+            printf("IQM error: %s\n", errorName);
             if(buf) delete[] buf;
             delete f;
             return false;
@@ -338,9 +390,9 @@ struct iqm : skelmodel, skelloader<iqm>
             }
             return sa;
         }
-    };            
+    };           
 
-    meshgroup *loadmeshes(const char *name, va_list args)
+    meshgroup *loadmeshes(char *name, va_list args)
     {
         iqmmeshgroup *group = new iqmmeshgroup;
         group->shareskeleton(va_arg(args, char *));
@@ -355,7 +407,7 @@ struct iqm : skelmodel, skelloader<iqm>
         mdl.model = this;
         mdl.index = 0;
         mdl.pitchscale = mdl.pitchoffset = mdl.pitchmin = mdl.pitchmax = 0;
-        adjustments.setsize(0);
+        iqmadjustments.setsize(0);
         const char *fname = loadname + strlen(loadname);
         do --fname; while(fname >= loadname && *fname!='/' && *fname!='\\');
         fname++;
@@ -370,37 +422,309 @@ struct iqm : skelmodel, skelloader<iqm>
     bool load()
     {
         if(loaded) return true;
-        formatstring(dir)("packages/models/%s", loadname);
+        formatstring(iqmdir)("packages/models/%s", loadname);
         defformatstring(cfgname)("packages/models/%s/iqm.cfg", loadname);
 
-        loading = this;
-        identflags &= ~IDF_PERSIST;
+        loadingiqm = this;
+        persistidents = false;
         if(execfile(cfgname, false) && parts.length()) // configured iqm, will call the iqm* commands below
         {
-            identflags |= IDF_PERSIST;
-            loading = NULL;
+            persistidents = true;
+            loadingiqm = NULL;
             loopv(parts) if(!parts[i]->meshes) return false;
         }
-        else // iqm without configuration, try default tris and skin 
+        else // iqm without configuration, try default tris and skin
         {
-            identflags |= IDF_PERSIST;
-            if(!loaddefaultparts()) 
+            persistidents = true;
+            if(!loaddefaultparts())
             {
-                loading = NULL;
+                loadingiqm = NULL;
                 return false;
             }
-            loading = NULL;
+            loadingiqm = NULL;
         }
         scale /= 4;
-        loopv(parts) 
+        parts[0]->translate = translate;
+        loopv(parts)
         {
             skelpart *p = (skelpart *)parts[i];
             p->endanimparts();
             p->meshes->shared++;
         }
+        preloadshaders();
         return loaded = true;
     }
 };
 
-skelcommands<iqm> iqmcommands;
+void setiqmdir(char *name)
+{
+    if(!loadingiqm) { conoutf("not loading an iqm"); return; }
+    formatstring(iqmdir)("packages/models/%s", name);
+}
+   
+void iqmload(char *meshfile, char *skelname)
+{
+    if(!loadingiqm) { conoutf("not loading an iqm"); return; }
+    defformatstring(filename)("%s/%s", iqmdir, meshfile);
+    iqm::skelpart &mdl = *new iqm::skelpart;
+    loadingiqm->parts.add(&mdl);
+    mdl.model = loadingiqm;
+    mdl.index = loadingiqm->parts.length()-1;
+    mdl.pitchscale = mdl.pitchoffset = mdl.pitchmin = mdl.pitchmax = 0;
+    iqmadjustments.setsize(0);
+    mdl.meshes = loadingiqm->sharemeshes(path(filename), skelname[0] ? skelname : NULL);
+    if(!mdl.meshes) conoutf("could not load %s", filename); // ignore failure
+    else
+    {
+        mdl.initanimparts();
+        mdl.initskins();
+    }
+}
 
+void iqmtag(char *name, char *tagname)
+{
+    if(!loadingiqm || loadingiqm->parts.empty()) { conoutf("not loading an iqm"); return; }
+    iqm::part &mdl = *loadingiqm->parts.last();
+    int i = mdl.meshes ? ((iqm::skelmeshgroup *)mdl.meshes)->skel->findbone(name) : -1;
+    if(i >= 0)
+    {
+        ((iqm::skelmeshgroup *)mdl.meshes)->skel->addtag(tagname, i);
+        return;
+    }
+    conoutf("could not find bone %s for tag %s", name, tagname);
+}
+       
+void iqmpitch(char *name, float *pitchscale, float *pitchoffset, float *pitchmin, float *pitchmax)
+{
+    if(!loadingiqm || loadingiqm->parts.empty()) { conoutf("not loading an iqm"); return; }
+    iqm::part &mdl = *loadingiqm->parts.last();
+
+    if(name[0])
+    {
+        int i = mdl.meshes ? ((iqm::skelmeshgroup *)mdl.meshes)->skel->findbone(name) : -1;
+        if(i>=0)
+        {
+            iqm::boneinfo &b = ((iqm::skelmeshgroup *)mdl.meshes)->skel->bones[i];
+            b.pitchscale = *pitchscale;
+            b.pitchoffset = *pitchoffset;
+            if(*pitchmin || *pitchmax)
+            {
+                b.pitchmin = *pitchmin;
+                b.pitchmax = *pitchmax;
+            }
+            else
+            {
+                b.pitchmin = -360*b.pitchscale;
+                b.pitchmax = 360*b.pitchscale;
+            }
+            return;
+        }
+        conoutf("could not find bone %s to pitch", name);
+        return;
+    }
+
+    mdl.pitchscale = *pitchscale;
+    mdl.pitchoffset = *pitchoffset;
+    if(*pitchmin || *pitchmax)
+    {
+        mdl.pitchmin = *pitchmin;
+        mdl.pitchmax = *pitchmax;
+    }
+    else
+    {
+        mdl.pitchmin = -360*mdl.pitchscale;
+        mdl.pitchmax = 360*mdl.pitchscale;
+    }
+}
+
+void iqmadjust(char *name, float *yaw, float *pitch, float *roll, float *tx, float *ty, float *tz)
+{
+    if(!loadingiqm || loadingiqm->parts.empty()) { conoutf("not loading an iqm"); return; }
+    iqm::part &mdl = *loadingiqm->parts.last();
+
+    if(!name[0]) return;
+    int i = mdl.meshes ? ((iqm::skelmeshgroup *)mdl.meshes)->skel->findbone(name) : -1;
+    if(i < 0) {  conoutf("could not find bone %s to adjust", name); return; }
+    while(!iqmadjustments.inrange(i)) iqmadjustments.add(iqmadjustment(0, 0, 0, vec(0, 0, 0)));
+    iqmadjustments[i] = iqmadjustment(*yaw, *pitch, *roll, vec(*tx/4, *ty/4, *tz/4));
+}
+
+#define loopiqmmeshes(meshname, m, body) \
+    if(!loadingiqm || loadingiqm->parts.empty()) { conoutf("not loading an iqm"); return; } \
+    iqm::part &mdl = *loadingiqm->parts.last(); \
+    if(!mdl.meshes) return; \
+    loopv(mdl.meshes->meshes) \
+    { \
+        iqm::skelmesh &m = *(iqm::skelmesh *)mdl.meshes->meshes[i]; \
+        if(!strcmp(meshname, "*") || (m.name && !strcmp(m.name, meshname))) \
+        { \
+            body; \
+        } \
+    }
+
+#define loopiqmskins(meshname, s, body) loopiqmmeshes(meshname, m, { iqm::skin &s = mdl.skins[i]; body; })
+
+void iqmskin(char *meshname, char *tex, char *masks, float *envmapmax, float *envmapmin)
+{
+    loopiqmskins(meshname, s,
+        s.tex = textureload(makerelpath(iqmdir, tex), 0, true, false);
+        if(*masks)
+        {
+            s.masks = textureload(makerelpath(iqmdir, masks, "<stub>"), 0, true, false);
+            s.envmapmax = *envmapmax;
+            s.envmapmin = *envmapmin;
+        }
+    );
+}
+
+void iqmspec(char *meshname, int *percent)
+{
+    float spec = 1.0f;
+    if(*percent>0) spec = *percent/100.0f;
+    else if(*percent<0) spec = 0.0f;
+    loopiqmskins(meshname, s, s.spec = spec);
+}
+
+void iqmambient(char *meshname, int *percent)
+{
+    float ambient = 0.3f;
+    if(*percent>0) ambient = *percent/100.0f;
+    else if(*percent<0) ambient = 0.0f;
+    loopiqmskins(meshname, s, s.ambient = ambient);
+}
+
+void iqmglow(char *meshname, int *percent)
+{
+    float glow = 3.0f;
+    if(*percent>0) glow = *percent/100.0f;
+    else if(*percent<0) glow = 0.0f;
+    loopiqmskins(meshname, s, s.glow = glow);
+}
+
+void iqmglare(char *meshname, float *specglare, float *glowglare)
+{
+    loopiqmskins(meshname, s, { s.specglare = *specglare; s.glowglare = *glowglare; });
+}
+
+void iqmalphatest(char *meshname, float *cutoff)
+{
+    loopiqmskins(meshname, s, s.alphatest = max(0.0f, min(1.0f, *cutoff)));
+}
+
+void iqmalphablend(char *meshname, int *blend)
+{
+    loopiqmskins(meshname, s, s.alphablend = *blend!=0);
+}
+
+void iqmcullface(char *meshname, int *cullface)
+{
+    loopiqmskins(meshname, s, s.cullface = *cullface!=0);
+}
+
+void iqmenvmap(char *meshname, char *envmap)
+{
+    Texture *tex = cubemapload(envmap);
+    loopiqmskins(meshname, s, s.envmap = tex);
+}
+
+void iqmbumpmap(char *meshname, char *normalmap, char *skin)
+{
+    Texture *normalmaptex = NULL, *skintex = NULL;
+    normalmaptex = textureload(makerelpath(iqmdir, normalmap, "<noff>"), 0, true, false);
+    if(skin[0]) skintex = textureload(makerelpath(iqmdir, skin, "<noff>"), 0, true, false);
+    loopiqmskins(meshname, s, { s.unlittex = skintex; s.normalmap = normalmaptex; m.calctangents(); });
+}
+
+void iqmfullbright(char *meshname, float *fullbright)
+{
+    loopiqmskins(meshname, s, s.fullbright = *fullbright);
+}
+
+void iqmshader(char *meshname, char *shader)
+{
+    loopiqmskins(meshname, s, s.shader = lookupshaderbyname(shader));
+}
+
+void iqmscroll(char *meshname, float *scrollu, float *scrollv)
+{
+    loopiqmskins(meshname, s, { s.scrollu = *scrollu; s.scrollv = *scrollv; });
+}
+
+void iqmanim(char *anim, char *animfile, float *speed, int *priority)
+{
+    if(!loadingiqm || loadingiqm->parts.empty()) { conoutf("not loading an iqm"); return; }
+
+    vector<int> anims;
+    findanims(anim, anims);
+    if(anims.empty()) conoutf("could not find animation %s", anim);
+    else
+    {
+        iqm::part *p = loadingiqm->parts.last();
+        if(!p->meshes) return;
+        defformatstring(filename)("%s/%s", iqmdir, animfile);
+        iqm::skelanimspec *sa = ((iqm::iqmmeshgroup *)p->meshes)->loadanim(path(filename));
+        if(!sa) conoutf("could not load iqm anim file %s", filename);
+        else loopv(anims)
+        {
+            loadingiqm->parts.last()->setanim(p->numanimparts-1, anims[i], sa->frame, sa->range, *speed, *priority);
+        }
+    }
+}
+
+void iqmanimpart(char *maskstr)
+{
+    if(!loadingiqm || loadingiqm->parts.empty()) { conoutf("not loading an iqm"); return; }
+
+    iqm::skelpart *p = (iqm::skelpart *)loadingiqm->parts.last();
+
+    vector<char *> bonestrs;
+    explodelist(maskstr, bonestrs);
+    vector<ushort> bonemask;
+    loopv(bonestrs)
+    {
+        char *bonestr = bonestrs[i];
+        int bone = p->meshes ? ((iqm::skelmeshgroup *)p->meshes)->skel->findbone(bonestr[0]=='!' ? bonestr+1 : bonestr) : -1;
+        if(bone<0) { conoutf("could not find bone %s for anim part mask [%s]", bonestr, maskstr); bonestrs.deletearrays(); return; }
+        bonemask.add(bone | (bonestr[0]=='!' ? BONEMASK_NOT : 0));
+    }
+    bonestrs.deletearrays();
+    bonemask.sort(bonemaskcmp);
+    if(bonemask.length()) bonemask.add(BONEMASK_END);
+
+    if(!p->addanimpart(bonemask.getbuf())) conoutf("too many animation parts");
+}
+
+void iqmlink(int *parent, int *child, char *tagname, float *x, float *y, float *z)
+{
+    if(!loadingiqm) { conoutf("not loading an iqm"); return; }
+    if(!loadingiqm->parts.inrange(*parent) || !loadingiqm->parts.inrange(*child)) { conoutf("no models loaded to link"); return; }
+    if(!loadingiqm->parts[*parent]->link(loadingiqm->parts[*child], tagname, vec(*x, *y, *z))) conoutf("could not link model %s", loadingiqm->loadname);
+}
+
+void iqmnoclip(char *meshname, int *noclip)
+{
+    loopiqmmeshes(meshname, m, m.noclip = *noclip!=0);
+}
+
+COMMANDN(iqmdir, setiqmdir, "s");
+COMMAND(iqmload, "ss");
+COMMAND(iqmtag, "ss");
+COMMAND(iqmpitch, "sffff");
+COMMAND(iqmadjust, "sffffff");
+COMMAND(iqmskin, "sssff");
+COMMAND(iqmspec, "si");
+COMMAND(iqmambient, "si");
+COMMAND(iqmglow, "si");
+COMMAND(iqmglare, "sff");
+COMMAND(iqmalphatest, "sf");
+COMMAND(iqmalphablend, "si");
+COMMAND(iqmcullface, "si");
+COMMAND(iqmenvmap, "ss");
+COMMAND(iqmbumpmap, "sss");
+COMMAND(iqmfullbright, "sf");
+COMMAND(iqmshader, "ss");
+COMMAND(iqmscroll, "sff");
+COMMAND(iqmanimpart, "s");
+COMMAND(iqmanim, "ssfi");
+COMMAND(iqmlink, "iisfff");
+COMMAND(iqmnoclip, "si");           

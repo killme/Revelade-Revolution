@@ -89,7 +89,7 @@ VARF(moving, 0, 0, 1,
     if(moving) havesel = false; // tell cursorupdate to create handle
 );
 
-VARF(gridpower, 0, 2, 12,
+VARF(gridpower, 0, 3, 12,
 {
     if(dragging) return;
     gridsize = 1<<gridpower;
@@ -119,12 +119,8 @@ void cancelsel()
 
 void toggleedit(bool force)
 {
-    if(!force)
-    {
-        if(!isconnected()) return;
-        if(player->state!=CS_ALIVE && player->state!=CS_DEAD && player->state!=CS_EDITING) return; // do not allow dead players to edit to avoid state confusion
-        if(!game::allowedittoggle()) return;         // not in most multiplayer modes
-    }
+    if(player->state!=CS_ALIVE && player->state!=CS_DEAD && player->state!=CS_EDITING) return; // do not allow dead players to edit to avoid state confusion
+    if(!editmode && !game::allowedittoggle()) return;         // not in most multiplayer modes
     if(!(editmode = !editmode))
     {
         player->state = player->editstate;
@@ -141,6 +137,8 @@ void toggleedit(bool force)
     stoppaintblendmap();
     keyrepeat(editmode);
     editing = entediting = editmode;
+    extern int fullbright;
+    if(fullbright) initlights();
     if(!force) game::edittoggled(editmode);
 }
 
@@ -157,6 +155,8 @@ bool noedit(bool view, bool msg)
     if(!viewable && msg) conoutf(CON_ERROR, "selection not in view");
     return !viewable;
 }
+
+extern void createheightmap();
 
 void reorient()
 {
@@ -204,12 +204,12 @@ cube &blockcube(int x, int y, int z, const block3 &b, int rgrid) // looks up a w
 
 #define loopxy(b)        loop(y,(b).s[C[dimension((b).orient)]]) loop(x,(b).s[R[dimension((b).orient)]])
 #define loopxyz(b, r, f) { loop(z,(b).s[D[dimension((b).orient)]]) loopxy((b)) { cube &c = blockcube(x,y,z,b,r); f; } }
-#define loopselxyz(f)    { if(local) makeundo(); loopxyz(sel, sel.grid, f); changed(sel); }
+#define loopselxyz(f)    { makeundo(); loopxyz(sel, sel.grid, f); changed(sel); }
 #define selcube(x, y, z) blockcube(x, y, z, sel, sel.grid)
 
 ////////////// cursor ///////////////
 
-int selchildcount = 0, selchildmat = -1;
+int selchildcount=0;
 
 ICOMMAND(havesel, "", (), intret(havesel ? selchildcount : 0));
 
@@ -221,15 +221,7 @@ void countselchild(cube *c, const ivec &cor, int size)
     {
         ivec o(i, cor.x, cor.y, cor.z, size);
         if(c[i].children) countselchild(c[i].children, o, size/2);
-        else 
-        {
-            selchildcount++;
-            if(c[i].material != MAT_AIR && selchildmat != MAT_AIR)
-            {
-                if(selchildmat < 0) selchildmat = c[i].material;
-                else if(selchildmat != c[i].material) selchildmat = MAT_AIR;
-            }
-        }
+        else selchildcount++;
     }
 }
 
@@ -345,7 +337,6 @@ void rendereditcursor()
            if(!havesel) 
            {
                selchildcount = 0;
-               selchildmat = -1;
                sel.s = ivec(0, 0, 0);
            }
         }
@@ -419,13 +410,8 @@ void rendereditcursor()
 
             sel.corner = (cor[R[d]]-(lu[R[d]]*2)/gridsize)+(cor[C[d]]-(lu[C[d]]*2)/gridsize)*2;
             selchildcount = 0;
-            selchildmat = -1;
             countselchild(worldroot, ivec(0, 0, 0), worldsize/2);
-            if(mag>=1 && selchildcount==1) 
-            {
-                selchildmat = c->material;
-                if(mag>1) selchildcount = -mag;
-            }
+            if(mag>1 && selchildcount==1) selchildcount = -mag;
         }
     }
 
@@ -434,7 +420,7 @@ void rendereditcursor()
     
     // cursors    
 
-    ldrnotextureshader->set();
+    lineshader->set();
 
     renderentselection(player->o, camdir, entmoving!=0);
 
@@ -474,6 +460,8 @@ void rendereditcursor()
    
     disablepolygonoffset(GL_POLYGON_OFFSET_LINE);
 
+    notextureshader->set();
+
     glDisable(GL_BLEND);
 }
 
@@ -500,7 +488,7 @@ void readychanges(block3 &b, cube *c, const ivec &cor, int size)
                 int hasmerges = c[i].ext->va->hasmerges;
                 destroyva(c[i].ext->va);
                 c[i].ext->va = NULL;
-                if(hasmerges) invalidatemerges(c[i], o, size, true); 
+                if(hasmerges) invalidatemerges(c[i], true); 
             }
             freeoctaentities(c[i]);
             c[i].ext->tjoints = -1;
@@ -526,14 +514,14 @@ void commitchanges(bool force)
 
     extern vector<vtxarray *> valist;
     int oldlen = valist.length();
-    resetclipplanes();
     entitiesinoctanodes();
     inbetweenframes = false;
     octarender();
     inbetweenframes = true;
     setupmaterials(oldlen);
-    clearshadowcache();
+    invalidatepostfx();
     updatevabbs();
+    resetblobs();
 }
 
 void changed(const block3 &sel, bool commit = true)
@@ -556,37 +544,35 @@ void changed(const block3 &sel, bool commit = true)
 }
 
 //////////// copy and undo /////////////
-static inline void copycube(const cube &src, cube &dst)
+cube copycube(cube &src)
 {
-    dst = src;
-    dst.visible = 0;
-    dst.merged = 0;
-    dst.ext = NULL; // src cube is responsible for va destruction
+    cube c = src;
+    c.ext = NULL; // src cube is responsible for va destruction
     if(src.children)
     {
-        dst.children = newcubes(F_EMPTY);
-        loopi(8) copycube(src.children[i], dst.children[i]);
+        c.children = newcubes(F_EMPTY);
+        loopi(8) c.children[i] = copycube(src.children[i]);
     }
+    else if(src.ext && src.ext->material!=MAT_AIR) ext(c).material = src.ext->material;
+    return c;
 }
 
-static inline void pastecube(const cube &src, cube &dst)
+void pastecube(cube &src, cube &dest)
 {
-	discardchildren(dst);
-	copycube(src, dst);
+    discardchildren(dest);
+    dest = copycube(src);
 }
 
 void blockcopy(const block3 &s, int rgrid, block3 *b)
 {
     *b = s;
     cube *q = b->c();
-    loopxyz(s, rgrid, copycube(c, *q++));
+    loopxyz(s, rgrid, *q++ = copycube(c));
 }
 
 block3 *blockcopy(const block3 &s, int rgrid)
 {
-    int bsize = sizeof(block3)+sizeof(cube)*s.size();
-    if(bsize <= 0 || bsize > (100<<20)) return 0;
-    block3 *b = (block3 *)new uchar[bsize];
+    block3 *b = (block3 *)new uchar[sizeof(block3)+sizeof(cube)*s.size()];
     blockcopy(s, rgrid, b);
     return b;
 }
@@ -703,7 +689,6 @@ undoblock *newundocube(selinfo &s)
     int ssize = s.size(),
         selgridsize = ssize*sizeof(int),
         blocksize = sizeof(block3)+ssize*sizeof(cube);
-    if(blocksize <= 0 || blocksize > (undomegs<<20)) return NULL;
     undoblock *u = (undoblock *)new uchar[sizeof(undoblock) + blocksize + selgridsize];
     u->numents = 0;
     block3 *b = (block3 *)(u + 1);
@@ -728,7 +713,7 @@ void makeundoex(selinfo &s)
 {
     if(nompedit && multiplayer(false)) return;
     undoblock *u = newundocube(s);
-    if(u) addundo(u);
+    addundo(u);
 }
 
 void makeundo()                        // stores state of selected cubes before editing
@@ -741,32 +726,29 @@ void makeundo()                        // stores state of selected cubes before 
 void swapundo(undolist &a, undolist &b, const char *s)
 {
     if(noedit() || (nompedit && multiplayer())) return;
-    if(a.empty()) { conoutf(CON_WARN, "nothing more to %s", s); return; }	
-	int ts = a.last->timestamp;
+    if(a.empty()) { conoutf(CON_WARN, "nothing more to %s", s); return; }
+    int ts = a.last->timestamp;
     selinfo l = sel;
-	while(!a.empty() && ts==a.last->timestamp)
-	{
-		undoblock *u = a.poplast(), *r;
+    while(!a.empty() && ts==a.last->timestamp)
+    {
+        undoblock *u = a.poplast(), *r;
         if(u->numents) r = copyundoents(u);
-		else
-		{
-            block3 *ub = u->block();
-			l.o = ub->o;
-			l.s = ub->s;
-			l.grid = ub->grid;
-			l.orient = ub->orient;
-            r = newundocube(l);
-		}
-        if(r)
+        else
         {
-            r->size = u->size;
-            r->timestamp = totalmillis;
-            b.add(r);
+            block3 *ub = u->block();
+            l.o = ub->o;
+            l.s = ub->s;
+            l.grid = ub->grid;
+            l.orient = ub->orient;
+            r = newundocube(l);
         }
-		pasteundo(u);
-		if(!u->numents) changed(l, false);
-		freeundo(u);
-	}
+        r->size = u->size;
+        r->timestamp = totalmillis;
+        b.add(r);
+        pasteundo(u);
+        if(!u->numents) changed(l, false);
+        freeundo(u);
+    }
     commitchanges();
     if(!hmapsel) 
     {
@@ -779,14 +761,10 @@ void swapundo(undolist &a, undolist &b, const char *s)
 void editundo() { swapundo(undos, redos, "undo"); }
 void editredo() { swapundo(redos, undos, "redo"); }
 
-// guard against subdivision
-#define protectsel(f) { undoblock *_u = newundocube(sel); f; if(_u) { pasteundo(_u); freeundo(_u); } }
-
 vector<editinfo *> editinfos;
 editinfo *localedit = NULL;
 
-template<class B>
-static void packcube(cube &c, B &buf)
+static void packcube(cube &c, vector<uchar> &buf)
 {
     if(c.children)
     {
@@ -795,19 +773,18 @@ static void packcube(cube &c, B &buf)
     }
     else
     {
+        buf.put(c.ext ? c.ext->material : 0);
         cube data = c;
         lilswap(data.texture, 6);
-        buf.put(c.material&0xFF);
-        buf.put(c.material>>8);
         buf.put(data.edges, sizeof(data.edges));
         buf.put((uchar *)data.texture, sizeof(data.texture));
     }
 }
 
-template<class B>
-static bool packblock(block3 &b, B &buf)
+static bool packeditinfo(editinfo *e, vector<uchar> &buf)
 {
-    if(b.size() <= 0 || b.size() > (1<<20)) return false;
+    if(!e || !e->copy || e->copy->size() > (16<<20)) return false;
+    block3 &b = *e->copy;
     block3 hdr = b; 
     lilswap(hdr.o.v, 3);
     lilswap(hdr.s.v, 3);
@@ -819,8 +796,7 @@ static bool packblock(block3 &b, B &buf)
     return true;
 }
 
-template<class B>
-static void unpackcube(cube &c, B &buf)
+static void unpackcube(cube &c, ucharbuf &buf)
 {
     int mat = buf.get();
     if(mat == 0xFF)
@@ -830,29 +806,30 @@ static void unpackcube(cube &c, B &buf)
     }
     else
     {
-        c.material = mat | (buf.get()<<8);
+        if(mat != MAT_AIR) ext(c).material = mat;
         buf.get(c.edges, sizeof(c.edges));
         buf.get((uchar *)c.texture, sizeof(c.texture));
         lilswap(c.texture, 6);
     }
 }
 
-template<class B>
-static bool unpackblock(block3 *&b, B &buf)
+static bool unpackeditinfo(editinfo *&e, ucharbuf &buf)
 {
-    if(b) { freeblock(b); b = NULL; }
+    if(!e) e = editinfos.add(new editinfo);
+    if(e->copy) { freeblock(e->copy); e->copy = NULL; }
     block3 hdr;
     buf.get((uchar *)&hdr, sizeof(hdr));
     lilswap(hdr.o.v, 3);
     lilswap(hdr.s.v, 3);
     lilswap(&hdr.grid, 1);
     lilswap(&hdr.orient, 1);
-    if(hdr.size() > (1<<20)) return false;
-    b = (block3 *)new uchar[sizeof(block3)+hdr.size()*sizeof(cube)];
-    *b = hdr;
-    cube *c = b->c(); 
-    memset(c, 0, b->size()*sizeof(cube));
-    loopi(b->size()) unpackcube(c[i], buf);
+    if(hdr.size() > (16<<20)) return false;
+    e->copy = (block3 *)new uchar[sizeof(block3)+hdr.size()*sizeof(cube)];
+    block3 &b = *e->copy;
+    b = hdr; 
+    cube *c = b.c(); 
+    memset(c, 0, b.size()*sizeof(cube));
+    loopi(b.size()) unpackcube(c[i], buf);
     return true;
 }
 
@@ -889,7 +866,7 @@ static bool uncompresseditinfo(const uchar *inbuf, int inlen, uchar *&outbuf, in
 bool packeditinfo(editinfo *e, int &inlen, uchar *&outbuf, int &outlen)
 {
     vector<uchar> buf;
-    if(!e || !e->copy || !packblock(*e->copy, buf)) return false;
+    if(!packeditinfo(e, buf)) return false;
     inlen = buf.length();
     return compresseditinfo(buf.getbuf(), buf.length(), outbuf, outlen);
 }
@@ -900,8 +877,7 @@ bool unpackeditinfo(editinfo *&e, const uchar *inbuf, int inlen, int outlen)
     uchar *outbuf = NULL;
     if(!uncompresseditinfo(inbuf, inlen, outbuf, outlen)) return false;
     ucharbuf buf(outbuf, outlen);
-    if(!e) e = editinfos.add(new editinfo);
-    if(!unpackblock(e->copy, buf))
+    if(!unpackeditinfo(e, buf))
     {
         delete[] outbuf;
         return false;
@@ -919,95 +895,9 @@ void freeeditinfo(editinfo *&e)
     e = NULL;
 }
 
-struct octabrushheader
-{
-    char magic[4];
-    int version;
-};
+// guard against subdivision
+#define protectsel(f) { undoblock *_u = newundocube(sel); f; pasteundo(_u); freeundo(_u); }
 
-struct octabrush : editinfo
-{
-    char *name;
-
-    octabrush() : name(NULL) {}
-    ~octabrush() { DELETEA(name); if(copy) freeblock(copy); }
-};
-
-static inline bool htcmp(const char *key, const octabrush &b) { return !strcmp(key, b.name); }
-
-static hashset<octabrush> octabrushes;
-
-void delbrush(char *name)
-{
-    if(octabrushes.remove(name))
-        conoutf("deleted brush %s", name); 
-}
-COMMAND(delbrush, "s");
-
-void savebrush(char *name)
-{
-    if(!name[0] || noedit(true) || (nompedit && multiplayer())) return;
-    octabrush *b = octabrushes.access(name);
-    if(!b)
-    {
-        b = &octabrushes[name];
-        b->name = newstring(name);
-    }
-    if(b->copy) freeblock(b->copy);
-    protectsel(b->copy = blockcopy(block3(sel), sel.grid));
-    changed(sel);
-    defformatstring(filename)(strpbrk(name, "/\\") ? "packages/%s.obr" : "packages/brush/%s.obr", name);
-    path(filename);
-    stream *f = opengzfile(filename, "wb");
-    if(!f) { conoutf(CON_ERROR, "could not write brush to %s", filename); return; }
-    octabrushheader hdr;
-    memcpy(hdr.magic, "OEBR", 4);
-    hdr.version = 0;
-    lilswap(&hdr.version, 1);
-    f->write(&hdr, sizeof(hdr));
-    streambuf<uchar> s(f);
-    if(!packblock(*b->copy, s)) { delete f; conoutf(CON_ERROR, "could not pack brush %s", filename); return; } 
-    delete f;
-    conoutf("wrote brush file %s", filename);
-}
-COMMAND(savebrush, "s");
-
-void pasteblock(block3 &b, selinfo &sel, bool local)
-{
-    sel.s = b.s;
-    int o = sel.orient;
-    sel.orient = b.orient;
-    cube *s = b.c();
-    loopselxyz(if(!isempty(*s) || s->children || s->material != MAT_AIR) pastecube(*s, c); s++); // 'transparent'. old opaque by 'delcube; paste'
-    sel.orient = o;
-}
-
-void pastebrush(char *name)
-{
-    if(!name[0] || noedit() || (nompedit && multiplayer())) return;
-    octabrush *b = octabrushes.access(name);
-    if(!b)
-    {
-        defformatstring(filename)(strpbrk(name, "/\\") ? "packages/%s.obr" : "packages/brush/%s.obr", name);
-        path(filename);
-        stream *f = opengzfile(filename, "rb");
-        if(!f) { conoutf(CON_ERROR, "could not read brush %s", filename); return; }
-        octabrushheader hdr;
-        if(f->read(&hdr, sizeof(hdr)) != sizeof(octabrushheader) || memcmp(hdr.magic, "OEBR", 4)) { delete f; conoutf(CON_ERROR, "brush %s has malformatted header", filename); return; }
-        lilswap(&hdr.version, 1);
-        if(hdr.version != 0) { delete f; conoutf(CON_ERROR, "brush %s uses unsupported version", filename); return; }
-        streambuf<uchar> s(f);
-        block3 *copy = NULL;
-        if(!unpackblock(copy, s)) { delete f; conoutf(CON_ERROR, "could not unpack brush %s", filename); return; }
-        delete f;
-        b = &octabrushes[name];
-        b->name = newstring(name);
-        b->copy = copy;
-    }
-    pasteblock(*b->copy, sel, true);
-}
-COMMAND(pastebrush, "s");
- 
 void mpcopy(editinfo *&e, selinfo &sel, bool local)
 {
     if(local) game::edittrigger(sel, EDIT_COPY);
@@ -1022,7 +912,15 @@ void mppaste(editinfo *&e, selinfo &sel, bool local)
 {
     if(e==NULL) return;
     if(local) game::edittrigger(sel, EDIT_PASTE);
-    if(e->copy) pasteblock(*e->copy, sel, local);
+    if(e->copy)
+    {
+        sel.s = e->copy->s;
+        int o = sel.orient;
+        sel.orient = e->copy->orient;
+        cube *s = e->copy->c();
+        loopselxyz(if (!isempty(*s) || s->children) pastecube(*s, c); s++); // 'transparent'. old opaque by 'delcube; paste'
+        sel.orient = o;
+    }
 }
 
 void copy()
@@ -1034,7 +932,7 @@ void copy()
 void pastehilite()
 {
     if(!localedit) return;
-	sel.s = localedit->copy->s;
+    sel.s = localedit->copy->s;
     reorient();
     havesel = true;
 }
@@ -1184,7 +1082,7 @@ namespace hmap
     {
         if(!(flags[x][y] & MAPPED))
           map[x][y] = v + (z*8);
-        flags[x][y] |= MAPPED;
+      flags[x][y] |= MAPPED;
     }
     
     void select(int x, int y, int z)
@@ -1205,8 +1103,10 @@ namespace hmap
         {   // try up             
             c[2] = c[1];
             c[1] = getcube(t, 1);
-            if(!c[1] || isempty(*c[1])) { c[0] = c[1]; c[1] = c[2]; c[2] = NULL; }
-            else { z++; t[d]+=fg; }
+            if(!c[1] || isempty(*c[1])) {
+                c[0] = c[1], c[1] = c[2], c[2] = NULL;
+            }else
+                z++, t[d]+=fg;
         }
         else // drop down
         { 
@@ -1280,7 +1180,7 @@ namespace hmap
         if(biasup)
             pullhmap(0, >, <, 1, 0, -);
         else
-            pullhmap(worldsize*8, <, >, 0, 8, +);     
+            pullhmap(worldsize, <, >, 0, 8, +);     
    
         cube **c  = cmap[x][y];
         int e[2][2];
@@ -1426,7 +1326,7 @@ namespace hmap
 }
 
 void edithmap(int dir, int mode) {    
-    if((nompedit && multiplayer()) || !hmapsel) return;    
+    if((nompedit && multiplayer()) || !hmapsel || gridsize < 8) return;    
     hmap::run(dir, mode);        
 }
 
@@ -1437,9 +1337,9 @@ int bounded(int n) { return n<0 ? 0 : (n>8 ? 8 : n); }
 void pushedge(uchar &edge, int dir, int dc)
 {
     int ne = bounded(edgeget(edge, dc)+dir);
-    edgeset(edge, dc, ne);
+    edge = edgeset(edge, dc, ne);
     int oe = edgeget(edge, 1-dc);
-    if((dir<0 && dc && oe>ne) || (dir>0 && dc==0 && oe<ne)) edgeset(edge, 1-dc, ne);
+    if((dir<0 && dc && oe>ne) || (dir>0 && dc==0 && oe<ne)) edge = edgeset(edge, 1-dc, ne);
 }
 
 void linkedpush(cube &c, int d, int x, int y, int dc, int dir)
@@ -1455,15 +1355,15 @@ void linkedpush(cube &c, int d, int x, int y, int dc, int dir)
     }
 }
 
-static ushort getmaterial(cube &c)
+static uchar getmaterial(cube &c)
 {
     if(c.children)
     {
-        ushort mat = getmaterial(c.children[7]);
+        uchar mat = getmaterial(c.children[7]);
         loopi(7) if(mat != getmaterial(c.children[i])) return MAT_AIR;
         return mat;
     }
-    return c.material;
+    return c.ext ? c.ext->material : MAT_AIR;
 }
 
 VAR(invalidcubeguard, 0, 1, 1);
@@ -1490,9 +1390,9 @@ void mpeditface(int dir, int mode, selinfo &sel, bool local)
 
     loopselxyz(
         if(c.children) solidfaces(c);
-        ushort mat = getmaterial(c);
+        uchar mat = getmaterial(c);
         discardchildren(c, true);
-        c.material = mat;
+        if(mat!=MAT_AIR) ext(c).material = mat;
         if(mode==1) // fill command
         {
             if(dir<0)
@@ -1739,7 +1639,8 @@ void voffset(int *x, int *y)
     if(noedit() || (nompedit && multiplayer())) return;
     VSlot ds;
     ds.changed = 1<<VSLOT_OFFSET;
-    ds.offset = usevdelta ? ivec2(*x, *y) : ivec2(*x, *y).max(0);
+    ds.xoffset = usevdelta ? *x : max(*x, 0);
+    ds.yoffset = usevdelta ? *y : max(*y, 0);
     mpeditvslot(ds, allfaces, sel, true);
 }
 COMMAND(voffset, "ii");
@@ -1749,7 +1650,8 @@ void vscroll(float *s, float *t)
     if(noedit() || (nompedit && multiplayer())) return;
     VSlot ds;
     ds.changed = 1<<VSLOT_SCROLL;
-    ds.scroll = vec2(*s/1000.0f, *t/1000.0f);
+    ds.scrollS = *s/1000.0f;
+    ds.scrollT = *t/1000.0f;
     mpeditvslot(ds, allfaces, sel, true);
 }
 COMMAND(vscroll, "ff");
@@ -1795,21 +1697,6 @@ void vcolor(float *r, float *g, float *b)
 }
 COMMAND(vcolor, "fff");
 
-void vrefract(float *k, float *r, float *g, float *b)
-{
-    if(noedit() || (nompedit && multiplayer())) return;
-    VSlot ds;
-    ds.changed = 1<<VSLOT_REFRACT;
-    ds.refractscale = clamp(*k, 0.0f, 1.0f);
-    if(ds.refractscale > 0 && (*r > 0 || *g > 0 || *b > 0))
-        ds.refractcolor = vec(clamp(*r, 0.0f, 1.0f), clamp(*g, 0.0f, 1.0f), clamp(*b, 0.0f, 1.0f));
-    else
-        ds.refractcolor = vec(1, 1, 1);
-    mpeditvslot(ds, allfaces, sel, true);
-
-}
-COMMAND(vrefract, "ffff");
-
 void vreset()
 {
     if(noedit() || (nompedit && multiplayer())) return;
@@ -1825,7 +1712,7 @@ void vshaderparam(const char *name, float *x, float *y, float *z, float *w)
     ds.changed = 1<<VSLOT_SHPARAM;
     if(name[0])
     {
-        SlotShaderParam p = { getshaderparamname(name), -1, {*x, *y, *z, *w} };
+        ShaderParam p = { getshaderparamname(name), SHPARAM_LOOKUP, -1, -1, {*x, *y, *z, *w} };
         ds.params.add(p);
     }
     mpeditvslot(ds, allfaces, sel, true);
@@ -1922,7 +1809,7 @@ void gettex()
 
 void getcurtex()
 {
-    if(noedit(true)) return;
+    if(noedit()) return;
     filltexlist();
     int index = curtexindex < 0 ? 0 : curtexindex;
     if(!texmru.inrange(index)) return;
@@ -1939,8 +1826,8 @@ void getseltex()
 
 void gettexname(int *tex, int *subslot)
 {
-    if(noedit(true) || *tex<0) return;
-    VSlot &vslot = lookupvslot(*tex, false);
+    if(noedit() || *tex<0) return;
+    VSlot &vslot = lookupvslot(*tex);
     Slot &slot = *vslot.slot;
     if(!slot.sts.inrange(*subslot)) return;
     result(slot.sts[*subslot].name);
@@ -2035,12 +1922,9 @@ void rotatecube(cube &c, int d)   // rotates cube clockwise. see pics in cvs for
 
 void mpflip(selinfo &sel, bool local)
 {
-    if(local) 
-    { 
-        game::edittrigger(sel, EDIT_FLIP);
-        makeundo();
-    }
+    if(local) game::edittrigger(sel, EDIT_FLIP);
     int zs = sel.s[dimension(sel.orient)];
+    makeundo();
     loopxy(sel)
     {
         loop(z,zs) flipcube(selcube(x, y, z), dimension(sel.orient));
@@ -2062,15 +1946,12 @@ void flip()
 
 void mprotate(int cw, selinfo &sel, bool local)
 {
-    if(local) 
-    {
-        game::edittrigger(sel, EDIT_ROTATE, cw);
-        makeundo();
-    }
+    if(local) game::edittrigger(sel, EDIT_ROTATE, cw);
     int d = dimension(sel.orient);
     if(!dimcoord(sel.orient)) cw = -cw;
     int m = sel.s[C[d]] < sel.s[R[d]] ? C[d] : R[d];
     int ss = sel.s[m] = max(sel.s[R[d]], sel.s[C[d]]);
+    makeundo();
     loop(z,sel.s[D[d]]) loopi(cw>0 ? 1 : 3)
     {
         loopxy(sel) rotatecube(selcube(x,y,z), d);
@@ -2094,34 +1975,19 @@ void rotate(int *cw)
 COMMAND(flip, "");
 COMMAND(rotate, "i");
 
-enum { EDITMATF_EMPTY = 0x10000, EDITMATF_NOTEMPTY = 0x20000, EDITMATF_SOLID = 0x30000, EDITMATF_NOTSOLID = 0x40000 };
-static const struct { const char *name; int filter; } editmatfilters[] =
-{
-    { "empty", EDITMATF_EMPTY },
-    { "notempty", EDITMATF_NOTEMPTY },
-    { "solid", EDITMATF_SOLID },
-    { "notsolid", EDITMATF_NOTSOLID }
-};
-
-void setmat(cube &c, ushort mat, ushort matmask, ushort filtermat, ushort filtermask, int filtergeom)
+void setmat(cube &c, uchar mat, uchar matmask, uchar filtermat, uchar filtermask)
 {
     if(c.children)
-        loopi(8) setmat(c.children[i], mat, matmask, filtermat, filtermask, filtergeom);
-    else if((c.material&filtermask) == filtermat)
+        loopi(8) setmat(c.children[i], mat, matmask, filtermat, filtermask);
+    else if(((c.ext ? c.ext->material : MAT_AIR)&filtermask) == filtermat)
     {
-        switch(filtergeom)
+        if(mat!=MAT_AIR) 
         {
-            case EDITMATF_EMPTY: if(isempty(c)) break; return;
-            case EDITMATF_NOTEMPTY: if(!isempty(c)) break; return;
-            case EDITMATF_SOLID: if(isentirelysolid(c)) break; return;
-            case EDITMATF_NOTSOLID: if(!isentirelysolid(c)) break; return;
+            cubeext &e = ext(c);
+            e.material &= matmask;
+            e.material |= mat;
         }
-        if(mat!=MAT_AIR)
-        {
-            c.material &= matmask;
-            c.material |= mat;
-        }
-        else c.material = MAT_AIR;
+        else if(c.ext) c.ext->material = MAT_AIR;
     }
 }
 
@@ -2129,28 +1995,19 @@ void mpeditmat(int matid, int filter, selinfo &sel, bool local)
 {
     if(local) game::edittrigger(sel, EDIT_MAT, matid, filter);
 
-    ushort filtermat = 0, filtermask = 0, matmask;
-    int filtergeom = 0;
-    if(filter >= 0)
-    {
-        filtermat = filter&0xFF;
-        filtermask = filtermat&(MATF_VOLUME|MATF_INDEX) ? MATF_VOLUME|MATF_INDEX : (filtermat&MATF_CLIP ? MATF_CLIP : filtermat);
-        filtergeom = filter&~0xFF;
-    }
-    if(matid < 0)
+    uchar matmask = matid&MATF_VOLUME ? 0 : (matid&MATF_CLIP ? ~MATF_CLIP : ~matid), 
+          filtermat = filter < 0 ? 0 : filter,
+          filtermask = filter < 0 ? 0 : (filter&MATF_VOLUME ? MATF_VOLUME : (filter&MATF_CLIP ? MATF_CLIP : filter));
+    if(isclipped(matid&MATF_VOLUME)) matid |= MAT_CLIP;
+    if(isdeadly(matid&MATF_VOLUME)) matid |= MAT_DEATH;
+    if(matid < 0 && filter >= 0)
     {
         matid = 0;
         matmask = filtermask;
-        if(isclipped(filtermat&MATF_VOLUME)) matmask &= ~MATF_CLIP;
-        if(isdeadly(filtermat&MATF_VOLUME)) matmask &= ~MAT_DEATH;
+        if(isclipped(filter&MATF_VOLUME)) matmask &= ~MATF_CLIP; 
+        if(isdeadly(filter&MATF_VOLUME)) matmask &= ~MAT_DEATH; 
     }
-    else
-    {
-        matmask = matid&(MATF_VOLUME|MATF_INDEX) ? 0 : (matid&MATF_CLIP ? ~MATF_CLIP : ~matid);
-        if(isclipped(matid&MATF_VOLUME)) matid |= MAT_CLIP;
-        if(isdeadly(matid&MATF_VOLUME)) matid |= MAT_DEATH;
-    }
-    loopselxyz(setmat(c, matid, matmask, filtermat, filtermask, filtergeom));
+    loopselxyz(setmat(c, matid, matmask, filtermat, filtermask));
 }
 
 void editmat(char *name, char *filtername)
@@ -2159,13 +2016,8 @@ void editmat(char *name, char *filtername)
     int filter = -1;
     if(filtername[0])
     {
-        loopi(sizeof(editmatfilters)/sizeof(editmatfilters[0])) if(!strcmp(editmatfilters[i].name, filtername)) { filter = editmatfilters[i].filter; break; }
-        if(filter < 0) filter = findmaterial(filtername);
-        if(filter < 0)
-        {
-            conoutf(CON_ERROR, "unknown material \"%s\"", filtername); 
-            return; 
-        }
+        filter = findmaterial(filtername);
+        if(filter < 0) { conoutf(CON_ERROR, "unknown material \"%s\"", filtername); return; }
     }
     int id = -1;
     if(name[0] || filter < 0)
@@ -2178,11 +2030,15 @@ void editmat(char *name, char *filtername)
 
 COMMAND(editmat, "ss");
 
+extern int menudistance, menuautoclose;
+
 VARP(texguiwidth, 1, 12, 1000);
 VARP(texguiheight, 1, 8, 1000);
 VARP(texguitime, 0, 25, 1000);
 
 static int lastthumbnail = 0;
+
+VARP(texgui2d, 0, 1, 1);
 
 struct texturegui : g3d_callback 
 {
@@ -2251,8 +2107,9 @@ struct texturegui : g3d_callback
     {   
         if(!menuon) return;
         filltexlist();
-        if(editmode) g3d_addgui(this, menupos);
-        else menuon = false;
+        extern int usegui2d;
+        if(!editmode || ((!texgui2d || !usegui2d) && camera1->o.dist(menupos) > menuautoclose)) menuon = false;
+        else g3d_addgui(this, menupos, texgui2d ? GUI_2D : 0);
     }
 } gui;
 
@@ -2267,7 +2124,7 @@ void showtexgui(int *n)
     gui.showtextures(*n==0 ? !gui.menuon : *n==1); 
 }
 
-// 0/noargs = toggle, 1 = on, other = off - will autoclose if exit editmode
+// 0/noargs = toggle, 1 = on, other = off - will autoclose if too far away or exit editmode
 COMMAND(showtexgui, "i");
 
 void rendertexturepanel(int w, int h)
@@ -2280,7 +2137,10 @@ void rendertexturepanel(int w, int h)
         glScalef(h/1800.0f, h/1800.0f, 1);
         int y = 50, gap = 10;
 
-        SETSHADER(rgbonly);
+        static Shader *rgbonlyshader = NULL;
+        if(!rgbonlyshader) rgbonlyshader = lookupshaderbyname("rgbonly");
+        
+        rgbonlyshader->set();
 
         loopi(7)
         {
@@ -2302,7 +2162,7 @@ void rendertexturepanel(int w, int h)
                 float sx = min(1.0f, tex->xs/(float)tex->ys), sy = min(1.0f, tex->ys/(float)tex->xs);
                 int x = w*1800/h-s-50, r = s;
                 float tc[4][2] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
-                float xoff = vslot.offset.x, yoff = vslot.offset.y;
+                float xoff = vslot.xoffset, yoff = vslot.yoffset;
                 if(vslot.rotation)
                 {
                     if((vslot.rotation&5) == 1) { swap(xoff, yoff); loopk(4) swap(tc[k][0], tc[k][1]); }

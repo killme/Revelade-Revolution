@@ -53,7 +53,7 @@ static void FUNCNAME(scaletexture)(uchar *src, uint sw, uint sh, uint stride, uc
     uint cscale = clamp(under, over - 12, 12),
          ascale = clamp(12 + under - over, 0, 24),
          dscale = ascale + 12 - cscale,
-         area = ((ullong)darea<<ascale)/sarea;
+         area = ((unsigned long long int)darea<<ascale)/sarea;
     dw *= wfrac;
     dh *= hfrac;
     for(uint y = 0; y < dh; y += hfrac)
@@ -91,7 +91,7 @@ static void FUNCNAME(scaletexture)(uchar *src, uint sw, uint sh, uint stride, uc
                         PIXELOP
                         #undef OP
                     }
-                    #define OP(c, n) c##t += ((c<<12) + xsrc[n]*xlow + xend[n]*xhigh)>>cscale
+                    #define OP(c, n) c##t += ((c<<12) + xsrc[n]*xlow + xend[n]*xhigh)>>cscale;
                     PIXELOP
                     #undef OP
                 }

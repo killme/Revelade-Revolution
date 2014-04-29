@@ -5,7 +5,7 @@ enum                            // hardcoded texture numbers
     DEFAULT_GEOM
 };
 
-#define MAPVERSION 33           // bump if map format changes, see worldio.cpp
+#define MAPVERSION 32           // bump if map format changes, see worldio.cpp
 
 struct octaheader
 {
@@ -43,7 +43,7 @@ struct compatheader             // map file format header
     char maptitle[128];
 };
 
-#define WATER_AMPLITUDE 0.4f
+#define WATER_AMPLITUDE 0.8f
 #define WATER_OFFSET 1.1f
 
 enum 
@@ -55,5 +55,8 @@ enum
 
 #define TEX_SCALE 8.0f
 
-struct vertex { vec pos; bvec norm; uchar reserved; vec2 tc; bvec tangent; uchar bitangent; };
+struct vertexff { vec pos; bvec norm; uchar reserved; float u, v; float lmu, lmv; };
+struct vertex { vec pos; bvec norm; uchar reserved; float u, v; short lmu, lmv; bvec tangent; uchar bitangent; };
  
+#define VTXSIZE (renderpath==R_FIXEDFUNCTION ? sizeof(vertexff) : sizeof(vertex))
+

@@ -1,5 +1,9 @@
 struct smd;
 
+smd *loadingsmd = NULL;
+
+string smddir;
+
 struct smdbone
 {
     string name;
@@ -7,11 +11,20 @@ struct smdbone
     smdbone() : parent(-1) { name[0] = '\0'; }
 };
 
-struct smd : skelmodel, skelloader<smd>
+struct smdadjustment
+{
+    float yaw, pitch, roll;
+    vec translate;
+
+    smdadjustment(float yaw, float pitch, float roll, const vec &translate) : yaw(yaw), pitch(pitch), roll(roll), translate(translate) {}
+};
+
+vector<smdadjustment> smdadjustments;
+
+struct smd : skelmodel
 {
     smd(const char *name) : skelmodel(name) {}
 
-    static const char *formatname() { return "smd"; }
     int type() const { return MDL_SMD; }
 
     struct smdmesh : skelmesh
@@ -20,7 +33,7 @@ struct smd : skelmodel, skelloader<smd>
 
     struct smdmeshgroup : skelmeshgroup
     {
-        smdmeshgroup() 
+        smdmeshgroup()
         {
         }
 
@@ -61,10 +74,10 @@ struct smd : skelmodel, skelloader<smd>
             while(*curbuf)
             {
                 char c = *curbuf++;
-                if(c == '"') break;      
+                if(c == '"') break;     
                 if(isspace(c) && !allowspace) break;
                 if(curname < &name[namesize-1]) *curname++ = c;
-            } 
+            }
             *curname = '\0';
         }
 
@@ -79,7 +92,7 @@ struct smd : skelmodel, skelloader<smd>
                 string name;
                 readname(curbuf, name, sizeof(name));
                 int parent = strtol(curbuf, &curbuf, 10);
-                if(id < 0 || id > 255 || parent > 255 || !name[0]) continue; 
+                if(id < 0 || id > 255 || parent > 255 || !name[0]) continue;
                 while(!bones.inrange(id)) bones.add();
                 smdbone &bone = bones[id];
                 copystring(bone.name, name);
@@ -115,7 +128,7 @@ struct smd : skelmodel, skelloader<smd>
             {
                 if(verts.empty() || tris.empty()) return;
                 vert *mverts = new vert[mesh->numverts + verts.length()];
-                if(mesh->numverts) 
+                if(mesh->numverts)
                 {
                     memcpy(mverts, mesh->verts, mesh->numverts*sizeof(vert));
                     delete[] mesh->verts;
@@ -124,7 +137,7 @@ struct smd : skelmodel, skelloader<smd>
                 mesh->numverts += verts.length();
                 mesh->verts = mverts;
                 tri *mtris = new tri[mesh->numtris + tris.length()];
-                if(mesh->numtris) 
+                if(mesh->numtris)
                 {
                     memcpy(mtris, mesh->tris, mesh->numtris*sizeof(tri));
                     delete[] mesh->tris;
@@ -138,22 +151,22 @@ struct smd : skelmodel, skelloader<smd>
         struct smdvertkey : vert
         {
             smdmeshdata *mesh;
-            
+           
             smdvertkey(smdmeshdata *mesh) : mesh(mesh) {}
         };
-     
+    
         void readtriangles(stream *f, char *buf, size_t bufsize)
         {
             smdmeshdata *curmesh = NULL;
             hashtable<const char *, smdmeshdata> materials(1<<6);
-            hashset<int> verts(1<<12); 
+            hashset<int> verts(1<<12);
             while(f->getline(buf, bufsize))
             {
                 char *curbuf = buf;
                 if(skipcomment(curbuf)) continue;
                 if(!strncmp(curbuf, "end", 3)) break;
                 string material;
-                readmaterial(curbuf, material, sizeof(material)); 
+                readmaterial(curbuf, material, sizeof(material));
                 if(!curmesh || strcmp(curmesh->mesh->name, material))
                 {
                     curmesh = materials.access(material);
@@ -168,7 +181,7 @@ struct smd : skelmodel, skelloader<smd>
                     }
                 }
                 tri curtri;
-                loopi(3)                        
+                loopi(3)                       
                 {
                     char *curbuf;
                     do
@@ -176,9 +189,9 @@ struct smd : skelmodel, skelloader<smd>
                         if(!f->getline(buf, bufsize)) goto endsection;
                         curbuf = buf;
                     } while(skipcomment(curbuf));
-                    smdvertkey key(curmesh);     
+                    smdvertkey key(curmesh);    
                     int parent = -1, numlinks = 0, len = 0;
-                    if(sscanf(curbuf, " %d %f %f %f %f %f %f %f %f %d%n", &parent, &key.pos.x, &key.pos.y, &key.pos.z, &key.norm.x, &key.norm.y, &key.norm.z, &key.u, &key.v, &numlinks, &len) < 9) goto endsection;    
+                    if(sscanf(curbuf, " %d %f %f %f %f %f %f %f %f %d%n", &parent, &key.pos.x, &key.pos.y, &key.pos.z, &key.norm.x, &key.norm.y, &key.norm.z, &key.u, &key.v, &numlinks, &len) < 9) goto endsection;   
                     curbuf += len;
                     key.pos.y = -key.pos.y;
                     key.norm.y = -key.norm.y;
@@ -193,7 +206,7 @@ struct smd : skelmodel, skelloader<smd>
                         if(sscanf(curbuf, " %d %f%n", &bone, &weight, &len) < 2) break;
                         curbuf += len;
                         tweight += weight;
-                        if(bone == parent) pweight += weight;                       
+                        if(bone == parent) pweight += weight;                      
                         else sorted = c.addweight(sorted, weight, bone);
                     }
                     if(tweight < 1) pweight += 1 - tweight;
@@ -226,15 +239,13 @@ struct smd : skelmodel, skelloader<smd>
                     continue;
                 if(bone < 0 || bone >= skel->numbones)
                     continue;
-                rot.x = -rot.x;
-                rot.z = -rot.z;
                 float cx = cosf(rot.x/2), sx = sinf(rot.x/2),
                       cy = cosf(rot.y/2), sy = sinf(rot.y/2),
                       cz = cosf(rot.z/2), sz = sinf(rot.z/2);
                 pos.y = -pos.y;
-                dualquat dq(quat(sx*cy*cz - cx*sy*sz,
+                dualquat dq(quat(-(sx*cy*cz - cx*sy*sz),
                                  cx*sy*cz + sx*cy*sz,
-                                 cx*cy*sz - sx*sy*cz,
+                                 -(cx*cy*sz - sx*sy*cz),
                                  cx*cy*cz + sx*sy*sz),
                             pos);
                 boneinfo &b = skel->bones[bone];
@@ -248,7 +259,7 @@ struct smd : skelmodel, skelloader<smd>
         {
             stream *f = openfile(filename, "r");
             if(!f) return false;
-            
+           
             char buf[512];
             int version = -1;
             while(f->getline(buf, sizeof(buf)))
@@ -263,7 +274,7 @@ struct smd : skelmodel, skelloader<smd>
                 {
                     if(skel->numbones > 0) { skipsection(f, buf, sizeof(buf)); continue; }
                     vector<smdbone> bones;
-                    readnodes(f, buf, sizeof(buf), bones); 
+                    readnodes(f, buf, sizeof(buf), bones);
                     if(bones.empty()) continue;
                     skel->numbones = bones.length();
                     skel->bones = new boneinfo[skel->numbones];
@@ -334,7 +345,13 @@ struct smd : skelmodel, skelloader<smd>
                                  -(cx*cy*sz - sx*sy*cz),
                                  cx*cy*cz + sx*sy*sz),
                             pos);
-                if(adjustments.inrange(bone)) adjustments[bone].adjust(dq);
+                if(smdadjustments.inrange(bone))
+                {
+                    if(smdadjustments[bone].yaw) dq.mulorient(quat(vec(0, 0, 1), smdadjustments[bone].yaw*RAD));
+                    if(smdadjustments[bone].pitch) dq.mulorient(quat(vec(0, -1, 0), smdadjustments[bone].pitch*RAD));
+                    if(smdadjustments[bone].roll) dq.mulorient(quat(vec(-1, 0, 0), smdadjustments[bone].roll*RAD));
+                    if(!smdadjustments[bone].translate.iszero()) dq.translate(smdadjustments[bone].translate);
+                }
                 dq.mul(skel->bones[bone].invbase);
                 dualquat &dst = animbones[frame*skel->numbones + bone];
                 if(skel->bones[bone].parent < 0) dst = dq;
@@ -378,7 +395,7 @@ struct smd : skelmodel, skelloader<smd>
                     skipsection(f, buf, sizeof(buf));
             }
             int numframes = animbones.length() / skel->numbones;
-            dualquat *framebones = new dualquat[(skel->numframes+numframes)*skel->numbones];             
+            dualquat *framebones = new dualquat[(skel->numframes+numframes)*skel->numbones];            
             if(skel->framebones)
             {
                 memcpy(framebones, skel->framebones, skel->numframes*skel->numbones*sizeof(dualquat));
@@ -401,12 +418,12 @@ struct smd : skelmodel, skelloader<smd>
             name = newstring(meshfile);
 
             if(!loadmesh(meshfile)) return false;
-            
+           
             return true;
         }
-    };            
+    };           
 
-    meshgroup *loadmeshes(const char *name, va_list args)
+    meshgroup *loadmeshes(char *name, va_list args)
     {
         smdmeshgroup *group = new smdmeshgroup;
         group->shareskeleton(va_arg(args, char *));
@@ -421,7 +438,7 @@ struct smd : skelmodel, skelloader<smd>
         mdl.model = this;
         mdl.index = 0;
         mdl.pitchscale = mdl.pitchoffset = mdl.pitchmin = mdl.pitchmax = 0;
-        adjustments.setsize(0);
+        smdadjustments.setsize(0);
         const char *fname = loadname + strlen(loadname);
         do --fname; while(fname >= loadname && *fname!='/' && *fname!='\\');
         fname++;
@@ -436,34 +453,36 @@ struct smd : skelmodel, skelloader<smd>
     bool load()
     {
         if(loaded) return true;
-        formatstring(dir)("packages/models/%s", loadname);
+        formatstring(smddir)("packages/models/%s", loadname);
         defformatstring(cfgname)("packages/models/%s/smd.cfg", loadname);
 
-        loading = this;
-        identflags &= ~IDF_PERSIST;
+        loadingsmd = this;
+        persistidents = false;
         if(execfile(cfgname, false) && parts.length()) // configured smd, will call the smd* commands below
         {
-            identflags |= IDF_PERSIST;
-            loading = NULL;
+            persistidents = true;
+            loadingsmd = NULL;
             loopv(parts) if(!parts[i]->meshes) return false;
         }
-        else // smd without configuration, try default tris and skin 
+        else // smd without configuration, try default tris and skin
         {
-            identflags |= IDF_PERSIST;
-            if(!loaddefaultparts()) 
+            persistidents = true;
+            if(!loaddefaultparts())
             {
-                loading = NULL;
+                loadingsmd = NULL;
                 return false;
             }
-            loading = NULL;
+            loadingsmd = NULL;
         }
         scale /= 4;
-        loopv(parts) 
+        parts[0]->translate = translate;
+        loopv(parts)
         {
             skelpart *p = (skelpart *)parts[i];
             p->endanimparts();
             p->meshes->shared++;
         }
+        preloadshaders();
         return loaded = true;
     }
 };
@@ -480,5 +499,275 @@ static inline bool htcmp(const smd::smdmeshgroup::smdvertkey &k, int index)
     return k.pos == v.pos && k.norm == v.norm && k.u == v.u && k.v == v.v && k.blend == v.blend;
 }
 
-skelcommands<smd> smdcommands;
+void setsmddir(char *name)
+{
+    if(!loadingsmd) { conoutf("not loading an smd"); return; }
+    formatstring(smddir)("packages/models/%s", name);
+}
+   
+void smdload(char *meshfile, char *skelname)
+{
+    if(!loadingsmd) { conoutf("not loading an smd"); return; }
+    defformatstring(filename)("%s/%s", smddir, meshfile);
+    smd::skelpart &mdl = *new smd::skelpart;
+    loadingsmd->parts.add(&mdl);
+    mdl.model = loadingsmd;
+    mdl.index = loadingsmd->parts.length()-1;
+    mdl.pitchscale = mdl.pitchoffset = mdl.pitchmin = mdl.pitchmax = 0;
+    smdadjustments.setsize(0);
+    mdl.meshes = loadingsmd->sharemeshes(path(filename), skelname[0] ? skelname : NULL);
+    if(!mdl.meshes) conoutf("could not load %s", filename); // ignore failure
+    else
+    {
+        mdl.initanimparts();
+        mdl.initskins();
+    }
+}
 
+void smdtag(char *name, char *tagname)
+{
+    if(!loadingsmd || loadingsmd->parts.empty()) { conoutf("not loading an smd"); return; }
+    smd::part &mdl = *loadingsmd->parts.last();
+    int i = mdl.meshes ? ((smd::skelmeshgroup *)mdl.meshes)->skel->findbone(name) : -1;
+    if(i >= 0)
+    {
+        ((smd::skelmeshgroup *)mdl.meshes)->skel->addtag(tagname, i);
+        return;
+    }
+    conoutf("could not find bone %s for tag %s", name, tagname);
+}
+       
+void smdpitch(char *name, float *pitchscale, float *pitchoffset, float *pitchmin, float *pitchmax)
+{
+    if(!loadingsmd || loadingsmd->parts.empty()) { conoutf("not loading an smd"); return; }
+    smd::part &mdl = *loadingsmd->parts.last();
+
+    if(name[0])
+    {
+        int i = mdl.meshes ? ((smd::skelmeshgroup *)mdl.meshes)->skel->findbone(name) : -1;
+        if(i>=0)
+        {
+            smd::boneinfo &b = ((smd::skelmeshgroup *)mdl.meshes)->skel->bones[i];
+            b.pitchscale = *pitchscale;
+            b.pitchoffset = *pitchoffset;
+            if(*pitchmin || *pitchmax)
+            {
+                b.pitchmin = *pitchmin;
+                b.pitchmax = *pitchmax;
+            }
+            else
+            {
+                b.pitchmin = -360*b.pitchscale;
+                b.pitchmax = 360*b.pitchscale;
+            }
+            return;
+        }
+        conoutf("could not find bone %s to pitch", name);
+        return;
+    }
+
+    mdl.pitchscale = *pitchscale;
+    mdl.pitchoffset = *pitchoffset;
+    if(*pitchmin || *pitchmax)
+    {
+        mdl.pitchmin = *pitchmin;
+        mdl.pitchmax = *pitchmax;
+    }
+    else
+    {
+        mdl.pitchmin = -360*mdl.pitchscale;
+        mdl.pitchmax = 360*mdl.pitchscale;
+    }
+}
+
+void smdadjust(char *name, float *yaw, float *pitch, float *roll, float *tx, float *ty, float *tz)
+{
+    if(!loadingsmd || loadingsmd->parts.empty()) { conoutf("not loading an smd"); return; }
+    smd::part &mdl = *loadingsmd->parts.last();
+
+    if(!name[0]) return;
+    int i = mdl.meshes ? ((smd::skelmeshgroup *)mdl.meshes)->skel->findbone(name) : -1;
+    if(i < 0) {  conoutf("could not find bone %s to adjust", name); return; }
+    while(!smdadjustments.inrange(i)) smdadjustments.add(smdadjustment(0, 0, 0, vec(0, 0, 0)));
+    smdadjustments[i] = smdadjustment(*yaw, *pitch, *roll, vec(*tx/4, *ty/4, *tz/4));
+}
+
+#define loopsmdmeshes(meshname, m, body) \
+    if(!loadingsmd || loadingsmd->parts.empty()) { conoutf("not loading an smd"); return; } \
+    smd::part &mdl = *loadingsmd->parts.last(); \
+    if(!mdl.meshes) return; \
+    loopv(mdl.meshes->meshes) \
+    { \
+        smd::skelmesh &m = *(smd::skelmesh *)mdl.meshes->meshes[i]; \
+        if(!strcmp(meshname, "*") || (m.name && !strcmp(m.name, meshname))) \
+        { \
+            body; \
+        } \
+    }
+
+#define loopsmdskins(meshname, s, body) loopsmdmeshes(meshname, m, { smd::skin &s = mdl.skins[i]; body; })
+
+void smdskin(char *meshname, char *tex, char *masks, float *envmapmax, float *envmapmin)
+{
+    loopsmdskins(meshname, s,
+        s.tex = textureload(makerelpath(smddir, tex), 0, true, false);
+        if(*masks)
+        {
+            s.masks = textureload(makerelpath(smddir, masks, "<stub>"), 0, true, false);
+            s.envmapmax = *envmapmax;
+            s.envmapmin = *envmapmin;
+        }
+    );
+}
+
+void smdspec(char *meshname, int *percent)
+{
+    float spec = 1.0f;
+    if(*percent>0) spec = *percent/100.0f;
+    else if(*percent<0) spec = 0.0f;
+    loopsmdskins(meshname, s, s.spec = spec);
+}
+
+void smdambient(char *meshname, int *percent)
+{
+    float ambient = 0.3f;
+    if(*percent>0) ambient = *percent/100.0f;
+    else if(*percent<0) ambient = 0.0f;
+    loopsmdskins(meshname, s, s.ambient = ambient);
+}
+
+void smdglow(char *meshname, int *percent)
+{
+    float glow = 3.0f;
+    if(*percent>0) glow = *percent/100.0f;
+    else if(*percent<0) glow = 0.0f;
+    loopsmdskins(meshname, s, s.glow = glow);
+}
+
+void smdglare(char *meshname, float *specglare, float *glowglare)
+{
+    loopsmdskins(meshname, s, { s.specglare = *specglare; s.glowglare = *glowglare; });
+}
+
+void smdalphatest(char *meshname, float *cutoff)
+{
+    loopsmdskins(meshname, s, s.alphatest = max(0.0f, min(1.0f, *cutoff)));
+}
+
+void smdalphablend(char *meshname, int *blend)
+{
+    loopsmdskins(meshname, s, s.alphablend = *blend!=0);
+}
+
+void smdcullface(char *meshname, int *cullface)
+{
+    loopsmdskins(meshname, s, s.cullface = *cullface!=0);
+}
+
+void smdenvmap(char *meshname, char *envmap)
+{
+    Texture *tex = cubemapload(envmap);
+    loopsmdskins(meshname, s, s.envmap = tex);
+}
+
+void smdbumpmap(char *meshname, char *normalmap, char *skin)
+{
+    Texture *normalmaptex = NULL, *skintex = NULL;
+    normalmaptex = textureload(makerelpath(smddir, normalmap, "<noff>"), 0, true, false);
+    if(skin[0]) skintex = textureload(makerelpath(smddir, skin, "<noff>"), 0, true, false);
+    loopsmdskins(meshname, s, { s.unlittex = skintex; s.normalmap = normalmaptex; m.calctangents(); });
+}
+
+void smdfullbright(char *meshname, float *fullbright)
+{
+    loopsmdskins(meshname, s, s.fullbright = *fullbright);
+}
+
+void smdshader(char *meshname, char *shader)
+{
+    loopsmdskins(meshname, s, s.shader = lookupshaderbyname(shader));
+}
+
+void smdscroll(char *meshname, float *scrollu, float *scrollv)
+{
+    loopsmdskins(meshname, s, { s.scrollu = *scrollu; s.scrollv = *scrollv; });
+}
+
+void smdanim(char *anim, char *animfile, float *speed, int *priority)
+{
+    if(!loadingsmd || loadingsmd->parts.empty()) { conoutf("not loading an smd"); return; }
+
+    vector<int> anims;
+    findanims(anim, anims);
+    if(anims.empty()) conoutf("could not find animation %s", anim);
+    else
+    {
+        smd::part *p = loadingsmd->parts.last();
+        if(!p->meshes) return;
+        defformatstring(filename)("%s/%s", smddir, animfile);
+        smd::skelanimspec *sa = ((smd::smdmeshgroup *)p->meshes)->loadanim(path(filename));
+        if(!sa) conoutf("could not load smd file %s", filename);
+        else loopv(anims)
+        {
+            loadingsmd->parts.last()->setanim(p->numanimparts-1, anims[i], sa->frame, sa->range, *speed, *priority);
+        }
+    }
+}
+
+void smdanimpart(char *maskstr)
+{
+    if(!loadingsmd || loadingsmd->parts.empty()) { conoutf("not loading an smd"); return; }
+
+    smd::skelpart *p = (smd::skelpart *)loadingsmd->parts.last();
+
+    vector<char *> bonestrs;
+    explodelist(maskstr, bonestrs);
+    vector<ushort> bonemask;
+    loopv(bonestrs)
+    {
+        char *bonestr = bonestrs[i];
+        int bone = p->meshes ? ((smd::skelmeshgroup *)p->meshes)->skel->findbone(bonestr[0]=='!' ? bonestr+1 : bonestr) : -1;
+        if(bone<0) { conoutf("could not find bone %s for anim part mask [%s]", bonestr, maskstr); bonestrs.deletearrays(); return; }
+        bonemask.add(bone | (bonestr[0]=='!' ? BONEMASK_NOT : 0));
+    }
+    bonestrs.deletearrays();
+    bonemask.sort(bonemaskcmp);
+    if(bonemask.length()) bonemask.add(BONEMASK_END);
+
+    if(!p->addanimpart(bonemask.getbuf())) conoutf("too many animation parts");
+}
+
+void smdlink(int *parent, int *child, char *tagname, float *x, float *y, float *z)
+{
+    if(!loadingsmd) { conoutf("not loading an smd"); return; }
+    if(!loadingsmd->parts.inrange(*parent) || !loadingsmd->parts.inrange(*child)) { conoutf("no models loaded to link"); return; }
+    if(!loadingsmd->parts[*parent]->link(loadingsmd->parts[*child], tagname, vec(*x, *y, *z))) conoutf("could not link model %s", loadingsmd->loadname);
+}
+
+void smdnoclip(char *meshname, int *noclip)
+{
+    loopsmdmeshes(meshname, m, m.noclip = *noclip!=0);
+}
+
+COMMANDN(smddir, setsmddir, "s");
+COMMAND(smdload, "ss");
+COMMAND(smdtag, "ss");
+COMMAND(smdpitch, "sffff");
+COMMAND(smdadjust, "sffffff");
+COMMAND(smdskin, "sssff");
+COMMAND(smdspec, "si");
+COMMAND(smdambient, "si");
+COMMAND(smdglow, "si");
+COMMAND(smdglare, "sff");
+COMMAND(smdalphatest, "sf");
+COMMAND(smdalphablend, "si");
+COMMAND(smdcullface, "si");
+COMMAND(smdenvmap, "ss");
+COMMAND(smdbumpmap, "sss");
+COMMAND(smdfullbright, "sf");
+COMMAND(smdshader, "ss");
+COMMAND(smdscroll, "sff");
+COMMAND(smdanimpart, "s");
+COMMAND(smdanim, "ssfi");
+COMMAND(smdlink, "iisfff");
+COMMAND(smdnoclip, "si");           

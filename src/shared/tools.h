@@ -11,11 +11,13 @@
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
-typedef signed long long int llong;
-typedef unsigned long long int ullong;
 
 #ifdef _DEBUG
-#define ASSERT(c) assert(c)
+#ifdef __GNUC__
+#define ASSERT(c) if(!(c)) { asm("int $3"); }
+#else
+#define ASSERT(c) if(!(c)) { __asm int 3 }
+#endif
 #else
 #define ASSERT(c) if(c) {}
 #endif
@@ -25,26 +27,6 @@ typedef unsigned long long int ullong;
 #else
 #define RESTRICT
 #endif
-
-inline void *operator new(size_t size)
-{
-    void *p = malloc(size);
-    if(!p) abort();
-    return p;
-}
-inline void *operator new[](size_t size)
-{
-    void *p = malloc(size);
-    if(!p) abort();
-    return p;
-}
-inline void operator delete(void *p) { if(p) free(p); }
-inline void operator delete[](void *p) { if(p) free(p); }
-
-inline void *operator new(size_t, void *p) { return p; }
-inline void *operator new[](size_t, void *p) { return p; }
-inline void operator delete(void *, void *) {}
-inline void operator delete[](void *, void *) {}
 
 #ifdef swap
 #undef swap
@@ -72,12 +54,8 @@ static inline T min(T a, T b)
 {
     return a < b ? a : b;
 }
-template<class T, class U>
-static inline T clamp(T a, U b, U c)
-{
-    return max(T(b), min(a, T(c)));
-}
 
+#define clamp(a,b,c) (max(b, min(a, c)))
 #define rnd(x) ((int)(randomMT()&0xFFFFFF)%(x))
 #define rndscale(x) (float((randomMT()&0xFFFFFF)*double(x)/double(0xFFFFFF)))
 #define detrnd(s, x) ((int)(((((uint)(s))*1103515245+12345)>>16)%(x)))
@@ -87,11 +65,7 @@ static inline T clamp(T a, U b, U c)
 #define loopj(m) loop(j,m)
 #define loopk(m) loop(k,m)
 #define loopl(m) loop(l,m)
-#define looprev(v,m) for(int v = int(m)-1; v>=0; v--)
-#define loopirev(m) looprev(i,m)
-#define loopjrev(m) looprev(j,m)
-#define loopkrev(m) looprev(k,m)
-#define looplrev(m) looprev(l,m)
+
 
 #define DELETEP(p) if(p) { delete   p; p = 0; }
 #define DELETEA(p) if(p) { delete[] p; p = 0; }
@@ -119,25 +93,22 @@ static inline T clamp(T a, U b, U c)
 #endif
 
 #define strcasecmp _stricmp
-#define strncasecmp _strnicmp
 #define PATHDIV '\\'
-
+#define PATHDIVS "\\"
 #else
 #define __cdecl
 #define _vsnprintf vsnprintf
 #define PATHDIV '/'
-#endif
-
-#ifdef __GNUC__
-#define PRINTFARGS(fmt, args) __attribute__((format(printf, fmt, args)))
-#else
-#define PRINTFARGS(fmt, args)
+#define PATHDIVS "/"
 #endif
 
 // easy safe strings
 
 #define MAXSTRLEN 260
+#define BIGSTRLEN 1000
 typedef char string[MAXSTRLEN];
+typedef char bigstring[BIGSTRLEN];
+#define mkstring(d) string d; d[0] = 0;
 
 inline void vformatstring(char *d, const char *fmt, va_list v, int len = MAXSTRLEN) { _vsnprintf(d, len, fmt, v); d[len-1] = 0; }
 inline char *copystring(char *d, const char *s, size_t len = MAXSTRLEN) { strncpy(d, s, len); d[len-1] = 0; return d; }
@@ -147,7 +118,7 @@ struct stringformatter
 {
     char *buf;
     stringformatter(char *buf): buf((char *)buf) {}
-    void operator()(const char *fmt, ...) PRINTFARGS(2, 3)
+    void operator()(const char *fmt, ...)
     {
         va_list v;
         va_start(v, fmt);
@@ -220,15 +191,6 @@ struct databuf
         return read;
     }
 
-    void offset(int n)
-    {
-        n = min(n, maxlen);
-        buf += n;
-        maxlen -= n;
-        len = max(len-n, 0);
-    }
-
-    bool empty() const { return len==0; }
     int length() const { return len; }
     int remaining() const { return maxlen-len; }
     bool overread() const { return (flags&OVERREAD)!=0; }
@@ -305,133 +267,11 @@ struct packetbuf : ucharbuf
 template<class T>
 static inline float heapscore(const T &n) { return n; }
 
-template<class T>
-static inline bool compareless(const T &x, const T &y) { return x < y; }
-
-template<class T, class F>
-static inline void insertionsort(T *start, T *end, F fun)
+template<class T, class U>
+static inline void quicksort(T *buf, int n, int (__cdecl *func)(U *, U *))
 {
-    for(T *i = start+1; i < end; i++)
-    {
-        if(fun(*i, i[-1]))
-        {
-            T tmp = *i;
-            *i = i[-1];
-            T *j = i-1;
-            for(; j > start && fun(tmp, j[-1]); --j)
-                *j = j[-1];
-            *j = tmp;
-        }
-    }
-
+    qsort(buf, n, sizeof(T), (int (__cdecl *)(const void *,const void *))func);
 }
-
-template<class T, class F>
-static inline void insertionsort(T *buf, int n, F fun)
-{
-    insertionsort(buf, buf+n, fun);
-}
-
-template<class T>
-static inline void insertionsort(T *buf, int n)
-{
-    insertionsort(buf, buf+n, compareless<T>);
-}
-
-template<class T, class F>
-static inline void quicksort(T *start, T *end, F fun)
-{
-    while(end-start > 10)
-    {
-        T *mid = &start[(end-start)/2], *i = start+1, *j = end-2, pivot;
-        if(fun(*start, *mid)) /* start < mid */
-        {
-            if(fun(end[-1], *start)) { pivot = *start; *start = end[-1]; end[-1] = *mid; } /* end < start < mid */
-            else if(fun(end[-1], *mid)) { pivot = end[-1]; end[-1] = *mid; } /* start <= end < mid */
-            else { pivot = *mid; } /* start < mid <= end */
-        }
-        else if(fun(*start, end[-1])) { pivot = *start; *start = *mid; } /*mid <= start < end */
-        else if(fun(*mid, end[-1])) { pivot = end[-1]; end[-1] = *start; *start = *mid; } /* mid < end <= start */
-        else { pivot = *mid; swap(*start, end[-1]); }  /* end <= mid <= start */
-        *mid = end[-2];
-        do
-        {
-            while(fun(*i, pivot)) if(++i >= j) goto partitioned;
-            while(fun(pivot, *--j)) if(i >= j) goto partitioned;
-            swap(*i, *j);
-        }
-        while(++i < j);
-    partitioned:
-        end[-2] = *i;
-        *i = pivot;
-
-        if(i-start < end-(i+1))
-        {
-            quicksort(start, i, fun);
-            start = i+1;
-        }
-        else
-        {
-            quicksort(i+1, end, fun);
-            end = i;
-        }
-    }
-
-    insertionsort(start, end, fun);
-}
-
-template<class T, class F>
-static inline void quicksort(T *buf, int n, F fun)
-{
-    quicksort(buf, buf+n, fun);
-}
-
-template<class T>
-static inline void quicksort(T *buf, int n)
-{
-    quicksort(buf, buf+n, compareless<T>);
-}
-
-template<class T> struct isclass
-{
-    template<class C> static char test(void (C::*)(void));
-    template<class C> static int test(...);
-    enum { yes = sizeof(test<T>(0)) == 1 ? 1 : 0, no = yes^1 };
-};
-
-static inline uint hthash(const char *key)
-{
-    uint h = 5381;
-    for(int i = 0, k; (k = key[i]); i++) h = ((h<<5)+h)^k;    // bernstein k=33 xor
-    return h;
-}
-
-static inline bool htcmp(const char *x, const char *y)
-{
-    return !strcmp(x, y);
-}
-
-static inline uint hthash(int key)
-{
-    return key;
-}
-
-static inline bool htcmp(int x, int y)
-{
-    return x==y;
-}
-
-#ifndef STANDALONE
-static inline uint hthash(GLuint key)
-{
-    return key;
-}
-
-static inline bool htcmp(GLuint x, GLuint y)
-{
-    return x==y;
-}
-#endif
 
 template <class T> struct vector
 {
@@ -491,7 +331,7 @@ template <class T> struct vector
         else
         {
             growbuf(ulen+v.ulen);
-            if(v.ulen) memcpy(&buf[ulen], (void  *)v.buf, v.ulen*sizeof(T));
+            if(v.ulen) memcpy(&buf[ulen], v.buf, v.ulen*sizeof(T));
             ulen += v.ulen;
             v.ulen = 0;
         }
@@ -510,9 +350,7 @@ template <class T> struct vector
     T &operator[](int i) { ASSERT(i>=0 && i<ulen); return buf[i]; }
     const T &operator[](int i) const { ASSERT(i >= 0 && i<ulen); return buf[i]; }
 
-    void disown() { buf = NULL; alen = ulen = 0; }
-
-    void shrink(int i) { ASSERT(i<=ulen); if(isclass<T>::no) ulen = i; else while(ulen>i) drop(); }
+    void shrink(int i)         { ASSERT(i<=ulen); while(ulen>i) drop(); }
     void setsize(int i) { ASSERT(i<=ulen); ulen = i; }
 
     void deletecontents() { while(!empty()) delete   pop(); }
@@ -522,13 +360,11 @@ template <class T> struct vector
     const T *getbuf() const { return buf; }
     bool inbuf(const T *e) const { return e >= buf && e < &buf[ulen]; }
 
-    template<class F>
-    void sort(F fun, int i = 0, int n = -1)
+    template<class ST>
+    void sort(int (__cdecl *cf)(ST *, ST *), int i = 0, int n = -1)
     {
-        quicksort(&buf[i], n < 0 ? ulen-i : n, fun);
+        quicksort(&buf[i], n < 0 ? ulen : n, cf);
     }
-
-    void sort() { sort(compareless<T>); }
 
     void growbuf(int sz)
     {
@@ -539,7 +375,15 @@ template <class T> struct vector
         uchar *newbuf = new uchar[alen*sizeof(T)];
         if(olen > 0)
         {
-            memcpy(newbuf, (void *)buf, olen*sizeof(T));
+            //Make clang happy
+            #if defined (__clang__)
+                #pragma clang diagnostic push
+                #pragma clang diagnostic ignored "-Wdynamic-class-memaccess"
+            #endif // defined __clang__
+                memcpy(newbuf, buf, olen*sizeof(T));
+            #if defined (__clang__)
+                #pragma clang diagnostic pop
+            #endif // defined __clang__
             delete[] (uchar *)buf;
         }
         buf = (T *)newbuf;
@@ -695,14 +539,159 @@ template <class T> struct vector
         if(ulen) downheap(0);
         return e;
     }
+};
 
-    template<class K> 
-    int htfind(const K &key)
+template <class T> struct smallvector
+{
+    T *buf;
+    int len;
+
+    smallvector() : buf(NULL), len(0)
     {
-        loopi(ulen) if(htcmp(key, buf[i])) return i;
+    }
+
+    smallvector(const smallvector &v) : buf(NULL), len(0)
+    {
+        *this = v;
+    }
+
+    ~smallvector() { shrink(0); }
+
+    smallvector<T> &operator=(const smallvector<T> &v)
+    {
+        shrink(0);
+        growbuf(v.length());
+        loopv(v) buf[i] = v[i];
+        return *this;
+    }
+
+    void growbuf(int sz)
+    {
+        int olen = len;
+        len = max(sz, 0);
+        uchar *newbuf = len > 0 ? new uchar[len*sizeof(T)] : NULL;
+        if(olen > 0)
+        {
+            if(len > 0) memcpy(newbuf, buf, min(len, olen)*sizeof(T));
+            delete[] (uchar *)buf;
+        }
+        buf = (T *)newbuf;
+    }
+
+    T &add(const T &x)
+    {
+        growbuf(len+1);
+        new (&buf[len-1]) T(x);
+        return buf[len-1];
+    }
+
+    T &add()
+    {
+        growbuf(len+1);
+        new (&buf[len-1]) T;
+        return buf[len-1];
+    }
+
+    void add(const T &x, int n)
+    {
+        if(n <= 0) return;
+        growbuf(len+n);
+        while(n > 0) new (&buf[len-n--]) T(x);
+    }
+
+    void put(const T &v) { add(v); }
+
+    void put(const T *v, int n)
+    {
+        if(n <= 0) return;
+        growbuf(len + n);
+        memcpy(&buf[len-n], v, n*sizeof(T));
+    }
+
+    void shrink(int i)
+    {
+        ASSERT(i<=len);
+        if(i >= len) return;
+        for(int j = i; j < len; j++) buf[j].~T();
+        growbuf(i);
+    }
+
+    void setsize(int i)
+    {
+        ASSERT(i<=len);
+        if(i >= len) return;
+        growbuf(i);
+    }
+
+    void deletecontents()
+    {
+        for(int i = 0; i < len; i++) delete buf[i];
+        setsize(0);
+    }
+
+    void deletearrays()
+    {
+        for(int i = 0; i < len; i++) delete[] buf[i];
+        setsize(0);
+    }
+
+    T remove(int i)
+    {
+        T e = buf[i];
+        for(int p = i+1; p<len; p++) buf[p-1] = buf[p];
+        growbuf(len-1);
+        return e;
+    }
+
+    T removeunordered(int i)
+    {
+        T e = buf[i];
+        if(len>1) buf[i] = buf[len-1];
+        growbuf(len-1);
+        return e;
+    }
+
+    bool inrange(size_t i) const { return i<size_t(len); }
+    bool inrange(int i) const { return i>=0 && i<len; }
+
+    T &last() { return buf[len-1]; }
+    bool empty() const { return len==0; }
+    int length() const { return len; }
+    T &operator[](int i) { ASSERT(i>=0 && i<len); return buf[i]; }
+    const T &operator[](int i) const { ASSERT(i >= 0 && i<len); return buf[i]; }
+    T *getbuf() { return buf; }
+    const T *getbuf() const { return buf; }
+    bool inbuf(const T *e) const { return e >= buf && e < &buf[len]; }
+
+    template<class U>
+    int find(const U &o)
+    {
+        loopi(len) if(buf[i]==o) return i;
         return -1;
     }
 };
+
+static inline uint hthash(const char *key)
+{
+    uint h = 5381;
+    for(int i = 0, k; (k = key[i]); i++) h = ((h<<5)+h)^k;    // bernstein k=33 xor
+    return h;
+}
+
+static inline bool htcmp(const char *x, const char *y)
+{
+    return !strcmp(x, y);
+}
+
+static inline uint hthash(int key)
+{
+    return key;
+}
+
+static inline bool htcmp(int x, int y)
+{
+    return x==y;
+}
 
 template<class T> struct hashset
 {
@@ -728,7 +717,7 @@ template<class T> struct hashset
         chunks = NULL;
         unused = NULL;
         chains = new chain *[size];
-        memset(chains, 0, size*sizeof(chain *));
+        loopi(size) chains[i] = NULL;
     }
 
     ~hashset()
@@ -770,8 +759,8 @@ template<class T> struct hashset
         HTFIND(key, &c->elem, NULL);
     }
 
-    template<class K, class E>
-    T &access(const K &key, const E &elem)
+    template<class K>
+    T &access(const K &key, const T &elem)
     {
         HTFIND(key, c->elem, insert(h)->elem = elem);
     }
@@ -780,18 +769,6 @@ template<class T> struct hashset
     T &operator[](const K &key)
     {
         HTFIND(key, c->elem, insert(h)->elem);
-    }
-
-    template<class K>
-    T &find(const K &key, T &notfound)
-    {
-        HTFIND(key, c->elem, notfound);
-    }
-
-    template<class K>
-    const T &find(const K &key, const T &notfound)
-    {
-        HTFIND(key, c->elem, notfound);
     }
 
     template<class K>
@@ -826,7 +803,7 @@ template<class T> struct hashset
     void clear()
     {
         if(!numelems) return;
-        memset(chains, 0, size*sizeof(chain *));
+        loopi(size) chains[i] = NULL;
         numelems = 0;
         unused = NULL;
         deletechunks();
@@ -887,16 +864,6 @@ template<class K, class T> struct hashtable : hashset<hashtableentry<K, T> >
     {
         HTFIND(key, c->elem.data, insert(key, h).data);
     }
-
-    T &find(const K &key, T &notfound)
-    {
-        HTFIND(key, c->elem.data, notfound);
-    }
-
-    const T &find(const K &key, const T &notfound)
-    {
-        HTFIND(key, c->elem.data, notfound);
-    }   
 
     static inline chain *getnext(void *i) { return ((chain *)i)->next; }
     static inline K &getkey(void *i) { return ((chain *)i)->elem.key; }
@@ -1030,24 +997,29 @@ inline char *newstring(const char *s, size_t l) { return copystring(newstring(l)
 inline char *newstring(const char *s)           { return newstring(s, strlen(s));          }
 inline char *newstringbuf(const char *s)        { return newstring(s, MAXSTRLEN-1);       }
 
+#if defined(WIN32) && !defined(__GNUC__)
+#ifdef _DEBUG
+//#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+inline void *__cdecl operator new(size_t n, const char *fn, int l) { return ::operator new(n, 1, fn, l); }
+inline void __cdecl operator delete(void *p, const char *fn, int l) { ::operator delete(p, 1, fn, l); }
+#define new new(__FILE__,__LINE__)
+#endif
+#endif
+
 const int islittleendian = 1;
 #ifdef SDL_BYTEORDER
 #define endianswap16 SDL_Swap16
 #define endianswap32 SDL_Swap32
-#define endianswap64 SDL_Swap64
 #else
 inline ushort endianswap16(ushort n) { return (n<<8) | (n>>8); }
 inline uint endianswap32(uint n) { return (n<<24) | (n>>24) | ((n>>8)&0xFF00) | ((n<<8)&0xFF0000); }
-inline ullong endianswap64(ullong n) { return endianswap32(uint(n >> 32)) | ((ullong)endianswap32(uint(n)) << 32); }
 #endif
 template<class T> inline T endianswap(T n) { union { T t; uint i; } conv; conv.t = n; conv.i = endianswap32(conv.i); return conv.t; }
 template<> inline ushort endianswap<ushort>(ushort n) { return endianswap16(n); }
 template<> inline short endianswap<short>(short n) { return endianswap16(n); }
 template<> inline uint endianswap<uint>(uint n) { return endianswap32(n); }
 template<> inline int endianswap<int>(int n) { return endianswap32(n); }
-template<> inline ullong endianswap<ullong>(ullong n) { return endianswap64(n); }
-template<> inline llong endianswap<llong>(llong n) { return endianswap64(n); }
-template<> inline double endianswap<double>(double n) { union { double t; uint i; } conv; conv.t = n; conv.i = endianswap64(conv.i); return conv.t; }
 template<class T> inline void endianswap(T *buf, int len) { for(T *end = &buf[len]; buf < end; buf++) *buf = endianswap(*buf); }
 template<class T> inline T endiansame(T n) { return n; }
 template<class T> inline void endiansame(T *buf, int len) {}
@@ -1076,24 +1048,12 @@ template<class T> inline void bigswap(T *buf, int len) { if(*(const uchar *)&isl
 
 struct stream
 {
-#ifdef WIN32
-#ifdef __GNUC__
-    typedef off64_t offset;
-#else
-    typedef __int64 offset;
-#endif
-#else
-    typedef off_t offset;
-#endif
-
     virtual ~stream() {}
     virtual void close() = 0;
     virtual bool end() = 0;
-    virtual offset tell() { return -1; }
-    virtual offset rawtell() { return tell(); }
-    virtual bool seek(offset pos, int whence = SEEK_SET) { return false; }
-    virtual offset size();
-    virtual offset rawsize() { return size(); }
+    virtual long tell() { return -1; }
+    virtual bool seek(long offset, int whence = SEEK_SET) { return false; }
+    virtual long size();
     virtual int read(void *buf, int len) { return 0; }
     virtual int write(const void *buf, int len) { return 0; }
     virtual int getchar() { uchar c; return read(&c, 1) == 1 ? c : -1; }
@@ -1101,15 +1061,13 @@ struct stream
     virtual bool getline(char *str, int len);
     virtual bool putstring(const char *str) { int len = (int)strlen(str); return write(str, len) == len; }
     virtual bool putline(const char *str) { return putstring(str) && putchar('\n'); }
-    virtual int printf(const char *fmt, ...) PRINTFARGS(2, 3);
+    virtual int printf(const char *fmt, ...) { return -1; }
     virtual uint getcrc() { return 0; }
 
-    template<class T> int put(const T *v, int n) { return write(v, n*sizeof(T))/sizeof(T); } 
     template<class T> bool put(T n) { return write(&n, sizeof(n)) == sizeof(n); }
     template<class T> bool putlil(T n) { return put<T>(lilswap(n)); }
     template<class T> bool putbig(T n) { return put<T>(bigswap(n)); }
 
-    template<class T> int get(T *v, int n) { return read(v, n*sizeof(T))/sizeof(T); }
     template<class T> T get() { T n; return read(&n, sizeof(n)) == sizeof(n) ? n : 0; }
     template<class T> T getlil() { return lilswap(get<T>()); }
     template<class T> T getbig() { return bigswap(get<T>()); }
@@ -1117,20 +1075,6 @@ struct stream
 #ifndef STANDALONE
     SDL_RWops *rwops();
 #endif
-};
-
-template<class T>
-struct streambuf
-{
-    stream *s;
-
-    streambuf(stream *s) : s(s) {}
-    
-    T get() { return s->get<T>(); }
-    int get(T *vals, int numvals) { return s->get(vals, numvals); }
-    void put(const T &val) { s->put(&val, 1); }
-    void put(const T *vals, int numvals) { s->put(vals, numvals); } 
-    int length() { return s->size(); }
 };
 
 enum
@@ -1151,9 +1095,9 @@ static inline int iscubealnum(uchar c) { return cubectype[c]&(CT_ALPHA|CT_DIGIT)
 static inline int iscubelower(uchar c) { return cubectype[c]&CT_LOWER; }
 static inline int iscubeupper(uchar c) { return cubectype[c]&CT_UPPER; }
 static inline int cube2uni(uchar c)
-{ 
-    extern const int cube2unichars[256]; 
-    return cube2unichars[c]; 
+{
+    extern const int cube2unichars[256];
+    return cube2unichars[c];
 }
 static inline uchar uni2cube(int c)
 {
@@ -1161,51 +1105,36 @@ static inline uchar uni2cube(int c)
     extern const uchar uni2cubechars[];
     return uint(c) <= 0x7FF ? uni2cubechars[uni2cubeoffsets[c>>8] + (c&0xFF)] : 0;
 }
-extern int decodeutf8(uchar *dst, int dstlen, const uchar *src, int srclen, int *carry = NULL);
-extern int encodeutf8(uchar *dstbuf, int dstlen, const uchar *srcbuf, int srclen, int *carry = NULL);
+extern int decodeutf8(uchar *dst, int dstlen, uchar *src, int srclen, int *carry = NULL);
+extern int encodeutf8(uchar *dstbuf, int dstlen, uchar *srcbuf, int srclen, int *carry = NULL);
+
+extern vector<char *> packagedirs;
 
 extern char *makerelpath(const char *dir, const char *file, const char *prefix = NULL, const char *cmd = NULL);
 extern char *path(char *s);
 extern char *path(const char *s, bool copy);
+extern char *pathtofile(const char *s);
 extern const char *parentdir(const char *directory);
 extern bool fileexists(const char *path, const char *mode);
 extern bool createdir(const char *path);
 extern size_t fixpackagedir(char *dir);
 extern const char *sethomedir(const char *dir);
-extern const char *addpackagedir(const char *dir);
+extern void addpackagedir(const char *dir);
 extern const char *findfile(const char *filename, const char *mode);
 extern stream *openrawfile(const char *filename, const char *mode);
 extern stream *openzipfile(const char *filename, const char *mode);
 extern stream *openfile(const char *filename, const char *mode);
 extern stream *opentempfile(const char *filename, const char *mode);
 extern stream *opengzfile(const char *filename, const char *mode, stream *file = NULL, int level = Z_BEST_COMPRESSION);
-extern stream *openutf8file(const char *filename, const char *mode, stream *file = NULL);
-extern char *loadfile(const char *fn, int *size, bool utf8 = true);
-extern bool listdir(const char *dir, bool rel, const char *ext, vector<char *> &files);
-extern int listfiles(const char *dir, const char *ext, vector<char *> &files);
+extern char *loadfile(const char *fn, int *size);
+extern bool listdir(const char *dir, const char *ext, vector<char *> &files);
+extern int listfiles(const char *dir, const char *ext, vector<char *> &files, bool searchpackagedirs = true);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
+extern void listallzipfiles(vector<char *> &files);
+extern bool addzip(const char *name, const char *mount = NULL, const char *strip = NULL);
+extern bool removezip(const char *name);
 extern void seedMT(uint seed);
-extern uint randomMT();
-extern int guessnumcpus();
-
-extern void putint(ucharbuf &p, int n);
-extern void putint(packetbuf &p, int n);
-extern void putint(vector<uchar> &p, int n);
-extern int getint(ucharbuf &p);
-extern void putuint(ucharbuf &p, int n);
-extern void putuint(packetbuf &p, int n);
-extern void putuint(vector<uchar> &p, int n);
-extern int getuint(ucharbuf &p);
-extern void putfloat(ucharbuf &p, float f);
-extern void putfloat(packetbuf &p, float f);
-extern void putfloat(vector<uchar> &p, float f);
-extern float getfloat(ucharbuf &p);
-extern void sendstring(const char *t, ucharbuf &p);
-extern void sendstring(const char *t, packetbuf &p);
-extern void sendstring(const char *t, vector<uchar> &p);
-extern void getstring(char *t, ucharbuf &p, int len);
-template<size_t N> static inline void getstring(char (&t)[N], ucharbuf &p) { getstring(t, p, int(N)); }
-extern void filtertext(char *dst, const char *src, bool whitespace = true, int len = sizeof(string)-1);
+extern uint randomMT(void);
 
 #endif
 

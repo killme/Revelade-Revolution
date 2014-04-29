@@ -39,7 +39,7 @@ struct flarerenderer : partrenderer
     flare *flares;
 
     flarerenderer(const char *texname, int maxflares)
-        : partrenderer(texname, 3, PT_FLARE|PT_SHADER), maxflares(maxflares), shinetime(0)
+        : partrenderer(texname, 3, PT_FLARE), maxflares(maxflares), shinetime(0)
     {
         flares = new flare[maxflares];
     }
@@ -68,8 +68,10 @@ struct flarerenderer : partrenderer
         //frustrum + fog check
         if(isvisiblesphere(0.0f, o) > (sun?VFC_FOGGED:VFC_FULL_VISIBLE)) return;
         //find closest point between camera line of sight and flare pos
+        vec viewdir;
+        vecfromyawpitch(camera1->yaw, camera1->pitch, 1, 0, viewdir);
         vec flaredir = vec(o).sub(camera1->o);
-        vec center = vec(camdir).mul(flaredir.dot(camdir)).add(camera1->o);
+        vec center = viewdir.mul(flaredir.dot(viewdir)).add(camera1->o);
         float mod, size;
         if(sun) //fixed size
         {
@@ -93,6 +95,8 @@ struct flarerenderer : partrenderer
         if(editmode || !flarelights) return;
 
         const vector<extentity *> &ents = entities::getents();
+        vec viewdir;
+        vecfromyawpitch(camera1->yaw, camera1->pitch, 1, 0, viewdir);
         extern const vector<int> &checklightcache(int x, int y);
         const vector<int> &lights = checklightcache(int(camera1->o.x), int(camera1->o.y));
         loopv(lights)
@@ -105,7 +109,7 @@ struct flarerenderer : partrenderer
             float len = flaredir.magnitude();
             if(!sun && (len > radius)) continue;
             if(isvisiblesphere(0.0f, e.o) > (sun?VFC_FOGGED:VFC_FULL_VISIBLE)) continue;
-            vec center = vec(camdir).mul(flaredir.dot(camdir)).add(camera1->o);
+            vec center = vec(viewdir).mul(flaredir.dot(viewdir)).add(camera1->o);
             float mod, size;
             if(sun) //fixed size
             {
@@ -128,11 +132,12 @@ struct flarerenderer : partrenderer
 
     bool haswork()
     {
-        return (numflares != 0);
+        return (numflares != 0) && !glaring && !reflecting  && !refracting;
     }
 
     void render()
     {
+        glDisable(GL_FOG);
         defaultshader->set();
         glDisable(GL_DEPTH_TEST);
         if(!tex) tex = textureload(texname);
@@ -143,7 +148,7 @@ struct flarerenderer : partrenderer
             flare *f = flares+i;
             vec center = f->center;
             vec axis = vec(f->o).sub(center);
-            float color[4] = {f->color[0]*ldrscaleb, f->color[1]*ldrscaleb, f->color[2]*ldrscaleb, 1};
+            uchar color[4] = {f->color[0], f->color[1], f->color[2], 255};
             loopj(f->sparkle?12:9)
             {
                 const flaretype &ft = flaretypes[j];
@@ -159,8 +164,8 @@ struct flarerenderer : partrenderer
                     color[2] = 0;
                     color[-ft.type-1] = f->color[-ft.type-1]; //only want a single channel
                 }
-                color[3] = ft.alpha/255.0f;
-                glColor4fv(color);
+                color[3] = ft.alpha;
+                glColor4ubv(color);
                 const float tsz = 0.25; //flares are aranged in 4x4 grid
                 float tx = tsz*(tex&0x03);
                 float ty = tsz*((tex>>2)&0x03);
@@ -172,10 +177,11 @@ struct flarerenderer : partrenderer
         }
         glEnd();
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_FOG);
     }
 
     //square per round hole - use addflare(..) instead
-    particle *addpart(const vec &o, const vec &d, int fade, int color, float size, int gravity = 0) { return NULL; }
+    particle *addpart(const vec &o, const vec &d, int fade, int color, float size, int gravity = 0, int grow = 0) { return NULL; }
 };
-static flarerenderer flares("<grey>packages/particles/lensflares.png", 64);
+static flarerenderer flares("<grey>data/particles/lensflares.png", 64);
 
