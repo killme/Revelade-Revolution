@@ -39,6 +39,7 @@ else()
     message(STATUS "Using local LuaJIT.")
     set(LUAJIT_LIBRARIES luajit)
     set(EXTRA_LIBS luajit)
+    set(LUAJIT_INCLUDE_DIRS "")
     
     option(ENABLE_OPENDBX "Enable opendbx database connectivity." 0)
     if(${ENABLE_OPENDBX})
