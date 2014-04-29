@@ -153,23 +153,30 @@ endif()
 
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
+    set(RR_DOC_DIR ${INSTALL_DOC_DIR}/revelade-revolution)
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
         ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-        
+
+    add_custom_target(doc_rr_dir
+        ${CMAKE_COMMAND} -E make_directory ${RR_DOC_DIR})
+
     add_custom_target(doc_rr
         ${DOXYGEN_EXECUTABLE}
         ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS doc_rr_dir
         COMMENT "Generating API documentation with Doxygen" VERBATIM)
-    
+
     set(RR_HAVE_DOCS 1 CACHE INTERNAL "Have revelade revolution documentation")
 endif(DOXYGEN_FOUND)
 
 if((ODBXUV_HAVE_DOCS OR RR_HAVE_DOCS) AND NOT RELEASE_BUILD)
-    file(MAKE_DIRECTORY ${INSTALL_DOC_DIR})
+    add_custom_target(doc_dir
+        ${CMAKE_COMMAND} -E make_directory ${INSTALL_DOC_DIR})
 
-    add_custom_target(doc)
+    add_custom_target(doc
+        DEPENDS doc_dir)
     add_dependencies(doc doc_odbxuv)
     add_dependencies(doc doc_rr)
     
