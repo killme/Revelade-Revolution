@@ -50,7 +50,7 @@ int findFreePort()
 bool running = false;
 uv_process_t serverProcess = {0};
 
-static void _onExit(uv_process_s*, long, int)
+static void _onExit(uv_process_s*, int64_t, int)
 {
     running = false;
 }
