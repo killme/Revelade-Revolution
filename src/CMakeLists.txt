@@ -151,36 +151,39 @@ else()
     message(WARNING "not building the server")
 endif()
 
+add_custom_target(doc_dir
+    ${CMAKE_COMMAND} -E make_directory ${INSTALL_DOC_DIR})
+
+add_custom_target(doc
+    DEPENDS doc_dir)
+
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-    set(RR_DOC_DIR ${INSTALL_DOC_DIR}/revelade-revolution)
+    set(RR_DOC_DIR ${INSTALL_DOC_DIR}/api/revelade-revolution)
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
         ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 
-    add_custom_target(doc_rr_dir
+    add_custom_target(doc_rr_api_dir
         ${CMAKE_COMMAND} -E make_directory ${RR_DOC_DIR})
 
-    add_custom_target(doc_rr
+    add_custom_target(doc_rr_api
         ${DOXYGEN_EXECUTABLE}
         ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS doc_rr_dir
         COMMENT "Generating API documentation with Doxygen" VERBATIM)
 
-    set(RR_HAVE_DOCS 1 CACHE INTERNAL "Have revelade revolution documentation")
+    set(RR_WANT_DOXYGEN 0 CACHE INTERNAL "want revelade revolution API documentation")
+    if(${RR_WANT_DOXYGEN})
+        add_dependencies(doc doc_rr_api)
+    endif()
 endif(DOXYGEN_FOUND)
 
-if((ODBXUV_HAVE_DOCS OR RR_HAVE_DOCS) AND NOT RELEASE_BUILD)
-    add_custom_target(doc_dir
-        ${CMAKE_COMMAND} -E make_directory ${INSTALL_DOC_DIR})
+find_package(Sphinx)
 
-    add_custom_target(doc
-        DEPENDS doc_dir)
-    add_dependencies(doc doc_odbxuv)
-    add_dependencies(doc doc_rr)
-    
-    message("-- Added doc target.")
+if(SPHINX_FOUND)
+    add_subdirectory(docs)
 endif()
 
 
