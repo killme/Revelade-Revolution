@@ -11,7 +11,7 @@ local function loadConfiguration(path, callback)
 
         local success, config
         success, error = pcall(function()
-            config = json.parse(data)
+            config = json.parse(data, {allow_comments = true})
         end)
         
         if not success then
