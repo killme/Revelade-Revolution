@@ -56,7 +56,7 @@ elseif(${TIG_TARGET_WINDOWS} AND ${CMAKE_C_COMPILER} MATCHES "mingw")
 endif()
 
 message(STATUS "Detecting SDL...")
-if(NOT ${TIG_TARGET_WINDOWS} AND NOT ${TIG_TARGET_OSX})
+if(${BUILD_CLIENT} AND NOT ${TIG_TARGET_WINDOWS} AND NOT ${TIG_TARGET_OSX})
     include_directories(/usr/X11R6/include)
     if(NOT TIG_SDL2_LOCAL AND PKG_CONFIG_FOUND)
         message(STATUS "Using pkg-config to detect SDL...")
