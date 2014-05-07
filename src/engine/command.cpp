@@ -279,12 +279,12 @@ int getvar(const char *name)
 }
 float getfvar(const char *name)
 {
-    GETVAR(id, name, 0);
+    _GETVAR(id, ID_FVAR, name, 0);
     return *id->storage.f;
 }
 const char *getsvar(const char *name)
 {
-    GETVAR(id, name, 0);
+    _GETVAR(id, ID_SVAR, name, 0);
     return *id->storage.s;
 }
 int getvarmin(const char *name)
