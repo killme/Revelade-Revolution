@@ -1539,7 +1539,7 @@ namespace game
         if (!hudplayers) return;
 
         scoregroup *sg = NULL;
-        loopv(groups) if (!strcmp(groups[i]->team, d->team)) sg = groups[i];
+        loopi(numgroups) if (!strcmp(groups[i]->team, d->team)) sg = groups[i];
         if (!sg) return;
 
         float textscale = 0.5f, textpad = 0.5f;
@@ -1797,8 +1797,8 @@ namespace game
         drawtexture(barx, bary, barw, barh);
 
         scoregroup *winning = NULL, *runnerup = NULL;
-        loopv(groups) if(winning == NULL || winning->team == NULL || groups[i]->score > winning->score) winning = groups[i];
-        loopv(groups) if(groups[i] != winning && (runnerup == NULL || groups[i]->score > runnerup->score)) runnerup = groups[i];
+        loopi(numgroups) if(winning == NULL || winning->team == NULL || groups[i]->score > winning->score) winning = groups[i];
+        loopi(numgroups) if(groups[i] != winning && (runnerup == NULL || groups[i]->score > runnerup->score)) runnerup = groups[i];
         if(winning && runnerup)
         {
             bool winissurviver = !strcmp(winning->team, TEAM_0);
