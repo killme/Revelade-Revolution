@@ -51,17 +51,17 @@ namespace game
         {
             "playermodels/alanharris",  "playermodels/alanharris/blue",         "playermodels/alanharris/red",  "playermodels/alanharris/hudguns",      NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/alanharris",  "playermodels/alanharrist_blue",        "playermodels/alanharris_red",  true
+            "playermodels/alanharris",  "playermodels/alanharrist_blue",        "playermodels/alanharris_red",  true,   true
         },
         {
             "playermodels/swat",        "playermodels/swat/blue",               "playermodels/swat/red",        "playermodels/swat/hudguns",            NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/swat",        "playermodels/swat_blue",               "playermodels/swat_red",        true
+            "playermodels/swat",        "playermodels/swat_blue",               "playermodels/swat_red",        true,   true
         },
-		{
-            "playermodels/thief",  "playermodels/thief/blue",         "playermodels/thief/red",  "playermodels/thief/hudguns",      NULL,   NULL,
+        {
+            "playermodels/thief",       "playermodels/thief/blue",              "playermodels/thief/red",       "playermodels/thief/hudguns",           NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/thief",  "playermodels/thief_blue",        "playermodels/thief_red",  true
+            "playermodels/thief",  "playermodels/thief_blue",        "playermodels/thief_red",                  true,   true
         },
     };
 
