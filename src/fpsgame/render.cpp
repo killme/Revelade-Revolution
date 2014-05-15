@@ -58,6 +58,11 @@ namespace game
             { NULL, NULL, NULL },
             "playermodels/swat",        "playermodels/swat_blue",               "playermodels/swat_red",        true
         },
+		{
+            "playermodels/thief",  "playermodels/thief/blue",         "playermodels/thief/red",  "playermodels/thief/hudguns",      NULL,   NULL,
+            { NULL, NULL, NULL },
+            "playermodels/thief",  "playermodels/thief_blue",        "playermodels/thief_red",  true
+        },
     };
 
     VARFP(playermodel, 0, 0, sizeof(playermodels)/sizeof(playermodels[0]) - 1, changedplayermodel());
