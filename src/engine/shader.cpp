@@ -173,7 +173,7 @@ VAR(dbgubo, 0, 0, 1);
 
 static void bindglsluniform(Shader &s, UniformLoc &u)
 {
-    u.loc = glGetUniformLocation_((GLuint)s.program, u.name);
+    u.loc = glGetUniformLocation_(s.program, u.name);
     if(!u.blockname) return;
     if(hasUBO)
     {
@@ -204,7 +204,7 @@ static void bindglsluniform(Shader &s, UniformLoc &u)
         if(u.stride > 0)
         {
             defformatstring(elem1name)("%s[1]", u.name);
-            GLint elem1loc = glGetUniformLocation_((GLuint)s.program, elem1name);
+            GLint elem1loc = glGetUniformLocation_(s.program, elem1name);
             if(elem1loc == -1) return;
             GLintptr elem0off = glGetUniformOffset_((GLuint)s.program, u.loc),
                      elem1off = glGetUniformOffset_((GLuint)s.program, elem1loc);
@@ -223,23 +223,23 @@ static void linkglslprogram(Shader &s, bool msg = true)
     GLint success = 0;
     if(s.program)
     {
-        glAttachObject_((GLuint)s.program, s.vsobj);
-        glAttachObject_((GLuint)s.program, s.psobj);
+        glAttachObject_(s.program, s.vsobj);
+        glAttachObject_(s.program, s.psobj);
         loopv(s.attriblocs)
         {
             AttribLoc &a = s.attriblocs[i];
-            glBindAttribLocation_((GLuint)s.program, a.loc, a.name);
+            glBindAttribLocation_(s.program, a.loc, a.name);
         }
-        glLinkProgram_((GLuint)s.program);
-        glGetObjectParameteriv_((GLuint)s.program, GL_OBJECT_LINK_STATUS_ARB, &success);
+        glLinkProgram_(s.program);
+        glGetObjectParameteriv_(s.program, GL_OBJECT_LINK_STATUS_ARB, &success);
     }
     if(success)
     {
-        glUseProgramObject_((GLuint)s.program);
+        glUseProgramObject_(s.program);
         loopi(8)
         {
             defformatstring(arg)("tex%d", i);
-            GLint loc = glGetUniformLocation_((GLuint)s.program, arg);
+            GLint loc = glGetUniformLocation_(s.program, arg);
             if(loc != -1) glUniform1i_(loc, i);
         }
         loopv(s.defaultparams)
@@ -248,7 +248,7 @@ static void linkglslprogram(Shader &s, bool msg = true)
             string pname;
             if(param.type==SHPARAM_UNIFORM) copystring(pname, param.name);
             else formatstring(pname)("%s%d", param.type==SHPARAM_VERTEX ? "v" : "p", param.index);
-            param.loc = glGetUniformLocation_((GLuint)s.program, pname);
+            param.loc = glGetUniformLocation_(s.program, pname);
         }
         loopv(s.uniformlocs) bindglsluniform(s, s.uniformlocs[i]);
         glUseProgramObject_(0);
@@ -256,7 +256,7 @@ static void linkglslprogram(Shader &s, bool msg = true)
     else if(s.program)
     {
         if(msg) showglslinfo(s.program, "PROG", s.name, NULL);
-        glDeleteObject_((GLuint)s.program);
+        glDeleteObject_(s.program);
         s.program = 0;
     }
 }
@@ -333,11 +333,11 @@ static int addextparam(Shader &s, const char *name, int type, int index, int loc
 static void allocglsluniformparam(Shader &s, int type, int index, bool local = false)
 {
     ShaderParamState &val = (type==SHPARAM_VERTEX ? vertexparamstate[index] : pixelparamstate[index]);
-    int loc = val.name ? glGetUniformLocation_((GLuint)s.program, val.name) : -1;
+    int loc = val.name ? glGetUniformLocation_(s.program, val.name) : -1;
     if(loc == -1)
     {
         defformatstring(altname)("%s%d", type==SHPARAM_VERTEX ? "v" : "p", index);
-        loc = glGetUniformLocation_((GLuint)s.program, altname);
+        loc = glGetUniformLocation_(s.program, altname);
     }
     if(loc >= 0) loopi(s.numextparams)
     {
@@ -377,7 +377,7 @@ static void setglsluniformformat(Shader &s, const char *name, GLenum format, int
             return;
     }
     if(size > 1 || !strncmp(name, "gl_", 3)) return;
-    int loc = glGetUniformLocation_((GLuint)s.program, name);
+    int loc = glGetUniformLocation_(s.program, name);
     if(loc < 0) return;
     loopvj(s.defaultparams) if(s.defaultparams[j].loc == loc)
     {
@@ -396,7 +396,7 @@ static void setglsluniformformat(Shader &s, const char *name, GLenum format, int
 static void allocglslactiveuniforms(Shader &s)
 {
     GLint numactive = 0;
-    glGetObjectParameteriv_((GLuint)s.program, GL_OBJECT_ACTIVE_UNIFORMS_ARB, &numactive);
+    glGetObjectParameteriv_(s.program, GL_OBJECT_ACTIVE_UNIFORMS_ARB, &numactive);
     string name;
     loopi(numactive)
     {
@@ -404,7 +404,7 @@ static void allocglslactiveuniforms(Shader &s)
         GLint size = 0;
         GLenum format = GL_FLOAT_VEC4_ARB;
         name[0] = '\0';
-        glGetActiveUniform_((GLuint)s.program, i, sizeof(name)-1, &namelen, &size, &format, name);
+        glGetActiveUniform_(s.program, i, sizeof(name)-1, &namelen, &size, &format, name);
         if(namelen <= 0) continue;
         name[clamp(int(namelen), 0, (int)sizeof(name)-2)] = '\0'; 
         setglsluniformformat(s, name, format, size);
