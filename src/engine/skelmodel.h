@@ -1301,7 +1301,7 @@ struct skelmodel : animmodel
             }
             else
             {
-                glUniformBuffer_(Shader::lastshader->program, u.loc, bc.ubuf); 
+                glUniformBuffer_((GLuint)Shader::lastshader->program, u.loc, bc.ubuf); 
                 u.version = bc.version;
                 u.data = &bc.ubuf;
             }
