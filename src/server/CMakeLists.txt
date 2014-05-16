@@ -41,6 +41,7 @@ target_link_libraries(${TIG_SERVER_BINARY}
     ${ZLIB_LIBRARIES}
     ${UV_LIBRARIES}
     ${LUVIT_LIBRARIES}
+    ${LUAJIT_LIBRARIES}
     ${EXTRA_LIBS})
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/config

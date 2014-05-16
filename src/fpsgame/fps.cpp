@@ -1808,7 +1808,7 @@ namespace game
                 tone *= 2;
                 ttwo *= 2;
             }
-            
+
             // team textlogo backdrops
             t = textureload("data/hud/scorebar_wingacc.png", 3);
             glBindTexture(GL_TEXTURE_2D, t->id);
