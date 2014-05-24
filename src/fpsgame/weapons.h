@@ -162,9 +162,9 @@ static const struct weapinfo {
 {
     //  sound                   lp      icon            atckdly kick    range   power   damage  numrays offset  numshots        projtype                        mdl     prjspd  rad     gvt     prjlife -free   decal           dclsz   mzllsz  quakem  color           projparts
     //  id              name,           file,           scoped, autodown
-    {   S_CHAINSAW_ATTACK,      1,      HICON_FIST,     250,    0,      14,     198,    50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   0.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
-        S_CHAINSAW_ATTACK,      1,      HICON_FIST,     250,    0,      14,     198,    50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   0.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
-        WEAP_FIST,      "Chainsaw",     "fist",         false,  false },
+    {   S_KNIFE,                1,      HICON_FIST,     550,    0,      14,     198,    50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   0.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+        S_KNIFE,                1,      HICON_FIST,     550,    0,      14,     198,    50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   0.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+        WEAP_FIST,      "Knife",        "fist",         false,  false },
 
     {   S_SG,                   0,      HICON_SG,       1400,   20,     1024,   130,    10,     20,     4,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   30.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_1, PP_STREAK_FLARE_2, 0, 0 },
         S_SG,                   0,      HICON_SG,       1600,   20,     1024,   130,    70,     1,      0,      2,              PJ_PROJECTILE,                  2,      100,    30,     0,      0,      0,      DECAL_BULLET,   2.0f,   30.0f,  1.0f,   vec(0.2f, 0.1f, 0.1f),          {PP_MUZZLE_FLASH_1, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLACK },

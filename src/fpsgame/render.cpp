@@ -481,12 +481,6 @@ namespace game
         d->muzzle = vec(-1, -1, -1);
         a[0] = modelattach("tag_muzzle", &d->muzzle);
         dynent *interp = NULL;
-        if(d->hudgun==WEAP_FIST && chainsawhudgun)
-        {
-            anim |= ANIM_LOOP;
-            base = 0;
-            interp = &guninterp;
-        }
         if(zoom && isscopedweap(d->hudgun) && hfade < 0.025f)
             d->muzzle = d->o;
         else

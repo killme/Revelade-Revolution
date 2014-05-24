@@ -307,8 +307,7 @@ enum
     S_PISTOL,
     S_PUNCH1,
 
-    S_CHAINSAW_ATTACK,
-    S_CHAINSAW_IDLE,
+    S_KNIFE,
 
     S_ZOMBIE_ATTACK,
     S_ZOMBIE_IDLE,

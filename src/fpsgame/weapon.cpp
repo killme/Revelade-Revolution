@@ -1172,7 +1172,7 @@ namespace game
         {
             switch(d->attacksound)
             {
-                case S_CHAINSAW_ATTACK:
+                case S_KNIFE:
                     if(chainsawhudgun) gun = WEAP_FIST;
                     break;
 
@@ -1196,16 +1196,6 @@ namespace game
     void checkidlesound(fpsent *d, bool local)
     {
         int sound = -1, radius = 0;
-        if(d->clientnum >= 0 && d->state == CS_ALIVE) switch(d->gunselect)
-        {
-            case WEAP_FIST:
-                if(chainsawhudgun && d->attacksound < 0)
-                {
-                    sound = S_CHAINSAW_IDLE;
-                    radius = 50;
-                }
-                break;
-        }
 
         if(d->infected && d->state == CS_ALIVE)
         {
