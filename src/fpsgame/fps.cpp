@@ -789,14 +789,14 @@ namespace game
         else if(isteam(d->team, actor->team))
         {
             contype |= CON_TEAMKILL;
-            if(actor==player1) conoutf(contype, "\f3you %s a teammate (%s)%s", GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun): "");
-            else if(d==player1) conoutf(contype, "\f3you were %s by a teammate (%s)%s", GUN_FRAGBY_MESSAGE(gun, actor->infected), aname, special? GUN_SPECIAL_MESSAGE(gun): "");
-            else conoutf(contype, "\f2%s %s a teammate (%s)%s", aname, GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun): "");
+            if(actor==player1) conoutf(contype, "\f3you %s a teammate (%s)%s", GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
+            else if(d==player1) conoutf(contype, "\f3you were %s by a teammate (%s)%s", GUN_FRAGBY_MESSAGE(gun, actor->infected), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
+            else conoutf(contype, "\f2%s %s a teammate (%s)%s", aname, GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
         }
         else
         {
-            if(d==player1) conoutf(contype, "\f2you were %s by %s%s", GUN_FRAGBY_MESSAGE(gun, actor->infected), aname, special? GUN_SPECIAL_MESSAGE(gun): "");
-            else conoutf(contype, "\f2%s %s %s%s", aname, GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun): "");
+            if(d==player1) conoutf(contype, "\f2you were %s by %s%s", GUN_FRAGBY_MESSAGE(gun, actor->infected), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
+            else conoutf(contype, "\f2%s %s %s%s", aname, GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
         }
         if (m_dmsp)
         {

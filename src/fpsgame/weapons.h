@@ -237,11 +237,12 @@ static const struct weapinfo {
 #define GUN_SUICIDE_LAVA            "was incinirated"
 
 #define GUN_FRAG_SPECIAL            " with a headshot!"
+#define GUN_FRAG_SPECIAL_INFECTED       " by eating his brain!"
 #define GUN_EXPLODE_SPECIAL            " with a direct hit!"
 
 #define GUN_FRAG_MESSAGE(gun, infected)         ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAG_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAG_BURN: (WEAP_IS_EXPLOSIVE(gun)?GUN_FRAG_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAG_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAG_INSANITY : GUN_FRAG_NORMAL))))
 #define GUN_FRAGBY_MESSAGE(gun, infected)       ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAGBY_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAGBY_BURN: (WEAP_IS_EXPLOSIVE(gun)?GUN_FRAGBY_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAGBY_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAGBY_INSANITY : GUN_FRAGBY_NORMAL))))
-#define GUN_SPECIAL_MESSAGE(gun)    (WEAP_IS_EXPLOSIVE(gun)?GUN_EXPLODE_SPECIAL: GUN_FRAG_SPECIAL)
+#define GUN_SPECIAL_MESSAGE(gun, infected)    (WEAP_IS_EXPLOSIVE(gun) ? GUN_EXPLODE_SPECIAL : (WEAP_IS_MELEE(gun) && infected ? GUN_FRAG_SPECIAL_INFECTED : GUN_FRAG_SPECIAL))
 #define GUN_SUICIDE_MESSAGE(gun)    (gun==-1? GUN_FRAG_NORMAL:(gun==-2? GUN_SUICIDE_FALL: GUN_SUICIDE_LAVA))
 
 #define GUN_MAX_RAYS                32
