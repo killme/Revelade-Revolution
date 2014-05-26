@@ -424,7 +424,6 @@ static void getbackgroundres(int &w, int &h)
 }
 
 string backgroundcaption = "";
-Texture *backgroundmapshot = NULL;
 Texture *backgroundmapbg = NULL;
 string backgroundmapname = "";
 char *backgroundmapinfo = NULL;
@@ -432,14 +431,13 @@ char *backgroundmapinfo = NULL;
 void restorebackground()
 {
     if(renderedframe) return;
-    renderbackground(backgroundcaption[0] ? backgroundcaption : NULL, backgroundmapshot, backgroundmapbg, backgroundmapname[0] ? backgroundmapname : NULL, backgroundmapinfo, true);
+    renderbackground(backgroundcaption[0] ? backgroundcaption : NULL, backgroundmapbg, backgroundmapname[0] ? backgroundmapname : NULL, backgroundmapinfo, true);
 }
 
 float lastrangle = 0;
-void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, const char *mapname, const char *mapinfo, bool restore, bool force)
+void renderbackground(const char *caption, Texture *bgshot, const char *mapname, const char *mapinfo, bool restore, bool force)
 {
     if(!inbetweenframes && !force) return;
-
     if(!mainmenu) stopsounds(); // stop sounds while loading
 
     int w = screen->w, h = screen->h;
@@ -464,7 +462,6 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
         lastupdate = lastmillis;
         lastw = w;
         lasth = h;
-
         backgroundu = rndscale(1);
         backgroundv = rndscale(1);
         detailu = rndscale(1);
@@ -477,7 +474,6 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
             decal d = { rndscale(w), rndscale(h), maxsize/2 + rndscale(maxsize/2), rnd(2) };
             decals[i] = d;
         }
-
         (void) detailu; (void) detailv; (void)backgroundu; (void)backgroundv; //TODO: fix this function
     }
     else if(lastupdate != lastmillis) lastupdate = lastmillis;
@@ -485,14 +481,13 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
     loopi(restore ? 1 : 3)
     {
         glColor3f(1, 1, 1);
-        if((bgshot && bgshot != notexture) || (mapshot && mapshot != notexture))
+        if(bgshot && bgshot != notexture)
         {
             #define fit(a,b) (a > b ? a/float(b) : b/float(a))
             #define ratio(a,b,c,d) (c >= d ? fit(a, c) : fit(b, d))
-            int tw = bgshot ? 1280 : 512, th = bgshot ? 800 : 512;
+            int tw = 1280, th = 800;
             float scale = w >= h ? ratio(w, h, tw, th) : ratio(h, w, th, tw), nx = tw*scale, ny = th*scale, xind = (w-nx)/2, yind = (h-ny)/2;
-            if(bgshot && bgshot != notexture) glBindTexture(GL_TEXTURE_2D, bgshot->id);
-            else glBindTexture(GL_TEXTURE_2D, mapshot->id);
+            glBindTexture(GL_TEXTURE_2D, bgshot->id);
             glColor4f(0.5f, 0.5f, 0.5f, 1.f);
             glBegin(GL_TRIANGLE_STRIP);
             glTexCoord2f(0, 0); glVertex2f(int(xind), int(yind));
@@ -505,11 +500,10 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
         {
             settexture("data/gui/background.png", 0);
             glColor4f(1.f, 1.f, 1.f, 1.f);
-            //float bu = w*0.67f/256.0f + backgroundu, bv = h*0.67f/256.0f + backgroundv;
             glBegin(GL_TRIANGLE_STRIP);
-            glTexCoord2f(0,  0);  glVertex2f(0, 0);
-            glTexCoord2f(1, 0);  glVertex2f(w, 0);
-            glTexCoord2f(0,  1); glVertex2f(0, h);
+            glTexCoord2f(0, 0); glVertex2f(0, 0);
+            glTexCoord2f(1, 0); glVertex2f(w, 0);
+            glTexCoord2f(0, 1); glVertex2f(0, h);
             glTexCoord2f(1, 1); glVertex2f(w, h);
             glEnd();
         }
@@ -517,17 +511,15 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
         glEnable(GL_BLEND);
         settexture("data/gui/background_detail.png", 0);
         glColor4f(1.f, 1.f, 1.f, 1.f);
-        //float du = w*0.8f/512.0f + detailu, dv = h*0.8f/512.0f + detailv;
         glBegin(GL_TRIANGLE_STRIP);
-        glTexCoord2f(0,  0);  glVertex2f(0, 0);
-        glTexCoord2f(1, 0);  glVertex2f(w, 0);
-        glTexCoord2f(0,  1); glVertex2f(0, h);
+        glTexCoord2f(0, 0); glVertex2f(0, 0);
+        glTexCoord2f(1, 0); glVertex2f(w, 0);
+        glTexCoord2f(0, 1); glVertex2f(0, h);
         glTexCoord2f(1, 1); glVertex2f(w, h);
         glEnd();
         settexture("data/gui/background_decal.png", 3);
         glColor4f(1, 1, 1, 0.5f);
         glBegin(GL_QUADS);
-        //glBlendFunc(GL_ZERO, GL_SRC_COLOR);
         glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
         loopj(numdecals)
         {
@@ -538,8 +530,7 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
             glTexCoord2f(side,   1); glVertex2f(hx-hsz, hy+hsz);
         }
         glEnd();
-        float lh = 0.5f*min(w, h), lw = lh*2,
-              lx = 0.5f*(w - lw), ly = 0.5f*(h*0.5f - lh);
+        float lh = 0.5f*min(w, h), lw = lh*2, lx = 0.5f*(w - lw), ly = 0.5f*(h*0.5f - lh);
         settexture((maxtexsize ? min(maxtexsize, hwtexsize) : hwtexsize) >= 1024 && (screen->w > 1280 || screen->h > 800) ? "data/gui/logo_1024.png" : "data/gui/logo.png", 3);
         glColor4f(1, 1, 1, 1);
         glBegin(GL_TRIANGLE_STRIP);
@@ -549,82 +540,22 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
         glTexCoord2f(1, 1); glVertex2f(lx+lw, ly+lh);
         glEnd();
 
-        if(caption)
+        loopi(3)
         {
-            int tw = text_width(caption);
-            float tsz = 0.04f*min(w, h)/FONTH,
-                  tx = 0.5f*(w - tw*tsz), ty = h - 0.075f*1.5f*min(w, h) - 1.25f*FONTH*tsz;
-            glPushMatrix();
-            glTranslatef(tx, ty, 0);
-            glScalef(tsz, tsz, 1);
-            draw_text(caption, 0, 0);
-            glPopMatrix();
-        }
-        if(mapshot || mapname)
-        {
-            int infowidth = 21*FONTH;
-            //float sz = 0.35f*min(w, h), msz = (0.78f*min(w, h) - sz)/(infowidth + FONTH), x = 0.5f*(w-sz), y = ly+lh - sz/15;
-            float sz = 0.35f*min(w, h), msz = (1.0f*min(w, h) - sz)/(infowidth + FONTH), x = 0.5f*(w-sz), y = ly+lh - sz/15;
-            if(mapinfo)
+            const char *texttype[3] = { mapname, mapinfo, caption };
+            float textpos[3] = { 9.25f, 8.25f, 1.25f }, textsz[3] = { 0.04f, 0.04f, 0.04f }, textmod[3] = { 0, 0, 0 }, textscale[3] = { 1.0f, 0.8f, 1.0f };
+            if(texttype[i])
             {
-                settextscale(0.9f);
-                int mw, mh;
-                text_bounds(mapinfo, mw, mh, infowidth);
-                x -= 0.5f*(mw*msz + FONTH*msz);
-                settextscale(1.0f);
-            }
-            if(mapshot && mapshot!=notexture)
-            {
-                //x = w*0.5 - (sz*0.5);
-                //y = h*0.5 - (sz*0.5);
-                glBindTexture(GL_TEXTURE_2D, mapshot->id);
-                glBegin(GL_TRIANGLE_STRIP);
-                glTexCoord2f(0, 0); glVertex2f(x,    y);
-                glTexCoord2f(1, 0); glVertex2f(x+sz, y);
-                glTexCoord2f(0, 1); glVertex2f(x,    y+sz);
-                glTexCoord2f(1, 1); glVertex2f(x+sz, y+sz);
-                glEnd();
-            }
-            else
-            {
-                int qw, qh;
-                text_bounds("?", qw, qh);
-                float qsz = sz*0.5f/max(qw, qh);
+                if(textscale[i] != 1.0f) settextscale(textscale[i]);
+                int textwidth = i == 1 ? 21*FONTH : -1;
+                int tw = text_width(texttype[i]);
+                float tsz = (textsz[i]*min(w, h)-textmod[i])/(min(textwidth, 0) + FONTH), tx = 0.5f*(w - max(i%2, tw)*tsz), ty = h - 0.075f*1.5f*min(w, h) - textpos[i]*FONTH*tsz;
                 glPushMatrix();
-                glTranslatef(x + 0.5f*(sz - qw*qsz), y + 0.5f*(sz - qh*qsz), 0);
-                glScalef(qsz, qsz, 1);
-                draw_text("?", 0, 0);
-                glPopMatrix();
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            }
-            settexture("data/gui/mapshot_frame.png", 3);
-            glBegin(GL_TRIANGLE_STRIP);
-            glTexCoord2f(0, 0); glVertex2f(x,    y);
-            glTexCoord2f(1, 0); glVertex2f(x+sz, y);
-            glTexCoord2f(0, 1); glVertex2f(x,    y+sz);
-            glTexCoord2f(1, 1); glVertex2f(x+sz, y+sz);
-            glEnd();
-            if(mapname)
-            {
-                int tw = text_width(mapname);
-                float tsz = sz/(8*FONTH),
-                      tx = 0.9f*sz - tw*tsz, ty = 0.9f*sz - FONTH*tsz;
-                if(tx < 0.1f*sz) { tsz = 0.1f*sz/tw; tx = 0.1f; }
-                glPushMatrix();
-                glTranslatef(x+tx, y+ty, 0);
+                glTranslatef(tx, ty, 0);
                 glScalef(tsz, tsz, 1);
-                draw_text(mapname, 0, 0);
+                draw_text(texttype[i], 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, -1, textwidth);
                 glPopMatrix();
-            }
-            if(mapinfo)
-            {
-                settextscale(0.9f);
-                glPushMatrix();
-                glTranslatef(x+sz+FONTH*msz, y, 0);
-                glScalef(msz, msz, 1);
-                draw_text(mapinfo, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, -1, infowidth);
-                glPopMatrix();
-                settextscale(1.0f);
+                if(textscale[i] != 1.0f) settextscale(1.0f);
             }
         }
         glDisable(GL_BLEND);
@@ -636,7 +567,6 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
     {
         renderedframe = false;
         copystring(backgroundcaption, caption ? caption : "");
-        backgroundmapshot = mapshot;
         backgroundmapbg = bgshot;
         copystring(backgroundmapname, mapname ? mapname : "");
         if(mapinfo != backgroundmapinfo)
@@ -725,7 +655,7 @@ void renderprogress(float bar, const char *text, GLuint tex, bool background)   
         glEnd();
     }
 
-    if(text)
+    if(text && editmode)
     {
         int tw = text_width(text);
         float tsz = bh*0.8f/FONTH;
