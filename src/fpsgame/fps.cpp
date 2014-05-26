@@ -994,7 +994,19 @@ namespace game
     }
 
     vector<const char*> sptips;
-    ICOMMAND(addtip, "s", (char *s), { sptips.add(newstring(s)); });
+    ICOMMAND(addtip, "s", (char *s), {
+        sptips.add(newstring(s));
+    });
+    ICOMMAND(cleartips, "s", (), {
+        const char *tip = NULL;
+        while(sptips.length() > 0 && (tip = sptips.pop()) != NULL)
+        {
+            DELETEA(tip);
+        }
+    });
+    ICOMMAND(gettip, "", (), {
+        result(sptips[rnd(sptips.length())]);
+    });
 
     const char *getmapinfo()
     {
