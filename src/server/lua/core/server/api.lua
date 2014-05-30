@@ -23,6 +23,8 @@ ffi.cdef [[
     int getTimeLeft();
     const char *getVersionString();
     int getProtocolVersion();
+
+    bool checkpassword(int cn, const char *wanted, const char *given);
 ]]
 
 return ffi.C

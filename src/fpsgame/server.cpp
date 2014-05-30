@@ -1088,28 +1088,58 @@ namespace server
             }
             else
             {
-                //TODO: lua check pass
                 targetInfo = ci;
 
-                if(ci->state.state==CS_SPECTATOR && !ci->local) return; // Spectators cannot claim master
-
-                loopv(clients) if(ci!=clients[i] && clients[i]->privilege >= PRIV_MASTER && getUpgradedPrivilege(targetInfo->privilege) <= clients[i]->privilege)
+                int newRank = PRIV_NONE;
+                #ifdef SERVER
+                if(pass && pass[0] && lua::pushEvent("client.setmaster"))
                 {
-                    return; //Higher ranked are present
-                }
-
-                if(!(mastermask&MM_AUTOAPPROVE) && getUpgradedPrivilege(targetInfo->privilege) <= PRIV_MASTER && !ci->local)
-                {
-                    sendf(ci->clientnum, 1, "ris", N_SERVMSG, "This server does not allow public mastership.");
-                    return; // ^
+                    lua_pushnumber(lua::L, ci->clientnum);
+                    lua_pushstring(lua::L, pass);
+                    lua_call(lua::L, 2, 1);
+                        newRank = lua_tonumber(lua::L, -1);
+                    lua_pop(lua::L, 1);
                 }
                 else
                 {
-                    int newRank = getUpgradedPrivilege(targetInfo->privilege);
-                    if(newRank <= targetInfo->privilege) return; //Nothing changed
-                    targetInfo->privilege = newRank;
-                }
+                #endif
+                    if(ci->state.state==CS_SPECTATOR && !ci->local) return; // Spectators cannot claim master
 
+                    loopv(clients) if(ci!=clients[i] && clients[i]->privilege >= PRIV_MASTER && getUpgradedPrivilege(targetInfo->privilege) <= clients[i]->privilege)
+                    {
+                        return; //Higher ranked are present
+                    }
+
+                    if(!(mastermask&MM_AUTOAPPROVE) && getUpgradedPrivilege(targetInfo->privilege) <= PRIV_MASTER && !ci->local)
+                    {
+                        sendf(ci->clientnum, 1, "ris", N_SERVMSG, "This server does not allow public mastership.");
+                        return; // ^
+                    }
+                    else
+                    {
+                        #ifdef SERVER
+                        if(lua::pushEvent("client.setmaster"))
+                        {
+                            lua_pushnumber(lua::L, ci->clientnum);
+                            lua_pushstring(lua::L, "");
+                            lua_call(lua::L, 2, 1);
+                                newRank = lua_tonumber(lua::L, -1);
+                            lua_pop(lua::L, 1);
+                        }
+                        #endif
+                        
+                        if(newRank < PRIV_NONE)
+                        {
+                            newRank = getUpgradedPrivilege(targetInfo->privilege);
+                        }
+                    }
+                #ifdef SERVER
+                }
+                #endif
+                
+                if(newRank <= targetInfo->privilege) return; //Nothing changed
+                targetInfo->privilege = newRank;
+                
                 sendservmsgf(-1, "%s claimed %s.", colorname(targetInfo), getPrivilegeName(targetInfo->privilege));
             }
         }

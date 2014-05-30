@@ -45,5 +45,15 @@
     "server.modules": [
         "core.modules.motd",
         "core.modules.masterclient"
+    ],
+    
+    /**
+     * server.users
+     * List of passwords that can be used to authenticate on this server.
+     * Use "" as password to set the /setmaster 1 privilige
+     */
+    "server.users": [
+        /* Example: disables /setmaster 1 {"password": "", "value": "PRIV_NONE"}, */
+        {"password": "ChangeMe", "value": "PRIV_ADMIN_INACTIVE"}
     ]
 }

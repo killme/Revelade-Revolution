@@ -7,6 +7,10 @@ extern void setfvar(const char *name, float f, bool dofunc, bool doclamp);
 extern void setsvar(const char *name, const char *str, bool dofunc);
 extern float getfvar(const char *name);
 extern const char *getsvar(const char *name);
+namespace server
+{
+    extern bool checkpassword(server::clientinfo *ci, const char *wanted, const char *given);
+}
 
 /**
  * \defgroup lua C++ api to the lua module
@@ -414,6 +418,12 @@ extern "C"
     EXPORT(int getProtocolVersion())
     {
         return server::protocolversion();
+    }
+    
+    EXPORT(bool checkpassword(int cn, const char *wanted, const char *given))
+    {
+        server::clientinfo *ci = (server::clientinfo *)getclientinfo(cn);
+        return ci && checkpassword(ci, wanted, given);
     }
     
     /**

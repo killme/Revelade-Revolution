@@ -69,6 +69,46 @@ startupTask:addTask(config.loadConfiguration("resources/config/server.json", fun
         return nil
     end
     
+    local function userList(list)
+        if type(list) == "table" then
+            for k, v in pairs(list) do
+                if type(list) ~= "table" then
+                    p "User is not table"
+                    return nil
+                end
+
+                if not v.value or not v.password then
+                    p "Value or password missing"
+                    return nil
+                end
+
+                if type(v.value) == "string" then
+                    list[k].value = ({
+                        PRIV_NONE = 0,
+                        PRIV_PLAYER = 1,
+                        PRIV_MODERATOR_INACTIVE = 2,
+                        PRIV_DEVELOPER_INACTIVE = 3,
+                        PRIV_CREATOR_INACTIVE = 4,
+                        PRIV_ADMIN_INACTIVE = 5,
+                        PRIV_MASTER = 6,
+                        PRIV_MODERATOR = 7,
+                        PRIV_DEVELOPER = 8,
+                        PRIV_CREATOR = 9,
+                        PRIV_ADMIN = 10
+                    })[v.value]
+                    if not v.value then
+                        p "Invalid priv"
+                        return nil
+                    end
+                end
+            end
+            
+            return list
+        end
+
+       return nil
+    end
+    
     for k, setting in pairs({
         {field = "server.maxclients", name = "maxclients", checkFunction = tonumber},
         {field = "server.port", name = "serverport", checkFunction = tonumber},
@@ -77,7 +117,8 @@ startupTask:addTask(config.loadConfiguration("resources/config/server.json", fun
         
         {field = "server.ip", name = "serverip", checkFunction = optionalString, optional = true},
         
-        {field = "server.hostname", name = "serverhost", checkFunction = optionalString, optional = true}
+        {field = "server.hostname", name = "serverhost", checkFunction = optionalString, optional = true},
+        {field = "server.users", name = "users", checkFunction = userList}
     }) do
     
         local value = setting.checkFunction(data[setting.field])
@@ -120,6 +161,31 @@ startupTask:addTask(config.loadConfiguration("resources/config/server.json", fun
     
     startupTask:finishTask()
 end))
+
+event.setCallback("client.setmaster", function(cn, password, meta)
+    local users = cubescript.getVar("users")
+    if type(users) ~= "table" then
+        print "WARNING: users table is not set"
+    end
+    meta.returnValue = -1
+    if password == "" then --/setmaster 1
+        for k, user in pairs(users) do
+            if user.password == "" then
+                meta.returnValue = user.value
+                return
+            end
+        end
+    else
+        for k, user in pairs(users) do
+            if server.checkpassword(cn, user.password, password) then
+                meta.returnValue = user.value
+                return
+            end
+        end
+    end
+    
+    return 0
+end)
 
 event.setCallback("server.listen", function(port, extinfoPort, lanPort)
     serverApi:print(("Listening on port %i (extinfo: %i, laninof: %i)"):format(port, extinfoPort, lanPort))
