@@ -13,7 +13,7 @@ set(RR_VERSION_MINOR 1)
 set(RR_VERSION_PATCH 0)
 
 set(RR_VERSION_STATUS "alpha")
-set(RR_VERSION_RELEASE 3)
+set(RR_VERSION_RELEASE 4)
 
 # Detect svn rev
 include(FindSubversion)
