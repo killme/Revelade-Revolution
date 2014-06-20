@@ -121,6 +121,7 @@ if(${BUILD_SERVER})
     endif()
 
     add_subdirectory(libraries/luvit)
+    add_subdirectory(libraries/luapp)
 endif()
 
 include_directories(
@@ -143,7 +144,6 @@ else()
 endif()
 
 if(${BUILD_SERVER})
-    add_subdirectory(luapp)
     add_subdirectory(server)
 else()
     message(WARNING "not building the server")
