@@ -69,7 +69,7 @@ namespace game
             "playermodels/aneta",  "playermodels/aneta_blue",        "playermodels/aneta_red",                  true,   true
         },
         {
-            "playermodels/advent",      "playermodels/advent/blue",             "playermodels/advent/red",      "playermodels/advent/hudguns",           NULL,   NULL,
+            "playermodels/advent",      "playermodels/advent/blue",             "playermodels/advent/red",      "playermodels/advent/hudguns",          NULL,   NULL,
             { NULL, NULL, NULL },
             "playermodels/advent",  "playermodels/advent_blue",        "playermodels/advent_red",                  true,   true
         },

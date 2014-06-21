@@ -1,0 +1,7 @@
+{
+    "host": "rr.master.theintercooler.com",
+    "path.register": "/register",
+    "path.update": "/update",
+    "port": 16962,
+    "listname": null
+}
