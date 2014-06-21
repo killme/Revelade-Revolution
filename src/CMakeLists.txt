@@ -143,35 +143,8 @@ if(SPHINX_FOUND)
 endif()
 
 
-IF(${CMAKE_BUILD_TYPE} EQUAL "DEBUG")
-    set(FORMAT_CHECK_DIRS
-        ${CMAKE_CURRENT_SOURCE_DIR}/fpsgame/
-        ${CMAKE_CURRENT_SOURCE_DIR}/engine/
-        ${CMAKE_CURRENT_SOURCE_DIR}/shared/
-        ${CMAKE_CURRENT_SOURCE_DIR}/../data
-    )
-
-    set(FORMAT_CHECK_FILES "")
-    foreach(FORMAT_CHECK_DIR ${FORMAT_CHECK_DIRS})
-        FILE(GLOB_RECURSE FORMAT_CHECK_FILES_DIR "${FORMAT_CHECK_DIR}/**")
-        set(FORMAT_CHECK_FILES
-            ${FORMAT_CHECK_FILES}
-            ${FORMAT_CHECK_FILES_DIR})
-    endforeach()
-
-    foreach(FORMAT_FILE ${FORMAT_CHECK_FILES})
-        SET(FORMAT_FILE_LINE_I 0)
-        if(${FORMAT_FILE} MATCHES "(c|cpp|h|cpp|cmake)$")
-            FILE(READ "${FORMAT_FILE}" FORMAT_FILE_CONTENT)
-            STRING(REGEX REPLACE ";" "\\\\;" FORMAT_FILE_CONTENT "${FORMAT_FILE_CONTENT}")
-            STRING(REGEX REPLACE "\n" ";" FORMAT_FILE_CONTENT "${FORMAT_FILE_CONTENT}")
-            foreach(FORMAT_FILE_LINE ${FORMAT_FILE_CONTENT})
-                MATH(EXPR FORMAT_FILE_LINE_I "${FORMAT_FILE_LINE_I} + 1")
-                STRING(FIND "${FORMAT_FILE_LINE}" "\t" FORMAT_LINE_POSITION)
-                if(NOT  ${FORMAT_LINE_POSITION} EQUAL -1)
-                    message(WARNING "Found tab in source (${FORMAT_FILE}:${FORMAT_FILE_LINE_I}:${FORMAT_LINE_POSITION}): ${FORMAT_FILE_LINE}")
-                endif()
-            endforeach()
-        endif()
-    endforeach()
+IF(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    add_custom_target(src_validate ${CMAKE_COMMAND} -DSRC_DIR=${CMAKE_CURRENT_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ValidateSource.cmake ALL)
+else()
+    add_custom_target(src_validate ${CMAKE_COMMAND} -DSRC_DIR=${CMAKE_CURRENT_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ValidateSource.cmake)
 endif()

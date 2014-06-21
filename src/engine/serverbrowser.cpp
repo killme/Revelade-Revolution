@@ -796,7 +796,7 @@ namespace serverbrowser
             
             uv_getaddrinfo_t *req = new uv_getaddrinfo_t();
             
-			int err = 0;
+            int err = 0;
             if ((err = uv_getaddrinfo(uv_default_loop(), req, resolvedVersionMasterCallback, name, port, hints)) < 0)
             {
                 conoutf(CON_ERROR, "Could not start resolving the master host %s: %s\n", uv_err_name(err), uv_strerror(err));
