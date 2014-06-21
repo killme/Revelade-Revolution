@@ -4,7 +4,7 @@
 #define RR_VERSION_TYPE_RELEASE     0
 #define RR_VERSION_TYPE_DEVELOPMENT 1
 
-#define RR_VERSION_TYPE             ${RR_VERSION_TYPE_INT}
+#define RR_VERSION_TYPE             ${RR_VERSION_TYPE}
 
 #define RR_VERSION_MAJOR            ${RR_VERSION_MAJOR}
 #define RR_VERSION_MINOR            ${RR_VERSION_MINOR}

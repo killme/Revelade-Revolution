@@ -1,18 +1,12 @@
 add_definitions(-DFPS -DCLIENT -DBINARY_ARCH=${TIG_TARGET_ARCH} -DBINARY_OS=${TIG_PLATFORM_BIN} -DBINARY_ARCH_STRING="${TIG_TARGET_ARCH}" -DBINARY_OS_STRING="${TIG_PLATFORM_BIN}" -DTIG_SERVER_BINARY="${TIG_SERVER_BINARY}")
 
-if(NOT ${TIG_TARGET_WINDOWS} AND NOT ${TIG_TARGET_OSX})
-    set(EXTRA_LIBS ${EXTRA_LIBS} SDL SDL_image SDL_mixer -pthread)
-elseif(${TIG_TARGET_OSX})
-    set(EXTRA_LIBS ${EXTRA_LIBS} ${SDL_LIBRARY} ${SDL_IMAGE_LIBRARY} ${SDL_MIXER_LIBRARY})
-elseif(${TIG_TARGET_WINDOWS})
-    set(EXTRA_LIBS ${EXTRA_LIBS} SDL SDL_image SDL_mixer opengl32 ws2_32 winmm)
+if(${IBTS_TARGET_WINDOWS})
+    set(IBTS_EXTRA_LIBS ${IBTS_EXTRA_LIBS} opengl32 ws2_32 winmm)
     add_definitions(-mwindows)
-endif()
-
-if(${TIG_TARGET_LINUX})
-    set(EXTRA_LIBS ${EXTRA_LIBS} dl rt)
-elseif(${TIG_TARGET_SOLARIS})
-    set(EXTRA_LIBS ${EXTRA_LIBS} socket nsl)
+elseif(${IBTS_TARGET_LINUX})
+    set(IBTS_EXTRA_LIBS ${IBTS_EXTRA_LIBS} dl rt)
+elseif(${IBTS_TARGET_SOLARIS})
+    set(IBTS_EXTRA_LIBS ${IBTS_EXTRA_LIBS} socket nsl)
 endif()
 
 set(CLIENT_SOURCES
@@ -83,7 +77,7 @@ set(CLIENT_SOURCES
 )
 
 option(CLIENT_USE_WINDRES "Add icon to executable." 0)
-if(${TIG_TARGET_WINDOWS})
+if(${IBTS_TARGET_WINDOWS})
     set(CLIENT_SOURCES
         ${CLIENT_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/../vcpp/SDL_win32_main.c
@@ -94,17 +88,16 @@ if(${TIG_TARGET_WINDOWS})
             ${CLIENT_SOURCES}
             ${CMAKE_CURRENT_SOURCE_DIR}/../vcpp/rr.rc
         )
-    
+
         set(CMAKE_RC_COMPILER_INIT windres)
         ENABLE_LANGUAGE(RC)
         SET(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff -I ${CMAKE_CURRENT_SOURCE_DIR}/.. -i <SOURCE> -o <OBJECT>")
     endif()
 endif()
 
-tig_add_definitions_for(${TIG_CLIENT_BINARY})
-
-add_executable(${TIG_CLIENT_BINARY} ${CLIENT_SOURCES})
-target_link_libraries(${TIG_CLIENT_BINARY}
+set(RR_CLIENT_BINARY client_${IBTS_PLATFORM_BIN}_${IBTS_TARGET_ARCH} CACHE INTERNAL "Revelade revolution client binary name.")
+add_executable(${RR_CLIENT_BINARY} ${CLIENT_SOURCES})
+target_link_libraries(${RR_CLIENT_BINARY}
     ${ENET_LIBRARIES}
     ${SDL_LIBRARIES}
     ${OPENGL_LIBRARIES}
@@ -113,7 +106,7 @@ target_link_libraries(${TIG_CLIENT_BINARY}
     ${TOMCRYPT_LIBRARIES}
     ${HTTP_PARSER_LIBRARIES}
     ${YAJL_LIBRARIES}
-    ${EXTRA_LIBS}
+    ${IBTS_EXTRA_LIBS}
 )
 
-tig_install(${TIG_CLIENT_BINARY})
+ibts_install(${RR_CLIENT_BINARY})

@@ -2,11 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 cmake_policy(SET CMP0012 NEW)
 project(ReveladeRevolution)
 
-# 0 = release; 1 = development build, -1 = auto
-set(RR_FORCE_VERSION_TYPE -1)
-
-# Enable packaging for desura
-option(RELEASE_BUILD "Enable packaging for desura" 0)
+option(RELEASE_BUILD "Creates a release package in release mode" 0)
 
 set(RR_VERSION_MAJOR 0)
 set(RR_VERSION_MINOR 1)
@@ -24,138 +20,122 @@ ELSE(Subversion_FOUND)
     SET(RR_VERSION_TAG -1)
 ENDIF(Subversion_FOUND) 
 
-IF(${RR_FORCE_VERSION_TYPE} EQUAL -1)
-    IF(${RELEASE_BUILD})
-        option(RR_VERSION_TYPE "Revelade revolution version type, off means release, on means development build" 0)
-    ELSE()
-        option(RR_VERSION_TYPE "Revelade revolution version type, off means release, on means development build" 1)
-    ENDIF()
-    IF(${RR_VERSION_TYPE})
-        set(RR_VERSION_TYPE_INT 1)
-    ELSE()
-        set(RR_VERSION_TYPE_INT 0)
-    ENDIF()
+IF(${RELEASE_BUILD})
+    set(RR_VERSION_TYPE 0)
 else()
-
+    set(RR_VERSION_TYPE 1)
 endif()
 
 if(${RR_VERSION_TYPE})
+    set(RR_DEFAULT_BUILD_TYPE  "Debug")
     set(RR_VERSION ${RR_VERSION_MAJOR}.${RR_VERSION_MINOR}.${RR_VERSION_PATCH}-${RR_VERSION_STATUS}-${RR_VERSION_RELEASE}-r${RR_VERSION_TAG})
 else()
+    set(RR_DEFAULT_BUILD_TYPE  "Release")
     set(RR_VERSION ${RR_VERSION_MAJOR}.${RR_VERSION_MINOR}.${RR_VERSION_PATCH}-${RR_VERSION_STATUS}-${RR_VERSION_RELEASE})
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE ${RR_DEFAULT_BUILD_TYPE} CACHE STRING "Choose the type of build, options are: Debug Release." FORCE)
 endif()
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/CMake)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/CMakeModules CACHE INTERNAL "")
 
-include(tig)
+include(PlatformDetection)
 
-set(TIG_C_FLAGS "-fomit-frame-pointer -Wall -fsigned-char")
+message(STATUS "Compiling for ${IBTS_TARGET_OS} ${IBTS_TARGET_ARCH} (${CMAKE_SIZEOF_VOID_P})")
 
-set(TIG_CXX_FLAGS "${TIG_C_FLAGS} -fno-exceptions -fno-rtti")
-set(TIG_CXX_FLAGS_MSVC "/EHsc /MT")
+# Compiler flags
 
-if(TIG_TARGET_WINDOWS)
-    if(MSVC)
-        set(TIG_CXX_FLAGS ${TIG_CXX_FLAGS_MSVC})
-    endif()
+set(IBTS_FLAGS "")
 
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform_windows/include)
-    set(TIG_PLATFORM_SRC "windows")
-    set(TIG_PLATFORM_BIN "windows")
-    set(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/platform_windows/include)
-    set(ZLIB_LIBRARY zdll)
-    set(ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIR})
-    set(ZLIB_LIBRARIES ${ZLIB_LIBRARY})
-elseif(TIG_TARGET_OSX)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform_osx/include)
-    set(TIG_PLATFORM_SRC "osx")
-    set(TIG_PLATFORM_BIN "darwin")
-    set(CMAKE_FRAMEWORK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/platform_osx/Frameworks)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.6)
-else()
-    if(TIG_TARGET_LINUX)
-        set(TIG_PLATFORM_SRC "linux")
-        set(TIG_PLATFORM_BIN "linux")
-    elseif(TIG_TARGET_FREEBSD)
-        set(TIG_PLATFORM_SRC "freebsd")
-        set(TIG_PLATFORM_BIN "freebsd")
-    elseif(TIG_TARGET_SOLARIS)
-        set(TIG_PLATFORM_SRC "solaris")
-        set(TIG_PLATFORM_BIN "solaris")
+if(IBTS_TARGET_WINDOWS)
+    set(IBTS_FLAGS "${IBTS_FLAGS} -DWIN32 -DWINDOWS")
+    if(IBTS_TARGET_X64)
+        set(IBTS_FLAGS "$IBTS_FLAGS} -DWIN64")
     endif()
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/src/platform_${TIG_PLATFORM_SRC}/include)
-link_directories(${CMAKE_SOURCE_DIR}/src/platform_${TIG_PLATFORM_SRC}/lib)
+set(IBTS_DEBUG_FLAGS   "${IBTS_FLAGS} -O0 -g -D_DEBUG -DIBTS_DEBUG")
+set(IBTS_RELEASE_FLAGS "${IBTS_FLAGS} -O3 -DNDEBUG -DIBTS_NO_DEBUG")
 
-if(TIG_TARGET_X64)
-    link_directories(${CMAKE_SOURCE_DIR}/src/platform_${TIG_PLATFORM_SRC}/lib64)
-    if(TIG_TARGET_WINDOWS)
-        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/bin64)
-    endif()
-else()
-    link_directories(${CMAKE_SOURCE_DIR}/src/platform_${TIG_PLATFORM_SRC}/lib32)
-    if(TIG_TARGET_WINDOWS)
-        link_directories(${CMAKE_CURRENT_SOURCE_DIR}/bin32)
-    endif()
-endif()
+set(IBTS_C_FLAGS "-fomit-frame-pointer -Wall -fsigned-char")
+set(IBTS_CXX_FLAGS "-fno-exceptions -fno-rtti")
 
-if(TIG_TARGET_WINDOWS)
-    add_definitions(-DWIN32 -DWINDOWS)
-    if(TIG_TARGET_X64)
-        add_definitions(-DWIN64)
-    endif()
-endif()
+set(IBTS_C_DEBUG_FLAGS "${IBTS_C_FLAGS} ${IBTS_DEBUG_FLAGS}")
+set(IBTS_CXX_DEBUG_FLAGS "${IBTS_CXX_FLAGS} ${IBTS_DEBUG_FLAGS}")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TIG_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TIG_CXX_FLAGS}")
+set(IBTS_C_RELEASE_FLAGS "${IBTS_C_FLAGS} ${IBTS_RELEASE_FLAGS}")
+set(IBTS_CXX_RELEASE_FLAGS "${IBTS_CXX_FLAGS} ${IBTS_RELEASE_FLAGS}")
 
-set(TIG_CLIENT_BINARY client_${TIG_PLATFORM_BIN}_${TIG_TARGET_ARCH})
-set(TIG_SERVER_BINARY server_${TIG_PLATFORM_BIN}_${TIG_TARGET_ARCH})
-set(TIG_LUAPP_BINARY luapp_${TIG_PLATFORM_BIN}_${TIG_TARGET_ARCH})
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${IBTS_C_DEBUG_FLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${IBTS_CXX_DEBUG_FLAGS}")
+message(STATUS "Set debug mode flags (${IBTS_DEBUG_FLAGS}) (Current mode: ${CMAKE_BUILD_TYPE}, compiler: ${CMAKE_CXX_COMPILER_ID})")
 
-if(${RELEASE_BUILD})
-    set(INSTALL_DIR ${PROJECT_SOURCE_DIR}/ReveladeRevolution_${RR_VERSION}_${TIG_PLATFORM_BIN}_${TIG_TARGET_ARCH})
-else()
-    set(INSTALL_DIR ${PROJECT_SOURCE_DIR})    
-endif()
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${IBTS_C_RELEASE_FLAGS}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${IBTS_CXX_RELEASE_FLAGS}")
+message(STATUS "Set release mode flags (${IBTS_RELEASE_FLAGS}) (Current mode: ${CMAKE_BUILD_TYPE}, compiler: ${CMAKE_CXX_COMPILER_ID})")
 
-if(TIG_TARGET_WINDOWS)
-    set(INSTALL_BIN_DIR ${INSTALL_DIR}/bin)
-    if(TIG_TARGET_X64)
-        #64 bit
-        set(INSTALL_BIN_DIR ${INSTALL_BIN_DIR}64)
+# Temp file directories
+set(IBTS_TEMP_DIR         ${CMAKE_BINARY_DIR}/ibts-tmp)
+set(IBTS_TEMP_INCLUDE_DIR ${IBTS_TEMP_DIR}/include)
+file(MAKE_DIRECTORY       ${IBTS_TEMP_DIR})
+file(MAKE_DIRECTORY       ${IBTS_TEMP_INCLUDE_DIR})
+
+# Detect date, TODO: use time command if available
+set(DATE_FILE ${IBTS_TEMP_DIR}/date CACHE INTERNAL "Temp date file path.")
+
+file(DOWNLOAD http://cgi.theintercooler.com/time.py ${DATE_FILE})
+file(READ ${DATE_FILE} DATE)
+
+message(STATUS "Build version: ${BUILD_VERSION} ${DATE} (${CMAKE_BUILD_TYPE})")
+
+# Install paths
+
+if(NOT IBTS_INSTALL_DIR)
+    if(${RELEASE_BUILD})
+        set(IBTS_INSTALL_DIR ${PROJECT_SOURCE_DIR}/release)
     else()
-        #32 bit
-        set(INSTALL_BIN_DIR ${INSTALL_BIN_DIR}32)
+        set(IBTS_INSTALL_DIR ${PROJECT_SOURCE_DIR})
     endif()
-elseif(TIG_TARGET_OSX)
-    set(INSTALL_BIN_DIR ${INSTALL_DIR})
-else()
-    set(INSTALL_BIN_DIR ${INSTALL_DIR}/bin_unix)
 endif()
 
-set(CMAKE_CURRENT_BINARY_DIR ${INSTALL_BIN_DIR})
-set(INSTALL_LIBRARY_DIR ${INSTALL_BIN_DIR})
-set(INSTALL_ARCHIVE_DIR ${INSTALL_BIN_DIR})
-set(INSTALL_RUNTIME_DIR ${INSTALL_BIN_DIR})
+if(NOT IBTS_INSTALL_BIN_DIR)
+    set(IBTS_INSTALL_BIN_DIR "${IBTS_INSTALL_DIR}/bin_${IBTS_PLATFORM_BIN}")
 
-set(INSTALL_DOC_DIR ${INSTALL_DIR}/docs)
+    set(CMAKE_CURRENT_BINARY_DIR ${IBTS_INSTALL_BIN_DIR})
+    set(INSTALL_HEADER_DIR      ${IBTS_TEMP_INCLUDE_DIR})
+    set(INSTALL_LIBRARY_DIR     ${IBTS_INSTALL_BIN_DIR} CACHE INTERNAL "")
+    set(INSTALL_ARCHIVE_DIR     ${IBTS_INSTALL_BIN_DIR} CACHE INTERNAL "")
+    set(INSTALL_RUNTIME_DIR     ${IBTS_INSTALL_BIN_DIR} CACHE INTERNAL "")
 
-set(INSTALL_RESOURCES_DIR ${INSTALL_DIR}/resources)
-set(INSTALL_LUA_DIR     ${INSTALL_RESOURCES_DIR}/lua)
+    set(INSTALL_DOC_DIR         ${IBTS_INSTALL_DIR}/docs    CACHE INTERNAL "")
+
+    set(INSTALL_RESOURCES_DIR   ${IBTS_INSTALL_DIR}/resources  CACHE INTERNAL "")
+    set(INSTALL_LUA_DIR         ${INSTALL_RESOURCES_DIR}/lua  CACHE INTERNAL "")
+
+    message(STATUS "Installing to ${IBTS_INSTALL_DIR} (bin: ${CMAKE_CURRENT_BINARY_DIR}, resources: ${INSTALL_RESOURCES_DIR}, header: ${INSTALL_HEADER_DIR})")
+endif()
+
+function(ibts_install TARGET)
+    install(TARGETS
+            ${TARGET}
+            RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR}
+            LIBRARY DESTINATION ${INSTALL_LIBRARY_DIR}
+            ARCHIVE DESTINATION ${INSTALL_ARCHIVE_DIR})
+endfunction()
+
+set(PLATFORM_FILE "${CMAKE_SOURCE_DIR}/src/platform_${IBTS_PLATFORM_SRC}")
+if(EXISTS ${PLATFORM_FILE})
+    message(STATUS "Found platform definition. (${PLATFORM_FILE})")
+    add_subdirectory(${PLATFORM_FILE})
+    link_directories(${PLATFORM_LINK_DIRECTORIES})
+else()
+    message(STATUS "Could not find platform definition. (${PLATFORM_FILE})")
+endif()
 
 if(${RELEASE_BUILD})
-    if(${TIG_TARGET_WINDOWS})
-        if(TIG_TARGET_X64)
-            install(DIRECTORY ${PROJECT_SOURCE_DIR}/bin64 DESTINATION ${INSTALL_BIN_DIR}/..)
-        else()
-            install(DIRECTORY ${PROJECT_SOURCE_DIR}/bin32 DESTINATION ${INSTALL_BIN_DIR}/..)
-        endif()
-    endif()
-    
     install(
         DIRECTORY
             packages
@@ -170,7 +150,6 @@ if(${RELEASE_BUILD})
             license.txt
             readme.txt
         DESTINATION ${INSTALL_DIR})
-
 endif()
 
 add_subdirectory(src)
