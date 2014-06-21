@@ -10,7 +10,7 @@ void backup(char *name, char *backupname)
     rename(findfile(name, "wb"), backupfile);
 }
 
-string ogzname, bakname, cfgname, bgname;
+string ogzname, bakname, cfgname, picname, bgname;
 
 VARP(savebak, 0, 2, 2);
 
@@ -53,11 +53,13 @@ void setmapfilenames(const char *fname, const char *cname = 0)
     if(savebak==1) formatstring(bakname)("packages/%s.BAK", mapname);
     else formatstring(bakname)("packages/%s_%d.BAK", mapname, totalmillis);
     formatstring(cfgname)("packages/%s/%s.cfg", pakname, mcfgname);
+    formatstring(picname)("packages/%s.png", mapname);
     formatstring(bgname)("<blur: 4,4>packages/%s_bg.png", mapname);
 
     path(ogzname);
     path(bakname);
     path(cfgname);
+    path(picname);
     path(bgname);
 }
 
@@ -591,8 +593,8 @@ bool load_world(const char *mname, const char *cname)        // still supports a
 
     resetmap();
 
-    Texture *bgshot = textureload(bgname, 3, true, false);
-    renderbackground("loading...", bgshot, mname, game::getmapinfo());
+    Texture *mapshot = textureload(picname, 3, true, false), *bgshot = textureload(bgname, 3, true, false);
+    renderbackground("loading...", mapshot, bgshot, mname, game::getmapinfo());
 
     setvar("mapversion", hdr.version, true, false);
 
@@ -845,7 +847,7 @@ bool load_world(const char *mname, const char *cname)        // still supports a
     initlights();
     allchanged(true);
 
-    //renderbackground("loading...", bgshot, mname, game::getmapinfo());
+    //renderbackground("loading...", mapshot, bgshot, mname, game::getmapinfo());
 
     if(maptitle[0] && strcmp(maptitle, "Untitled Map by Unknown")) conoutf(CON_ECHO, "%s", maptitle);
 
