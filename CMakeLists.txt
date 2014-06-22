@@ -38,6 +38,15 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE ${RR_DEFAULT_BUILD_TYPE} CACHE STRING "Choose the type of build, options are: Debug Release." FORCE)
 endif()
 
+get_filename_component(SRCDIR "${CMAKE_SOURCE_DIR}" REALPATH)
+get_filename_component(BINDIR "${CMAKE_BINARY_DIR}" REALPATH) 
+
+if(${SRCDIR} STREQUAL ${BINDIR})
+    message(FATAL_ERROR "Keep your directories clean, don't build in the main directory! ${SRCDIR} ${BINDIR}")
+endif()
+
+
+
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/CMakeModules CACHE INTERNAL "")
