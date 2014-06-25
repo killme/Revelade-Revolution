@@ -161,7 +161,7 @@ if(${RELEASE_BUILD})
         DIRECTORY
             packages
             data
-        DESTINATION ${INSTALL_DIR}
+        DESTINATION ${IBTS_INSTALL_DIR}
         PATTERN ".*" EXCLUDE)
     
     install(
@@ -170,7 +170,7 @@ if(${RELEASE_BUILD})
             fullcredits.txt
             license.txt
             readme.txt
-        DESTINATION ${INSTALL_DIR})
+        DESTINATION ${IBTS_INSTALL_DIR})
 endif()
 
 add_subdirectory(src)
