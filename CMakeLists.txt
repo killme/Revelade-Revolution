@@ -141,14 +141,6 @@ if(NOT BUILD_INSTALL_BIN_DIR)
     message(STATUS "Installing to ${BUILD_INSTALL_DIR} (bin: ${CMAKE_CURRENT_BINARY_DIR}, resources: ${INSTALL_RESOURCES_DIR}, header: ${INSTALL_HEADER_DIR})")
 endif()
 
-function(install_bins TARGET)
-    install(TARGETS
-            ${TARGET}
-            RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR}
-            LIBRARY DESTINATION ${INSTALL_LIBRARY_DIR}
-            ARCHIVE DESTINATION ${INSTALL_ARCHIVE_DIR})
-endfunction()
-
 set(PLATFORM_FILE "${CMAKE_SOURCE_DIR}/src/platform_${BUILD_PLATFORM_SRC}")
 if(EXISTS ${PLATFORM_FILE})
     message(STATUS "Found platform definition. (${PLATFORM_FILE})")
