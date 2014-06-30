@@ -19,7 +19,7 @@ inline char *dumpVar(const char *name, const char *global, const char *cur, int 
  */
 #ifdef WIN32
     #define EXPORT(prototype) \
-        __declspec(dllexport) extern "C" prototype; \
+        extern "C" __declspec(dllexport) prototype; \
         extern "C" prototype
 #else
     #define EXPORT(prototype) extern "C" prototype
