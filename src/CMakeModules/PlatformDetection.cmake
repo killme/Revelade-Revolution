@@ -36,7 +36,7 @@ endif()
 # Platform libraries
 if(BUILD_TARGET_WINDOWS)
     set(BUILD_PLATFORM_SRC "windows")
-    set(BUILD_PLATFORM_BIN "windows")
+    set(BUILD_PLATFORM_BIN "win")
     if(BUILD_TARGET_X64)
         set(BUILD_PLATFORM_BIN ${BUILD_PLATFORM_BIN}64)
     else()
