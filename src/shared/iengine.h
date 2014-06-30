@@ -92,6 +92,7 @@ extern void mpdelcube(selinfo &sel, bool local);
 extern void mpremip(bool local);
 
 // command
+#ifdef CLIENT
 extern int variable(const char *name, int min, int cur, int max, int *storage, void (*fun)(), int flags);
 extern float fvariable(const char *name, float min, float cur, float max, float *storage, void (*fun)(), int flags);
 extern char *svariable(const char *name, const char *cur, char **storage, void (*fun)(), int flags);
@@ -115,6 +116,7 @@ extern char *executeret(const char *p);
 extern bool execfile(const char *cfgfile, bool msg = true);
 extern void alias(const char *name, const char *action);
 extern const char *getalias(const char *name);
+#endif
 
 // console
 

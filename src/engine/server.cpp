@@ -695,18 +695,7 @@ void stoplistenserver()
 COMMAND(stoplistenserver, "");
 #endif
 
-#ifdef SERVER
-void showhelp()
-{
-    conoutf("Usage: <exe> [OPTION...]\n");
-    conoutf("\n");
-    conoutf(" -cMAXCLIENTS             Set the maximum number of clients.\n");
-    conoutf(" -iIP_ADDRESS             Set ip address to bind server to.\n");
-    conoutf(" -jPORT                   Set port to listen on.\n");
-    conoutf(" -mMASTER_HOSTNAME        Use hostname as master server.\n");
-}
-#endif
-
+#ifdef CLIENT
 bool serveroption(char *opt)
 {
     switch(opt[1])
@@ -715,14 +704,12 @@ bool serveroption(char *opt)
         case 'c': setvar("maxclients", atoi(opt+2)); return true;
         case 'i': setsvar("serverip", opt+2); return true;
         case 'j': setvar("serverport", atoi(opt+2)); return true; 
-#ifdef SERVER
         case 'q': conoutf("Using home directory: %s\n", opt+2); sethomedir(opt+2); return true;
         case 'k': conoutf("Adding package directory: %s\n", opt+2); addpackagedir(opt+2); return true;
-        case 'h': showhelp(); exit(0);
-#endif
         default: return false;
     }
 }
+#endif
 
 vector<const char *> gameargs;
 
@@ -733,7 +720,7 @@ static bool rundedicated = false;
 void quit()
 {
     conoutf("Stopping server\n");
-    
+
     if(lua::pushEvent("server.stop"))
     {
         lua_call(lua::L, 0, 0);
@@ -752,13 +739,6 @@ void server_sigint(int signal)
 
 extern "C"
 {
-    #ifdef WIN32
-        #define EXPORT(prototype) \
-            __declspec(dllexport) prototype; \
-            prototype
-    #else
-        #define EXPORT(prototype) prototype
-    #endif
     EXPORT(void startServer())
     {
         initserver(true, true);
@@ -767,10 +747,7 @@ extern "C"
         #ifdef WIN32
         SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
         #endif
-            
-        conoutf("Running Revelade Revolution %s - %s\n", version::getVersionString(), version::getVersionDate());
-        conoutf("dedicated server started...\nCtrl-C to exit\n");
-            
+
         if(lua::pushEvent("server.start"))
         {
             lua_call(lua::L, 0, 0);
@@ -799,7 +776,7 @@ extern "C"
     #undef EXPORT
 }
 
-int main(int argc, char* argv[])
+int main(int argc, const char **argv)
 {   
     if(enet_initialize()<0) fatal("Unable to initialise network module");
     atexit(enet_deinitialize);
@@ -835,16 +812,13 @@ int main(int argc, char* argv[])
             fatal("unable to change directory! (%i: %s) %s", err, uv_err_name(err), uv_strerror(err));
         }
     }
-    
-    for(int i = 1; i<argc; i++) if(argv[i][0]!='-' || !serveroption(argv[i])) gameargs.add(argv[i]);
-    game::parseoptions(gameargs);
-    
+
     signal(SIGINT, server_sigint);
     signal(SIGTERM, server_sigint);
     signal(SIGHUP, server_sigint);
-    
-    lua::init(); //Lua will start the server
-    
+
+    lua::init(argc, argv); //Lua will start the server
+
     do
     {
         for(;rundedicated;)

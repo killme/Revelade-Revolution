@@ -3,10 +3,6 @@
 #include "engine/engine.h"
 #include "shared/version.h"
 
-extern void setfvar(const char *name, float f, bool dofunc, bool doclamp);
-extern void setsvar(const char *name, const char *str, bool dofunc);
-extern float getfvar(const char *name);
-extern const char *getsvar(const char *name);
 namespace server
 {
     extern bool checkpassword(server::clientinfo *ci, const char *wanted, const char *given);
@@ -29,13 +25,23 @@ namespace lua
     bool pushEvent(const char *name)
     {
         int *ref = externals.access(name);
-        
+
         if(ref)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, *ref);
             return true;
         }
-        
+
+        ref = externals.access("event.none");
+
+        if(ref)
+        {
+            lua_rawgeti(L, LUA_REGISTRYINDEX, *ref);
+            lua_pushstring(L, name);
+            lua_call(L, 1,0);
+        }
+
+
         return false;
     }
     
@@ -65,67 +71,15 @@ namespace lua
             externals.access(name, luaL_ref(L, LUA_REGISTRYINDEX));
             return 1;
         }
-        
-        static int setVar (lua_State *L)
-        {
-            const char *name = luaL_checkstring(L, 1);
-            ident *id = getident(name);
-            
-            if (!id)
-            {
-                lua_pushboolean(L, false);
-                return 1;
-            }
-            
-            int nargs = lua_gettop(L);
-            
-            switch (id->type)
-            {
-                case ID_VAR:
-                {
-                    setvar(name, luaL_checkinteger(L, 2),
-                           (nargs >= 3) ? lua_toboolean(L, 3) : true,
-                           (nargs >= 4) ? lua_toboolean(L, 4) : true);
-                    break;
-                }
-                case ID_FVAR: {
-                    setfvar(name, luaL_checknumber(L, 2),
-                            (nargs >= 3) ? lua_toboolean(L, 3) : true,
-                            (nargs >= 4) ? lua_toboolean(L, 4) : true);
-                    break;
-                }
-                case ID_SVAR: {
-                    setsvar(name, luaL_checkstring(L, 2),
-                            (nargs >= 3) ? lua_toboolean(L, 3) : true);
-                    break;
-                }
-                default: lua_pushboolean(L, false); return 1;
-            }
-            lua_pushboolean(L, true);
-            return 1;
-        }
-        
-        static int getVar (lua_State *L)
-        {
-            const char *name = luaL_checkstring(L, 1);
-            ident *id = getident(name);
-            if (!id) return 0;
-            
-            switch (id->type)
-            {
-                case ID_VAR: lua_pushinteger(L, getvar(name)); return 1;
-                case ID_FVAR: lua_pushnumber(L, getfvar(name)); return 1;
-                case ID_SVAR: lua_pushstring(L, getsvar(name)); return 1;
-                default: return 0;
-            }
-        };
     }
     
-    bool init()
+    bool init(int argc, const char **argv)
     {
         L = luaL_newstate();
 
         luaL_openlibs(L);
+
+        createArgumentsTable(L, argc, argv);
         
         uv_loop_t *loop = uv_default_loop();
         
@@ -135,7 +89,7 @@ namespace lua
         
         lua_newtable(L);
         lua_setfield(L, LUA_REGISTRYINDEX, "__pinstrs");
-        
+
         if (luvit_init(L, loop))
         {
             fprintf(stderr, "luvit_init has failed\n");
@@ -145,26 +99,11 @@ namespace lua
         lua_pushcfunction(L, LUACOMMAND::setCallback);
         lua_setglobal(L, "setCallback");
         
-        lua_pushcfunction(L, LUACOMMAND::getVar);
-        lua_setglobal(L, "getVar");
-        
-        lua_pushcfunction(L, LUACOMMAND::setVar);
-        lua_setglobal(L, "setVar");
-        
-        lua_pushboolean(L, false);
-        lua_setglobal(L, "LUAPP");
-        
-        lua_pushboolean(L, true);
-        lua_setglobal(L, "SERVER");
-        
-        lua_pushboolean(L, false);
-        lua_setglobal(L, "CLIENT");
-        
-        luaL_dostring(L, "package.path = package.path .. \";resources/lua/?.lua;resources/lua/?/init.lua\"");
-        
-        if(luaL_dostring(L, "require \"core\""))
+        ASSERT(0 == luaL_dostring(L, "package.path = package.path .. \";resources/lua/?.lua;resources/lua/?/init.lua\""));
+
+        if(luaL_dostring(L, "require \"server\""))
         {
-            printf("%s\n", lua_tostring(L, -1));
+            printf("x %s\n", lua_tostring(L, -1));
             lua_pop(L, 1);
             lua_close(L);
             return false;
@@ -177,6 +116,20 @@ namespace lua
     {
         lua_close(L);
         L = NULL;
+    }
+
+    void createArgumentsTable(lua_State *L, int argc, const char **argv)
+    {
+        lua_pushstring(L, "argv");
+        lua_createtable (L, argc, 0);
+        
+        for (int index = 0; index < argc; index++)
+        {
+            lua_pushstring (L, argv[index]);
+            lua_rawseti(L, -2, index);
+        }
+        
+        lua_rawset(L, LUA_GLOBALSINDEX);
     }
     
     /**
@@ -252,6 +205,7 @@ extern "C"
     /**
      * Exports a function for windows
      */
+    #undef EXPORT
     #ifdef WIN32
         #define EXPORT(prototype) \
         __declspec(dllexport) prototype; \
@@ -259,26 +213,7 @@ extern "C"
     #else
         #define EXPORT(prototype) prototype
     #endif
-    
-    /**
-     * Sends a message to the player specified with cn
-     * \param cn The channel of the recipient or -1.
-     * \param msg The message to send
-     */
-    EXPORT(void sendServerMessageTo(int cn, const char *msg))
-    {
-        sendf(cn, 1, "ris", N_SERVMSG, msg);
-    }
 
-    /**
-     * Broadcasts a message to all players
-     * \param msg The message to broadcast
-     */
-    EXPORT(void sendServerMessage(const char *msg))
-    {
-        sendServerMessageTo(-1, msg);
-    }
-    
     /**
      * Returns the current gamemode id.
      * \return The current gamemode id

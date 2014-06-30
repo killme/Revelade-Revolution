@@ -23,15 +23,15 @@ namespace game
     const char *buyablesnames[BA_NUM] = { "ammo", "dammo", "health", "dhealth", "garmour", "yarmour", "quad", "dquad", "support", "dsupport" };
     const int buyablesprices[BA_NUM] = { 500, 900, 500, 900, 600, 1000, 1000, 1800, 2000, 3600 };
 
+#ifdef CLIENT
     void parseoptions(vector<const char *> &args)
     {
         loopv(args)
-#ifndef STANDALONE
             if(!game::clientoption(args[i]))
-#endif
             if(!server::serveroption(args[i]))
                 conoutf(CON_ERROR, "unknown command-line option: %s", args[i]);
     }
+#endif
 }
 
 namespace server
@@ -438,9 +438,7 @@ namespace server
     VARFP(localrecorddemo, 0, 2, 2, demonextmatch = localrecorddemo != 0 );
 
     //add server vars here
-    #ifdef CLIENT
-        SVAR(serverdesc, "");
-    #endif
+    SVAR(serverdesc, "");
     SVAR(serverpass, "");
     SVAR(adminpass, "");
     VARF(publicserver, 0, 0, 2, {
@@ -456,21 +454,6 @@ namespace server
     VAR(flaglimit, 0, 10, 100);
     VAR(timelimit, 0, 10, 1000);
     VAR(allowweaps, 0, 0, 2);
-
-#ifdef SERVER
-    bool getVar(const char *varName)
-    {
-        if(lua::pushEvent("server.getVar"))
-        {
-            lua_pushstring(lua::L, varName);
-            lua_call(lua::L, 1, 1);
-            return true;
-        }
-
-        return false;
-    }
-#endif
-
 
     void *newclientinfo() { return new clientinfo; }
     void deleteclientinfo(void *ci) { delete (clientinfo *)ci; }
@@ -536,6 +519,7 @@ namespace server
         //cps.reset();
     }
 
+#ifdef CLIENT
     bool serveroption(const char *arg)
     {
         if(arg[0]=='-') switch(arg[1])
@@ -548,7 +532,8 @@ namespace server
         }
         return false;
     }
-
+#endif
+    
     void serverinit()
     {
         smapname[0] = '\0';
@@ -2151,24 +2136,7 @@ namespace server
 
     void sendservinfo(clientinfo *ci)
     {
-        #ifdef SERVER
-        const char *serverdesc = NULL;
-        bool hasVar = getVar("server.name");
-        if(hasVar)
-        {
-            serverdesc = lua_tostring(lua::L, 1);
-        }
-        if(!serverdesc) serverdesc = "";
-        #endif
-
         sendf(ci->clientnum, 1, "ri5s", N_SERVINFO, ci->clientnum, PROTOCOL_VERSION, ci->sessionid, serverpass[0] ? 1 : 0, serverdesc);
-
-        #ifdef SERVER
-        if(hasVar)
-        {
-            lua_pop(lua::L, 1);
-        }
-        #endif
     }
 
     void noclients()
@@ -2213,6 +2181,14 @@ namespace server
         clientinfo *ci = getinfo(n);
         if(ci->connected)
         {
+            #ifdef SERVER
+            if(lua::pushEvent("client.disconnect"))
+            {
+                lua_pushnumber(lua::L, ci->clientnum);
+                lua_call(lua::L, 1, 0);
+            }
+            #endif
+
             if(ci->privilege) setmaster(ci, false, ci->clientnum);
             if(smode) smode->leavegame(ci, true);
             ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
@@ -2382,13 +2358,15 @@ namespace server
                         const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
                         copystring(ci->team, worst ? worst : TEAM_0, MAXTEAMLEN+1);
 
-                    #if (defined(SERVER) && defined(NEED_TIG_AUTH))
+                    #ifdef SERVER
                         if(lua::pushEvent("client.connect"))
                         {
                             lua_pushnumber(lua::L, ci->clientnum);
                             lua_call(lua::L, 1, 0);
                         }
+                    #endif
 
+                    #ifdef TIG_NEED_AUTH
                         if(auth::haveCertificateFor(ci->name))
                         {
                             auth::getRandom(&ci->authrandom);
@@ -2497,6 +2475,20 @@ namespace server
         #define QUEUE_INT(n) QUEUE_BUF(putint(cm->messages, n))
         #define QUEUE_UINT(n) QUEUE_BUF(putuint(cm->messages, n))
         #define QUEUE_STR(text) QUEUE_BUF(sendstring(text, cm->messages))
+        #ifdef SERVER
+            #define CHECK_EDITMUTE  \
+                if(lua::pushEvent("client.isMuted")) \
+                { \
+                    lua_pushnumber(lua::L, ci->clientnum); \
+                    lua_pushnumber(lua::L, 1); \
+                    lua_call(lua::L, 2, 1); \
+                        int res = lua_tonumber(lua::L, -1); \
+                    lua_pop(lua::L, 1); \
+                    if (res == 1) break; /* Is muted */ \
+                }
+        #else
+            #define CHECK_EDITMUTE 
+        #endif
         int curmsg;
         while((curmsg = p.length()) < p.maxlen) switch(type = checktype(getint(p), ci))
         {
@@ -2862,6 +2854,7 @@ namespace server
                 int type = getint(p);
                 loopk(5) getint(p);
                 if(!ci || ci->state.state==CS_SPECTATOR) break;
+                CHECK_EDITMUTE;
                 QUEUE_MSG;
                 bool canspawn = canspawnitem(type);
                 if(i<MAXENTS && (sents.inrange(i) || canspawnitem(type)))
@@ -2888,7 +2881,9 @@ namespace server
                     case ID_FVAR: getfloat(p); break;
                     case ID_SVAR: getstring(text, p);
                 }
-                if(ci && ci->state.state!=CS_SPECTATOR) QUEUE_MSG;
+                if(!ci || ci->state.state==CS_SPECTATOR) break;
+                CHECK_EDITMUTE;
+                QUEUE_MSG;
                 break;
             }
 
@@ -2913,7 +2908,22 @@ namespace server
                 int mm = getint(p);
                 if((ci->privilege >= PRIV_MASTER || ci->local) && mm>=MM_OPEN && mm<=MM_PRIVATE)
                 {
-                    if((ci->privilege>=PRIV_ADMIN || ci->local) || (mastermask&(1<<mm)))
+                    bool allow = (ci->privilege>=PRIV_ADMIN || ci->local) || (mastermask&(1<<mm));
+#ifdef SERVER
+                    if(lua::pushEvent("client.mastermode"))
+                    {
+                        lua_pushnumber(lua::L, ci->clientnum);
+                        lua_pushnumber(lua::L, mm);
+                        lua_call(lua::L, 2, 1);
+                            int res = lua_tonumber(lua::L, 1);
+                            if(res != -1)
+                            {
+                                allow = res == 0 ? false : true;
+                            }
+                        lua_pop(lua::L, 1);
+                    }
+#endif
+                    if(allow)
                     {
                         mastermode = mm;
                         allowedips.shrink(0);
@@ -2927,8 +2937,7 @@ namespace server
                     }
                     else
                     {
-                        defformatstring(s)("mastermode %d is disabled on this server", mm);
-                        sendf(sender, 1, "ris", N_SERVMSG, s);
+                        sendservmsgf(sender, "mastermode %d is disabled on this server", mm);
                     }
                 }
                 break;
@@ -3303,6 +3312,22 @@ namespace server
 
                 string result = "error \"unkown command\"";
 
+                #ifdef SERVER
+                if(lua::pushEvent("client.command"))
+                {
+                    lua_pushnumber(lua::L, ci->clientnum);
+                    lua_pushnumber(lua::L, argc);
+                    loopv(args)
+                    {
+                        lua_pushstring(lua::L, args[i]);
+                    }
+                    lua_call(lua::L, 2+argc, 1);
+                        const char *str = lua_tostring(lua::L, -1);
+                        if(str) copystring(result, str);
+                    lua_pop(lua::L, 1);
+                }
+                else
+                #endif
                 if(0 == strcmp(args[0], "bots.add"))
                 {
                     if(args.length() < 2)
@@ -3336,6 +3361,10 @@ namespace server
                 int size = server::msgsizelookup(type);
                 if(size<=0) { disconnect_client(sender, DISC_TAGT); return; }
                 loopi(size-1) getint(p);
+                if(type>=N_EDITENT && type<=N_EDITVAR)
+                {
+                    CHECK_EDITMUTE;
+                }
                 if(ci && cq && (ci != cq || ci->state.state!=CS_SPECTATOR)) { QUEUE_AI; QUEUE_MSG; }
                 break;
             }
@@ -3367,32 +3396,7 @@ namespace server
         putint(p, maxclients);
         putint(p, serverpass[0] ? MM_PASSWORD : (!m_mp(gamemode) ? MM_PRIVATE : (mastermode || mastermask&MM_AUTOAPPROVE ? mastermode : MM_AUTH)));
         sendstring(smapname, p);
-
-        {
-#ifdef SERVER
-            const char *serverdesc = "";
-
-            if(getVar("server.name"))
-            {
-                serverdesc = lua_tostring(lua::L, 1);
-                if(serverdesc)
-                {
-                    sendstring(serverdesc, p);
-                }
-                else
-                {
-                    sendstring("", p);
-                }
-                lua_pop(lua::L, 1);
-            }
-            else
-            {
-                sendstring(serverdesc, p);
-            }
-#else
-            sendstring(serverdesc, p);
-#endif
-        }
+        sendstring(serverdesc, p);
         sendserverinforeply(p);
     }
 
@@ -3409,3 +3413,54 @@ namespace server
     #include "aiman.h"
 }
 
+#ifdef SERVER
+
+EXPORT(int getPrivilege(int cn))
+{
+    server::clientinfo *ci = (server::clientinfo *)getclientinfo(cn);
+    return ci ? ci->privilege : -1;
+}
+
+EXPORT(unsigned long getIp(int cn))
+{
+    return ntohl(getclientip(cn));
+}
+
+EXPORT(const char *getDisplayName(int cn))
+{
+    server::clientinfo *ci = (server::clientinfo *)getclientinfo(cn);
+    return ci ? colorname(ci) : NULL;
+}
+
+/**
+ * Sends a message to the player specified with cn
+ * \param cn The channel of the recipient or -1.
+ * \param msg The message to send
+ */
+EXPORT(void sendServerMessageTo(int cn, const char *msg))
+{
+    server::sendservmsgf(cn, "%s", msg);
+}
+
+/**
+ * Broadcasts a message to all players
+ * \param msg The message to broadcast
+ */
+EXPORT(void sendServerMessage(const char *msg))
+{
+    server::sendservmsg(msg);
+}
+
+EXPORT(void sendMapTo(int cn))
+{
+    server::clientinfo *ci = (server::clientinfo *)getclientinfo(cn);
+    if(ci && server::mapdata)
+    {
+        server::sendservmsgf(-1, "[%s is being sent the map]", colorname(ci));
+        server::sendservmsgf(ci->clientnum, "[server sending map]");
+
+        sendfile(ci->clientnum, 2, server::mapdata, "ri", N_SENDMAP);
+        ci->needclipboard = totalmillis;
+    }
+}
+#endif

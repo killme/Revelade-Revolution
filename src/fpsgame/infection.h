@@ -5,7 +5,6 @@
 
 #ifdef SERVMODE
 extern void pausegame(bool val);
-FVAR(infection_pz_ratio, 0, 2, 100);
 
 struct infectionservmode : servmode
 #else

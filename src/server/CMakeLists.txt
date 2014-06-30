@@ -17,7 +17,6 @@ set(SERVER_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/version
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../engine/command
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/server
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/weapon

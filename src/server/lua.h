@@ -35,13 +35,18 @@ namespace lua
     /**
      * Initializes the lua server state.
      */
-    extern bool init();
+    extern bool init(int argc, const char **argv);
     
     /**
      * Closes the current lua state
      */
     extern void close();
-    
+
+    /**
+     * Pushes a table of arguments into the global table
+     */
+    extern void createArgumentsTable(lua_State *L, int argc, const char **argv);
+
     /**
      * Pins a lua string so it will not be garbage collected.
      * 

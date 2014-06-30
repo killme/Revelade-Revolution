@@ -58,20 +58,10 @@ static void _onExit(uv_process_s*, int64_t, int)
 void startLocalServer(int port)
 {
     defformatstring(portArg)("-p%i", port);
-   
-#ifdef WIN32
-    char binaryDir[] = "bin32";
-   
-    if(strcmp(BINARY_ARCH_STRING, "x64") == 0)
-    {
-        copystring(binaryDir, "bin64", sizeof(binaryDir));
-    }
-   
+
+    char binaryDir[] = TIG_SERVER_BINARY_DIR;
     char binaryName[] = TIG_SERVER_BINARY;
-#else
-    char binaryDir[] = "bin_unix";
-    char binaryName[] = TIG_SERVER_BINARY;
-#endif
+
    
     string binary;
     formatstring(binary)("%s/%s", binaryDir, binaryName);

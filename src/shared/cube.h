@@ -64,7 +64,11 @@
 #include "tools.h"
 #include "geom.h"
 #include "ents.h"
+#ifdef CLIENT
 #include "command.h"
+#else
+#include "command_server.h"
+#endif
 
 #include "iengine.h"
 #include "igame.h"
