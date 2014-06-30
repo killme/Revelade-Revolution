@@ -1,5 +1,5 @@
-#ifndef TIG_VERSION_H
-#define TIG_VERSION_H
+#ifndef RR_VERSION_H
+#define RR_VERSION_H
 
 namespace version
 {

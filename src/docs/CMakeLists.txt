@@ -1,5 +1,5 @@
-set(TIG_DOC_THEME default CACHE INTERNAL "Theme for documentation.")
-set(TIG_DOC_THEME_DIR "" CACHE INTERNAL "Theme directory for documentation.")
+set(RR_DOC_THEME default CACHE INTERNAL "Theme for documentation.")
+set(RR_DOC_THEME_DIR "" CACHE INTERNAL "Theme directory for documentation.")
 
 set(RR_DOC_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/tig/docs/build")
 set(RR_DOC_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/tig/docs/doctrees")

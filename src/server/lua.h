@@ -1,6 +1,6 @@
 
-#ifndef TIG_SERVER_LUA_H
-#define TIG_SERVER_LUA_H
+#ifndef RR_SERVER_LUA_H
+#define RR_SERVER_LUA_H
 
 extern "C"
 {

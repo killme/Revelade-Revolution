@@ -330,7 +330,7 @@ struct captureclientmode : clientmode
 
     void preload()
     {
-        static const char *basemodels[3] = { TIG_MODEL_BASE_NEUTRAL, TIG_MODEL_BASE_RED, TIG_MODEL_BASE_BLUE };
+        static const char *basemodels[3] = { RR_MODEL_BASE_NEUTRAL, RR_MODEL_BASE_RED, RR_MODEL_BASE_BLUE };
         loopi(3) preloadmodel(basemodels[i]);
     }
 
@@ -348,7 +348,7 @@ struct captureclientmode : clientmode
         loopv(bases)
         {
             baseinfo &b = bases[i];
-            const char *flagname = b.owner[0] ? (strcmp(b.owner, TEAM_0) ? TIG_MODEL_BASE_RED : TIG_MODEL_BASE_BLUE) : TIG_MODEL_BASE_NEUTRAL;
+            const char *flagname = b.owner[0] ? (strcmp(b.owner, TEAM_0) ? RR_MODEL_BASE_RED : RR_MODEL_BASE_BLUE) : RR_MODEL_BASE_NEUTRAL;
             rendermodel(&b.light, flagname, ANIM_MAPMODEL|ANIM_LOOP, b.o, 0, 0, MDL_SHADOW | MDL_CULL_VFC | MDL_CULL_OCCLUDED);
             float fradius = 1.0f, fheight = 0.5f;
             regular_particle_flame(PART_FLAME, vec(b.ammopos.x, b.ammopos.y, b.ammopos.z - 4.5f), fradius, fheight, b.owner[0] ? (strcmp(b.owner, TEAM_0) ? 0x802020 : 0x2020FF) : 0x208020, 3, 2.0f);
@@ -521,7 +521,7 @@ struct captureclientmode : clientmode
             baseinfo &b = bases.add();
             b.o = e->o;
             b.ammopos = b.o;
-            abovemodel(b.ammopos, TIG_MODEL_BASE_NEUTRAL);
+            abovemodel(b.ammopos, RR_MODEL_BASE_NEUTRAL);
             b.ammopos.z += AMMOHEIGHT-2;
             b.ammotype = e->attr1;
             defformatstring(alias)("base_%d", e->attr2);

@@ -315,7 +315,7 @@ namespace game
         if(multiplayer(false) && !m_mp(mode))
         {
             conoutf(CON_ERROR, "mode %s (%d) not supported in multiplayer", server::modename(gamemode), gamemode);
-            TIG_FOREACH_GAMEMODE
+            RR_FOREACH_GAMEMODE
             {
                 if(m_mp(i))
                 {

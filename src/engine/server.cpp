@@ -6,7 +6,7 @@
 
 #ifdef STANDALONE
 
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
 extern "C"
 {
     #include <tomcrypt.h>
@@ -782,7 +782,7 @@ int main(int argc, const char **argv)
     atexit(enet_deinitialize);
     enet_time_set(0);
     
-    #ifdef NEED_TIG_AUTH
+    #ifdef RR_NEED_AUTH
     ltc_mp = ltm_desc;
     
     {

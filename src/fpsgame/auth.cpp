@@ -1,6 +1,6 @@
 #include "game.h"
 
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
 extern "C"
 {
     #include <tomcrypt.h>
@@ -12,7 +12,7 @@ namespace auth
 
     void makeKey(const char *name)
     {
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
         rsa_key key;
         string fileName;
 
@@ -98,13 +98,13 @@ namespace auth
         #endif
     }
 
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
     COMMAND(makeKey, "s");
 #endif
 
     bool haveCertificateFor(const char *name)
     {
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
         defformatstring(fileName)("cert/users/%s.public.key", name);
         path(fileName);
         stream *f = openfile(fileName, "r");
@@ -120,7 +120,7 @@ namespace auth
 #ifdef CLIENT
     uchar *signMessage(const uchar *msg)
     {
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
         defformatstring(fileName)("cert/users/%s.private.key", game::player1->name);
         path(fileName);
         stream *f = openfile(fileName, "r");
@@ -189,7 +189,7 @@ namespace auth
 #endif
     }
 
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
     ICOMMAND(signMessage, "s", (const char *s), {
         uchar *x = signMessage((const uchar *)s);
 
@@ -204,7 +204,7 @@ namespace auth
 
     bool checkCertificateFor(const char *name, const char *msg, const char *signature)
     {
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
         int hash_idx = find_hash("sha1");
 
         int result;
@@ -282,7 +282,7 @@ namespace auth
 #endif
     }
 
-#ifdef NEED_TIG_AUTH
+#ifdef RR_NEED_AUTH
     prng_state randomStatus;
 
     void getRandom(string *str)

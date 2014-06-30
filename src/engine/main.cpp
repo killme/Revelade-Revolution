@@ -13,7 +13,7 @@
 #endif
 
 extern "C" {
-    #ifdef NEED_TIG_AUTH
+    #ifdef RR_NEED_AUTH
         #include <tomcrypt.h>
     #endif
     #include "uv.h"
@@ -1318,7 +1318,7 @@ VARFP(clockfix, 0, 0, 1, clockreset());
 
 int main(int argc, char **argv)
 {
-    #ifdef NEED_TIG_AUTH
+    #ifdef RR_NEED_AUTH
     ltc_mp = ltm_desc;
 
     {

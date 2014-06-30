@@ -393,7 +393,7 @@ void preloadusedmapmodels(bool msg, bool bih)
     loadprogress = 0;
 }
 
-#ifdef TIG_DEBUG
+#ifdef _DEBUG
 VAR(mdldebug, 0 , 1, 1);
 #else
 VAR(mdldebug, 0 , 0, 1);

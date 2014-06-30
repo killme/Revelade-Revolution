@@ -126,11 +126,11 @@ const static Mutator mutators[] =
     {M_ONETEAM, "\fs\fbOne team:\fr All players are on the same team.\n"}
 };
 
-#define TIG_FOREACH_MUTATOR loopi(sizeof(mutators)/sizeof(Mutator))
+#define RR_FOREACH_MUTATOR loopi(sizeof(mutators)/sizeof(Mutator))
 
 inline void getMutators(int gameModeFlags, vector<const Mutator *> &mutatorList)
 {
-    TIG_FOREACH_MUTATOR
+    RR_FOREACH_MUTATOR
     {
         if(gameModeFlags & mutators[i].id)
         {
@@ -177,11 +177,11 @@ const static GameMode gameModes[] =
     {14,    M_NOITEMS | M_EFFICIENCY | M_CTF | M_HOLD | M_TEAM,     "efficiency hold",      "effichold",    NULL },
 };
 
-#define TIG_FOREACH_GAMEMODE loopi(sizeof(gameModes)/sizeof(GameMode))
+#define RR_FOREACH_GAMEMODE loopi(sizeof(gameModes)/sizeof(GameMode))
 
 inline const GameMode *getGameMode(int id)
 {
-    TIG_FOREACH_GAMEMODE
+    RR_FOREACH_GAMEMODE
     {
         if(gameModes[i].id == id)
         {
@@ -194,7 +194,7 @@ inline const GameMode *getGameMode(int id)
 
 inline const GameMode *getGameMode(const char *name)
 {
-    TIG_FOREACH_GAMEMODE
+    RR_FOREACH_GAMEMODE
     {
         if(strcmp(gameModes[i].name, name) == 0)
         {
@@ -207,7 +207,7 @@ inline const GameMode *getGameMode(const char *name)
 
 inline const GameMode *getGameModeS(const char *shortName)
 {
-    TIG_FOREACH_GAMEMODE
+    RR_FOREACH_GAMEMODE
     {
         if(strcmp(gameModes[i].shortName, shortName) == 0)
         {
@@ -226,13 +226,13 @@ inline const GameMode *getGameModeS(const char *shortName)
 /**
  * Paths to the models
  */
-#define TIG_MODEL_FLAG_NEUTRAL  "gamemodels/flags/neutral"
-#define TIG_MODEL_FLAG_RED      "gamemodels/flags/red"
-#define TIG_MODEL_FLAG_BLUE     "gamemodels/flags/blue"
+#define RR_MODEL_FLAG_NEUTRAL  "gamemodels/flags/neutral"
+#define RR_MODEL_FLAG_RED      "gamemodels/flags/red"
+#define RR_MODEL_FLAG_BLUE     "gamemodels/flags/blue"
 
-#define TIG_MODEL_BASE_NEUTRAL  "gamemodels/base/neutral"
-#define TIG_MODEL_BASE_BLUE     "gamemodels/base/blue"
-#define TIG_MODEL_BASE_RED      "gamemodels/base/red"
+#define RR_MODEL_BASE_NEUTRAL  "gamemodels/base/neutral"
+#define RR_MODEL_BASE_BLUE     "gamemodels/base/blue"
+#define RR_MODEL_BASE_RED      "gamemodels/base/red"
 #endif
 
 #define m_valid(mode)          (getGameMode(mode) != NULL)

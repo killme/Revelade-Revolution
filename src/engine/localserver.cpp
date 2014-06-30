@@ -59,8 +59,8 @@ void startLocalServer(int port)
 {
     defformatstring(portArg)("-p%i", port);
 
-    char binaryDir[] = TIG_SERVER_BINARY_DIR;
-    char binaryName[] = TIG_SERVER_BINARY;
+    char binaryDir[] = RR_SERVER_BINARY_DIR;
+    char binaryName[] = RR_SERVER_BINARY;
 
    
     string binary;

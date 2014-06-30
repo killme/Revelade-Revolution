@@ -428,11 +428,11 @@ struct ctfclientmode : clientmode
 
     void preload()
     {
-        if(m_hold) preloadmodel(TIG_MODEL_FLAG_NEUTRAL);
+        if(m_hold) preloadmodel(RR_MODEL_FLAG_NEUTRAL);
         else
         {
-            preloadmodel(TIG_MODEL_FLAG_RED);
-            preloadmodel(TIG_MODEL_FLAG_BLUE);
+            preloadmodel(RR_MODEL_FLAG_RED);
+            preloadmodel(RR_MODEL_FLAG_BLUE);
         }
     }
 
@@ -539,7 +539,7 @@ struct ctfclientmode : clientmode
             flag &f = flags[i];
             if(!f.owner && f.droptime && f.droploc.x < 0) continue;
             if(m_hold && f.spawnindex < 0) continue;
-            const char *flagname = m_hold && (!f.owner || lastmillis%1000 < 500) ? TIG_MODEL_FLAG_NEUTRAL : (m_hold ? ctfteamflag(f.owner->team) : f.team)==ctfteamflag(TEAM_0) ? TIG_MODEL_FLAG_BLUE : TIG_MODEL_FLAG_RED;
+            const char *flagname = m_hold && (!f.owner || lastmillis%1000 < 500) ? RR_MODEL_FLAG_NEUTRAL : (m_hold ? ctfteamflag(f.owner->team) : f.team)==ctfteamflag(TEAM_0) ? RR_MODEL_FLAG_BLUE : RR_MODEL_FLAG_RED;
             float angle;
             vec pos = interpflagpos(f, angle);
             if(m_hold)

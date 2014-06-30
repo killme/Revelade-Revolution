@@ -12,7 +12,7 @@ ICOMMAND(loopGamemodes, "ss", (char *var, char *body), {
     bool pushed = false;
     string gamemodeInfo;
 
-    TIG_FOREACH_GAMEMODE
+    RR_FOREACH_GAMEMODE
     {
         const GameMode &gm = gameModes[i];
         formatstring(gamemodeInfo)("[ %i %i \"%s\" \"%s\" \"%s\" ]", gm.id, gm.flags, gm.name, gm.shortName, gm.description ? gm.description : "");

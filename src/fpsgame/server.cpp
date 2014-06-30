@@ -2366,7 +2366,7 @@ namespace server
                         }
                     #endif
 
-                    #ifdef TIG_NEED_AUTH
+                    #ifdef RR_NEED_AUTH
                         if(auth::haveCertificateFor(ci->name))
                         {
                             auth::getRandom(&ci->authrandom);
