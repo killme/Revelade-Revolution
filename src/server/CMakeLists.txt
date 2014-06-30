@@ -38,4 +38,4 @@ target_link_libraries(${RR_SERVER_BINARY}
     ${LUAJIT_LIBRARIES}
     ${EXTRA_LIBS})
 
-ibts_install(${RR_SERVER_BINARY})
+install_bins(${RR_SERVER_BINARY})

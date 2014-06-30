@@ -101,7 +101,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${BUILD_CXX_RELEASE_FLAG
 message(STATUS "Set release mode flags (${BUILD_RELEASE_FLAGS}) (Current mode: ${CMAKE_BUILD_TYPE}, compiler: ${CMAKE_CXX_COMPILER_ID})")
 
 # Temp file directories
-set(BUILD_TEMP_DIR         ${CMAKE_BINARY_DIR}/ibts-tmp)
+set(BUILD_TEMP_DIR         ${CMAKE_BINARY_DIR}/tmp)
 set(BUILD_TEMP_INCLUDE_DIR ${BUILD_TEMP_DIR}/include)
 file(MAKE_DIRECTORY       ${BUILD_TEMP_DIR})
 file(MAKE_DIRECTORY       ${BUILD_TEMP_INCLUDE_DIR})
@@ -141,7 +141,7 @@ if(NOT BUILD_INSTALL_BIN_DIR)
     message(STATUS "Installing to ${BUILD_INSTALL_DIR} (bin: ${CMAKE_CURRENT_BINARY_DIR}, resources: ${INSTALL_RESOURCES_DIR}, header: ${INSTALL_HEADER_DIR})")
 endif()
 
-function(ibts_install TARGET)
+function(install_bins TARGET)
     install(TARGETS
             ${TARGET}
             RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR}

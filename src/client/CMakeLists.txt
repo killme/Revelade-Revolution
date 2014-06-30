@@ -109,4 +109,4 @@ target_link_libraries(${RR_CLIENT_BINARY}
     ${BUILD_EXTRA_LIBS}
 )
 
-ibts_install(${RR_CLIENT_BINARY})
+install_bins(${RR_CLIENT_BINARY})
