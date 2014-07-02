@@ -1,5 +1,4 @@
 local ffi = require "ffi"
-local bor = require "bit".bor
 local Object = require "luvit.core".Object
 
 local geoip
