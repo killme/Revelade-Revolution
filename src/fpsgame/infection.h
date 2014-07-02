@@ -8,6 +8,9 @@ extern void pausegame(bool val);
 
 struct infectionservmode : servmode
 #else
+FVARP(zombieradarscale, 0.f, 1.f, 100.f);
+VARP(zombieradaroffset, 0, 200, 1000);
+
 struct infectionclientmode : clientmode
 #endif
 {
@@ -300,7 +303,7 @@ struct infectionclientmode : clientmode
         if(d->infected)
         {
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            float s = 24/2, maxdist = 400, mindist = 50, scale = 1.f;
+            float s = 24/2, maxdist = 400, mindist = 50+zombieradaroffset, scale = zombieradarscale;
 
             loopv(players) if (players[i]!=d && players[i]->infected!=d->infected && players[i]->state == CS_ALIVE)
                 drawblip(vec(d->o).sub(players[i]->o).rotate_around_z((-d->yaw)*RAD), w, h, s, maxdist, mindist, scale,
