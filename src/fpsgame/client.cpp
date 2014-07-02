@@ -1239,6 +1239,12 @@ namespace game
                 copystring(d->name, text, MAXNAMELEN+1);
                 getstring(text, p);
                 filtertext(d->team, text, false, MAXTEAMLEN);
+
+                if(m_infection)
+                {
+                    d->infected = isteam(d->team, TEAM_1);
+                }
+
                 d->playermodel = getint(p);
                 d->playerclass = getint(p);
                 break;
@@ -1675,12 +1681,12 @@ namespace game
                 static const char *fmt[2] = { "%s switched to team %s", "%s forced to team %s"};
                 if(reason >= 0 && size_t(reason) < sizeof(fmt)/sizeof(fmt[0]))
                     conoutf(fmt[reason], colorname(w), w->team);
-                
+
                 if(m_infection)
                 {
                     w->infected = isteam(w->team, TEAM_1);
                 }
-                
+
                 break;
             }
 
