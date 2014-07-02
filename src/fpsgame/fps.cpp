@@ -635,8 +635,6 @@ namespace game
             }
             if(lastmillis < player1->lastpain + spawnwait) return false;
             resetfade();
-            extern int hudgun;
-            hudgun = 1;
             if(m_dmsp) { changemap(clientmap, gamemode); return true; }    // if we die in SP we try the same map again
             respawnself();
             if(m_classicsp)
