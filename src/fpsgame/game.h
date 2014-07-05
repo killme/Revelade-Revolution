@@ -98,7 +98,8 @@ enum
     M_CLASSES    = 1<<20,
     M_WEAPONS    = 1<<21,
     M_SURVIVAL   = 1<<22,
-    M_ONETEAM    = 1<<23
+    M_ONETEAM    = 1<<23,
+    M_JUGGERNAUT = 1<<24,
 };
 
 struct Mutator
@@ -152,7 +153,7 @@ struct GameMode
 enum
 {
     MIN_GAMEMODE = -3,
-    MAX_GAMEMODE = 13
+    MAX_GAMEMODE = 15
 };
 
 const static GameMode gameModes[] =
@@ -173,8 +174,9 @@ const static GameMode gameModes[] =
     {10,    M_NOITEMS | M_EFFICIENCY | M_CTF | M_TEAM,              "efficiency ctf",       "efficctf",     NULL },
     {11,    M_NOITEMS | M_EFFICIENCY | M_CTF | M_PROTECT | M_TEAM,  "efficiency protect",   "efficprotect", NULL },
     {12,    M_TEAM | M_INFECTION,                                   "infection",            "infection",    NULL },
-    {13,    M_SURVIVAL | M_ONETEAM | M_OVERTIME,                    "survival",             "survival",     NULL },
-    {14,    M_NOITEMS | M_EFFICIENCY | M_CTF | M_HOLD | M_TEAM,     "efficiency hold",      "effichold",    NULL },
+    {13,    M_TEAM | M_INFECTION | M_JUGGERNAUT,                    "juggernaut",           "juggernaut",   NULL },
+    {14,    M_SURVIVAL | M_ONETEAM | M_OVERTIME,                    "survival",             "survival",     NULL },
+    {15,    M_NOITEMS | M_EFFICIENCY | M_CTF | M_HOLD | M_TEAM,     "efficiency hold",      "effichold",    NULL },
 };
 
 #define RR_FOREACH_GAMEMODE loopi(sizeof(gameModes)/sizeof(GameMode))
@@ -254,6 +256,7 @@ inline const GameMode *getGameModeS(const char *shortName)
 #define m_protect      (m_checkall(gamemode, M_CTF | M_PROTECT))
 #define m_hold         (m_checkall(gamemode, M_CTF | M_HOLD))
 #define m_infection    (m_check(gamemode, M_INFECTION))
+#define m_juggernaut   (m_check(gamemode, M_JUGGERNAUT))
 #define m_survival     (m_check(gamemode, M_SURVIVAL))
 #define m_teammode     (m_check(gamemode, M_TEAM))
 #define m_oneteam      (m_check(gamemode, M_ONETEAM))
@@ -776,7 +779,7 @@ struct fpsstate
         }
         else if(m_classes && !m_efficiency)
         {
-            const playerclassinfo &pci = infected? zombiepci: playerclasses[playerclass];
+            const playerclassinfo &pci = infected ? (m_juggernaut ? juggernautpci : zombiepci) : playerclasses[playerclass];
             loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = GUN_AMMO_ADD(pci.weap[i],1);
             health = maxhealth = pci.maxhealth;
             armourtype = pci.armourtype;
@@ -930,7 +933,7 @@ struct fpsent : dynent, fpsstate
     {
         dynent::reset();
         fpsstate::respawn();
-        if (m_classes) maxspeed = (infected)? zombiepci.maxspeed: playerclasses[playerclass].maxspeed;
+        if (m_classes) maxspeed = (infected)? (m_juggernaut ? juggernautpci : zombiepci).maxspeed: playerclasses[playerclass].maxspeed;
         else maxspeed = 100;
         infected = (m_infection && !strcmp(team, TEAM_1)) ? 1 : 0;
         respawned = suicided = -1;

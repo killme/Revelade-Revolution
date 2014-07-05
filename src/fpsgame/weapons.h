@@ -309,6 +309,11 @@ static const playerclassinfo zombiepci = {
         {WEAP_BITE,     WEAP_BITE,      WEAP_BITE},             100,            A_BLUE,         50,    100,    "Zombie"
 };
 
+static const playerclassinfo juggernautpci = {
+    //  weap[0]         weap[1]         weap[2]                 maxhealth       armourtype      armour maxspeed name
+        {WEAP_BITE,     WEAP_BITE,      WEAP_BITE},             500,            A_YELLOW,       200,   50,     "Juggernaut"
+};
+
 inline bool canshootwith(int playerclass, int gun, int gamemode)
 {
     const playerclassinfo &pci = playerclasses[playerclass];

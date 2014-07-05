@@ -47,9 +47,20 @@ struct infectionclientmode : clientmode
 
     infectionservmode() : timeLeft(0), nextInsanity(0) {}
 
+    vector<clientinfo *> spawning;
+    
+    bool isSpawning(clientinfo *ci)
+    {
+        int i = spawning.find(ci);
+        printf("Spawning %p %i\n", ci, i);
+        if(i < 0) return false;
+        spawning.remove(i);
+        return true;
+    }
+    
     bool canspawn(clientinfo *ci, bool connecting = false)
     {
-        return lastmillis-ci->state.lastdeath > RESPAWNSECS;
+        return m_juggernaut ? (isteam(ci->team, TEAM_0) && !isSpawning(ci) ? false : true) : lastmillis-ci->state.lastdeath > RESPAWNSECS;
     }
 
     bool canchangeteam(clientinfo *ci, const char *oldteam, const char *newteam)
@@ -71,14 +82,16 @@ struct infectionclientmode : clientmode
         victim->state.state = CS_DEAD;
         victim->state.respawn();
         sendspawn(victim);
+
+        spawning.add(victim);
     }
-    
+
     bool isZombieAvailable(const char *team = TEAM_1, clientinfo *exclude = NULL) //is any zombie still connected
     {
         //Check if any zombies left
         loopv(clients)
         {
-            if(exclude != clients[i] && (clients[i]->state.state == CS_ALIVE || clients[i]->state.state == CS_DEAD || clients[i]->state.state == CS_SPAWNING))
+            if(exclude != clients[i] && (clients[i]->state.state == CS_ALIVE || (!m_juggernaut && (clients[i]->state.state == CS_DEAD || clients[i]->state.state == CS_SPAWNING))))
             {
                 if(isteam(clients[i]->team, team))
                 {
@@ -137,6 +150,7 @@ struct infectionclientmode : clientmode
     void newRound()
     {
         if(!clients.length()) return;
+        spawning.setsize(0);
 
         int aiNum = 0;
 
@@ -154,17 +168,20 @@ struct infectionclientmode : clientmode
         {
             int numZombies = 1;
 
-            numZombies += min(
-                5,
-                min(
-                    (int)floor(
-                        float(clients.length())/float(4)
-                    ),
-                    (int)ceil(
-                        float(aiNum)/float(4)
+            if(!m_juggernaut)
+            {
+                numZombies += min(
+                    5,
+                    min(
+                        (int)floor(
+                            float(clients.length())/float(4)
+                        ),
+                        (int)ceil(
+                            float(aiNum)/float(4)
+                        )
                     )
-                )
-            );
+                );
+            }
 
             // pick first nomZombies amount of bots
             loopv(bots)
@@ -239,12 +256,16 @@ struct infectionclientmode : clientmode
         // Non zombie killed by zombie or suicide
         if(actor == NULL || victim == actor || (isteam(victim->team, TEAM_0) && actor && isteam(actor->team, TEAM_1)))
         {
-            makeZombie(victim);
-            didRespawn = true;
+            //We do not respawn humans as zombies in juggernaut mode
+            if(!m_juggernaut)
+            {
+                makeZombie(victim);
+                didRespawn = true;
+            }
         }
 
-        //No humans left
-        if(!isZombieAvailable(TEAM_0))
+        //No humans left or juggernaut zombie is dead
+        if(!isZombieAvailable(TEAM_0, victim) || (m_juggernaut && isteam(victim->team, TEAM_1)))
         {
             newRound();
         }
