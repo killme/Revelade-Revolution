@@ -198,8 +198,8 @@ static const struct weapinfo {
         S_ITEMHEALTH,           0,      HICON_HEAL,     800,    0,      1024,   150,    60,     1,      0,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.5f,   1.0f,   vec(0.8f, 0.3f, 0.7f),          {PP_MUZZLE_FLASH_8, PP_SPARK_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
         WEAP_HEALER,    "Healer",       "healer",       false,  false },
 
-    {   S_FLAUNCH,              0,      HICON_GL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    260,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
-        S_FLAUNCH,              0,      HICON_GL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    160,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
+    {   S_FLAUNCH,              0,      HICON_RL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    260,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
+        S_FLAUNCH,              0,      HICON_RL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    160,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
         WEAP_MORTAR,    "Mortar",       "mortar",       false,  true },
 
     {   S_PISTOL,               0,      HICON_PISTOL,   250,    7,      1024,   80,     20,     1,      0,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   15.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
@@ -214,8 +214,8 @@ static const struct weapinfo {
         -1,                     0,      HICON_BARREL,   0,      0,      0,      0,      120,    1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
         WEAP_BARREL,    "Barrel",       NULL,           false,  false },
 
-    {   -1,                     0,      HICON_BARREL,   0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
-        -1,                     0,      HICON_BARREL,   0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
+    {   -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
+        -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
         WEAP_INSANITY,  "Insanity",     NULL,           false,  false }
 };
 
