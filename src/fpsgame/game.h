@@ -73,6 +73,25 @@ struct fpsentity : extentity
 enum { A_BLUE, A_GREEN, A_YELLOW };     // armour types... take 20/40/60 % off
 enum { M_NONE = 0, M_SEARCH, M_HOME, M_ATTACKING, M_PAIN, M_SLEEP, M_AIMING };  // monster states
 
+enum {
+    MONSTER_ZOMBIE_BIKE = 0,
+    MONSTER_ZOMBIE_NAZI,
+    MONSTER_ZOMBIE_NAZI_SHOT,
+    MONSTER_ZOMBIE_FAST,
+    MONSTER_ZOMBIE_FEMALE,
+    MONSTER_ZOMBIE_FEMALE_2,
+
+    MONSTER_ZOMBIE_1,
+    MONSTER_ZOMBIE_2,
+    MONSTER_ZOMBIE_3,
+    MONSTER_ZOMBIE_4,
+    MONSTER_ZOMBIE_5,
+    MONSTER_ZOMBIE_6,
+    MONSTER_ZOMBIE_7,
+
+    MONSTER_ZOMBIE_JUGGERNAUT,
+};
+
 enum
 {
     M_TEAM       = 1<<0,
@@ -711,6 +730,7 @@ struct fpsstate
 
     bool canpickup(int type, int attr = 0)
     {
+        if(infected) return false;
         if(type<I_AMMO || type>I_QUAD) return false;
         itemstat &is = itemstats[type-I_AMMO];
         switch(type)
@@ -721,10 +741,9 @@ struct fpsstate
                 if(armourtype==A_YELLOW && armour>=100) return false;
             case I_YELLOWARMOUR: return !armourtype || armour<is.max;
             case I_QUAD: return quadmillis<is.max;
-            case I_MORTAR: return infected? false: ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO;
+            case I_MORTAR: return ammo[WEAP_MORTAR]<MORTAR_MAX_AMMO;
             default:
             {
-                if (infected) return false;
                 return hasmaxammo();
             }
         }
@@ -939,6 +958,7 @@ struct fpsent : dynent, fpsstate
         if (m_classes) maxspeed = (infected)? (m_juggernaut ? juggernautpci : zombiepci).maxspeed: playerclasses[playerclass].maxspeed;
         else maxspeed = 100;
         infected = (m_infection && !strcmp(team, TEAM_1)) ? 1 : 0;
+        if(m_infection) infectmillis = m_juggernaut ? MONSTER_ZOMBIE_JUGGERNAUT : rnd(MONSTER_ZOMBIE_JUGGERNAUT);
         respawned = suicided = -1;
         lastaction = 0;
         lastattackgun = gunselect;

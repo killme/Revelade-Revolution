@@ -93,6 +93,7 @@ namespace game
         { "playermodels/zombies/zombie5",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicc",     NULL, NULL, false, true },
         { "playermodels/zombies/zombie6",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "skeleton_64",  NULL, NULL, false, true },
         { "playermodels/zombies/zombie7",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "heavy_64",     NULL, NULL, false, true },
+        { "playermodels/zombies/juggernaut",            NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "juggernaut",   NULL, NULL, false, true },
     };
 
     int chooserandomplayermodel(int seed)
