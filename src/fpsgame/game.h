@@ -643,6 +643,9 @@ enum
     HICON_BITE,
     HICON_BARREL,
     HICON_ZOMBIE,
+    HICON_KNIFE,
+    HICON_SAWBLADE,
+    HICON_INSANITY,
 
     HICON_X       = 20,
     HICON_Y       = 1650,
