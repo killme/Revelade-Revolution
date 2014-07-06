@@ -52,7 +52,6 @@ struct infectionclientmode : clientmode
     bool isSpawning(clientinfo *ci)
     {
         int i = spawning.find(ci);
-        printf("Spawning %p %i\n", ci, i);
         if(i < 0) return false;
         spawning.remove(i);
         return true;
