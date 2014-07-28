@@ -1315,6 +1315,10 @@ static void clockreset() { clockrealbase = SDL_GetTicks(); clockvirtbase = total
 VARFP(clockerror, 990000, 1000000, 1010000, clockreset());
 VARFP(clockfix, 0, 0, 1, clockreset());
 
+namespace console
+{
+    extern int verbosity;
+}
 
 int main(int argc, char **argv)
 {
@@ -1410,7 +1414,14 @@ int main(int argc, char **argv)
             case 'q': /* parsed first */ break;
             case 'k': printf("Adding package directory: %s\n", &argv[i][2]); addpackagedir(&argv[i][2]); break;
             case 'r': execfile(argv[i][2] ? &argv[i][2] : "config/init.cfg", false); restoredinits = true; break;
-            case 'd': printf("The dedicated (-d) option has been deprecated, please use the server binary to run the server.\n"); return 1; break;
+            case 'd':
+                console::verbosity = atoi(&argv[i][2]);
+                if(console::verbosity == -1)
+                {
+                    console::verbosity = ~0;
+                }
+                printf("Setting log mask to %i\n", console::verbosity);
+                break;
             case 'w': scr_w = clamp(atoi(&argv[i][2]), SCR_MINW, SCR_MAXW); if(!findarg(argc, argv, "-h")) scr_h = -1; break;
             case 'h': scr_h = clamp(atoi(&argv[i][2]), SCR_MINH, SCR_MAXH); if(!findarg(argc, argv, "-w")) scr_w = -1; break;
             case 'z': depthbits = atoi(&argv[i][2]); break;

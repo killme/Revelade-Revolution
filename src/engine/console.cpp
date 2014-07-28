@@ -27,6 +27,23 @@ void conline(int type, const char *sf)        // add a line to the console buffe
 #endif
 }
 
+namespace console
+{
+    // Private copied from game.h
+    enum
+    {
+        CON_CHAT       = 1<<8,
+        CON_TEAMCHAT   = 1<<9,
+        CON_GAMEINFO   = 1<<10,
+        CON_FRAG_SELF  = 1<<11,
+        CON_FRAG_OTHER = 1<<12,
+        CON_TEAMKILL   = 1<<13
+    };
+    // End private copied from game.h
+
+    VARP(verbosity, 0, CON_ERROR | CON_WARN | CON_INIT | CON_CHAT | CON_TEAMCHAT, INT_MAX);
+}
+
 void conoutfv(int type, const char *fmt, va_list args)
 {
     static char buf[CONSTRLEN];
@@ -34,7 +51,11 @@ void conoutfv(int type, const char *fmt, va_list args)
 
     conline(type, buf);
     filtertext(buf, buf);
-    puts(buf);
+
+    if(type & console::verbosity)
+    {
+        puts(buf);
+    }
 }
 
 void conoutf(const char *fmt, ...)
