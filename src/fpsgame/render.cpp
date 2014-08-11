@@ -207,7 +207,7 @@ namespace game
                 vanim = ANIM_VWEP_SHOOT;
                 vtime = lastaction;
             }
-            a[ai++] = modelattach("tag_weapon", mdl.vwep ? mdl.vwep : vweps[d->gunselect + (d->gunselect == WEAP_FIST && d->ammo[d->gunselect] < 1 ? sizeof(vweps)/sizeof(vweps[0]) : 0)], vanim, vtime);
+            a[ai++] = modelattach("tag_weapon", mdl.vwep ? mdl.vwep : vweps[d->gunselect + (d->gunselect == WEAP_FIST && d->ammo[d->gunselect] < 1 ? sizeof(vweps) - sizeof(vweps)/sizeof(vweps[0]) : 0)], vanim, vtime);
         }
         if(d->state==CS_ALIVE)
         {
@@ -466,7 +466,13 @@ namespace game
         extern int dbgisinfected;
         if(!d->infected && !dbgisinfected)
         {
-            formatstring(gunname)("%s/%s", hudgunsdir[0] ? hudgunsdir : mdl.hudguns, weapons[d->hudgun].file);
+            formatstring(gunname)(
+                "%s/%s",
+                hudgunsdir[0] ? hudgunsdir : mdl.hudguns,
+                d->ammo[d->hudgun] < 1 && weapons[d->hudgun].emptyFile
+                    ? weapons[d->hudgun].emptyFile
+                    : weapons[d->hudgun].file
+            );
             if((m_teammode || teamskins) && teamhudguns)
                 concatstring(gunname, !strcmp(d->team, TEAM_0) ? "/blue" : "/red");
             else if(testteam > 1)

@@ -159,65 +159,65 @@ static const struct weapinfo {
         projtype, projmdl, projspeed, projradius, projgravity, projlife, projfree, decal; float decalsize, muzzlelightsize, quakemul; vec color; uchar projparts[4];
     short sound2, looping2, icon2, attackdelay2, kickamount2, range2, power2, damage2, numrays2, offset2, numshots2, // altfire
         projtype2, projmdl2, projspeed2, projradius2, projgravity2, projlife2, projfree2, decal2; float decalsize2, muzzlelightsize2, quakemul2; vec color2; uchar projparts2[4];
-    short id; const char *name, *file; bool scoped, autodown; } weapons[NUMWEAPS] =
+    short id; const char *name, *file, *emptyFile; bool scoped, autodown; } weapons[NUMWEAPS] =
 {
     //  sound                   lp      icon            atckdly kick    range   power   damage  numrays offset  numshots        projtype                        mdl     prjspd  rad     gvt     prjlife -free   decal           dclsz   mzllsz  quakem  color           projparts
-    //  id              name,           file,           scoped, autodown
+    //  id              name,           file,           empty file      scoped, autodown
     {   S_KNIFE,                1,      HICON_KNIFE,    550,    0,      14,     198,    50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   0.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
         S_KNIFE,                1,      HICON_KNIFE,    550,    0,      1024,   198,    50,     1,      0,      1,              PJ_PROJECTILE,                  5,      45,     0,      100,    0,      0,      -1,             0.0f,   0.0f,   0.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
-        WEAP_FIST,      "Knife",        "fist",         false,  false },
+        WEAP_FIST,      "Knife",        "fist",         "emptyFist",    false,  false },
 
     {   S_SG,                   0,      HICON_SG,       1400,   20,     1024,   130,    10,     20,     4,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   30.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_1, PP_STREAK_FLARE_2, 0, 0 },
         S_SG,                   0,      HICON_SG,       1600,   20,     1024,   130,    70,     1,      0,      2,              PJ_PROJECTILE,                  2,      100,    30,     0,      0,      0,      DECAL_BULLET,   2.0f,   30.0f,  1.0f,   vec(0.2f, 0.1f, 0.1f),          {PP_MUZZLE_FLASH_1, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLACK },
-        WEAP_SLUGSHOT,  "Slugshot",     "shotg",        false,  false },
+        WEAP_SLUGSHOT,  "Slugshot",     "shotg",        NULL,           false,  false },
 
     {   S_CG,                   0,      HICON_CG,       100,    7,      1024,   80,     25,     1,      1,      1,              PJ_PROJECTILE,                  0,      512,    0,      0,      0,      0,      DECAL_BULLET,   2.0f,   30.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_6, PP_STREAK_FLARE_3, 0, PP_SPARK_SPLASH_1 },
         S_CG,                   0,      HICON_CG,       130,    7,      1024,   80,     40,     1,      1,      2,              PJ_PROJECTILE,                  0,      200,    0,      0,      0,      0,      DECAL_BULLET,   2.0f,   30.0f,  1.0f,   vec(0.5f, 0.15f, 0.10f),        {PP_MUZZLE_FLASH_6, PP_STREAK_FLARE_4, 0, PP_SPARK_SPLASH_4 },
-        WEAP_MG,        "Assault Rifle","chaing",       false,  false },
+        WEAP_MG,        "Assault Rifle","chaing",       NULL,           false,  false },
 
     {   S_RLFIRE,               0,      HICON_RL,       1200,   15,     1024,   180,    110,    1,      0,      1,              PJ_PROJECTILE,                  2,      45,     60,     0,      0,      0,      DECAL_SCORCH,   30.0f,  25.0f,  1.6f,   vec(0.6f, 0.3f, 0.15f),         {PP_MUZZLE_FLASH_2, PP_SMOKE_SPLASH_3, PP_FLAME_SPLASH_2, PP_EXPLOSION_RED },
         S_RLFIRE,               0,      HICON_RL,       2000,   15,     2048,   180,    100,    1,      0,      2,              PJ_PROJECTILE|PJT_HOME,         2,      15,     60,     0,      0,      0,      DECAL_SCORCH,   30.0f,  25.0f,  1.6f,   vec(0.6f, 0.55f, 0.15f),        {PP_MUZZLE_FLASH_2, PP_SMOKE_SPLASH_3, PP_FLAME_SPLASH_2, PP_EXPLOSION_YELLOW },
-        WEAP_ROCKETL,   "Rocket Launcher","rocket",     false,  true },
+        WEAP_ROCKETL,   "Rocket Launcher","rocket",     NULL,           false,  true },
 
     {   S_RIFLE,                0,      HICON_RIFLE,    1500,   30,     2048,   140,    100,    1,      0,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   3.0f,   25.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_5, PP_SMOKE_TRAIL_1, 0, PP_SPARK_SPLASH_1 },
         S_ITEMHEALTH,           0,      HICON_RIFLE,    250,    0,      2048,   140,    800,    1,      0,      1,              PJ_SPECIAL,                     0,      0,      0,      0,      0,      0,      DECAL_BULLET,   3.0f,   25.0f,  1.0f,   vec(0.5f, 0.275f, 0.15f),       {0, 0, 0, 0 },
-        WEAP_SNIPER,    "Sniper Rifle", "rifle",        true,   true },
+        WEAP_SNIPER,    "Sniper Rifle", "rifle",        NULL,           true,   true },
 
     {   S_FLAME,                1,      HICON_FT,       180,    0,      1024,   135,    10,     1,      0,      1,              PJ_FLAME,                       0,      11,     30,     -1,     0,      0,      DECAL_SCORCH,   20.0f,  25.0f,  1.0f,   vec(1.f, 0.4f, 0.2f),           {PP_MUZZLE_FLASH_3, PP_FLAME_SPLASH_1, 0, 0 },
         S_FLAME,                1,      HICON_FT,       300,    50,      1024,  135,    0,      1,      0,      2,              PJ_FLAME,                       0,      1,      30,     -1,     0,      0,      -1,             20.0f,  25.0f,  1.0f,   vec(0.4f, 0.3f, 0.7f),          {PP_MUZZLE_FLASH_9, PP_FLAME_SPLASH_3, 0, 0 },
-        WEAP_FLAMEJET,  "Flame Jet",    "flameg",       false,  false },
+        WEAP_FLAMEJET,  "Flame Jet",    "flameg",       NULL,           false,  false },
 
     {   S_CBOW,                 0,      HICON_CB,       1500,   25,     2048,   140,    100,    1,      0,      1,              PJ_PROJECTILE,                  4,      800,    0,      0,      0,      0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
         S_CBOW,                 0,      HICON_CB,       400,    10,     1024,   140,    50,     1,      0,      1,              PJ_PROJECTILE,                  4,      70,     0,      0,      0,      0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
-        WEAP_CROSSBOW,  "Crossbow",     "cbow",         true,  false },
+        WEAP_CROSSBOW,  "Crossbow",     "cbow",         NULL,           true,  false },
 
     {   S_FLAUNCH,              0,      HICON_GL,       500,    10,     1024,   130,    80,     1,      0,      1,              PJ_BOUNCER|PJT_TIMED,           1,      250,    50,     0,      1500,   0,      DECAL_SCORCH,   25.0f,  20.0f,  1.6f,   vec(0.25f, 1.0f, 1.0f),         {PP_MUZZLE_FLASH_4, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLUE },
         S_FLAUNCH,              0,      HICON_GL,       500,    10,     1024,   130,    100,    1,      0,      5,              PJ_BOUNCER|PJT_STICKY|PJT_TIMED,1,      80,     30,     0,      15000,  100,    DECAL_SCORCH,   25.0f,  20.0f,  1.6f,   vec(0.01f, 0.06f, 0.06f),       {PP_MUZZLE_FLASH_4, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLUE },
-        WEAP_GRENADIER, "Grenadier",    "gl",           false,  false },
+        WEAP_GRENADIER, "Grenadier",    "gl",           NULL,           false,  false },
 
     {   S_ITEMHEALTH,           0,      HICON_HEAL,     800,    0,      1024,   150,    -30,    1,      0,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.5f,   1.0f,   vec(0.8f, 0.3f, 0.7f),          {PP_MUZZLE_FLASH_8, PP_HEAL_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
         S_ITEMHEALTH,           0,      HICON_HEAL,     800,    0,      1024,   150,    60,     1,      0,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.5f,   1.0f,   vec(0.8f, 0.3f, 0.7f),          {PP_MUZZLE_FLASH_8, PP_SPARK_TRAIL, 0, 0/*PP_SPARK_SPLASH_3*/ },
-        WEAP_HEALER,    "Healer",       "healer",       false,  false },
+        WEAP_HEALER,    "Healer",       "healer",       NULL,           false,  false },
 
     {   S_FLAUNCH,              0,      HICON_RL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    260,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
         S_FLAUNCH,              0,      HICON_RL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    160,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
-        WEAP_MORTAR,    "Mortar",       "mortar",       false,  true },
+        WEAP_MORTAR,    "Mortar",       "mortar",       NULL,           false,  true },
 
     {   S_PISTOL,               0,      HICON_PISTOL,   250,    7,      1024,   80,     20,     1,      0,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   15.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
         S_PISTOL,               0,      HICON_PISTOL,   500,    7,      1024,   80,     10,     3,      1,      2,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   15.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
-        WEAP_PISTOL,    "Pistol",       "pistol",       false,  false },
+        WEAP_PISTOL,    "Pistol",       "pistol",       NULL,           false,  false },
 
     {   S_PIGR1,                0,      HICON_BITE,     250,    1,      12,     0,      12,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
         S_PIGR1,                0,      HICON_BITE,     500,    1,      12,     0,      50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
-        WEAP_BITE,      "Bite",         NULL,           false,  false },
+        WEAP_BITE,      "Bite",         NULL,           NULL,           false,  false },
 
     {   -1,                     0,      HICON_BARREL,   0,      0,      0,      0,      120,    1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
         -1,                     0,      HICON_BARREL,   0,      0,      0,      0,      120,    1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
-        WEAP_BARREL,    "Barrel",       NULL,           false,  false },
+        WEAP_BARREL,    "Barrel",       NULL,           NULL,           false,  false },
 
     {   -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
         -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
-        WEAP_INSANITY,  "Insanity",     NULL,           false,  false }
+        WEAP_INSANITY,  "Insanity",     NULL,           NULL,           false,  false }
 };
 
 
