@@ -75,7 +75,7 @@ namespace game
         },
     };
 
-    VARFP(playermodel, 0, 0, sizeof(playermodels)/sizeof(playermodels[0]) - 1, changedplayermodel());
+    VARFP(playermodel, 0, 1, sizeof(playermodels)/sizeof(playermodels[0]) - 1, changedplayermodel());
 
     static const playermodelinfo zombiemodels[] =
     {
