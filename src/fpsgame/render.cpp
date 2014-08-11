@@ -204,7 +204,7 @@ namespace game
             delay = 1000;
         }
         modelattach a[5];
-        static const char *vweps[] = {"playermodels/vwep/fist", "playermodels/vwep/shotg", "playermodels/vwep/chaing", "playermodels/vwep/rocket", "playermodels/vwep/rifle", "playermodels/vwep/flameg", "playermodels/vwep/cbow", "playermodels/vwep/gl", "playermodels/vwep/healer", "playermodels/vwep/mortar", "playermodels/vwep/pistol"};
+        static const char *vweps[] = {"playermodels/vwep/fist", "playermodels/vwep/shotg", "playermodels/vwep/chaing", "playermodels/vwep/rocket", "playermodels/vwep/rifle", "playermodels/vwep/flameg", "playermodels/vwep/cbow", "playermodels/vwep/gl", "playermodels/vwep/healer", "playermodels/vwep/mortar", "playermodels/vwep/pistol", "playermodels/vwep/hand"};
         int ai = 0;
         if((!mdl.vwep || d->gunselect!=WEAP_FIST) && d->gunselect<=WEAP_PISTOL && !d->infected)
         {
@@ -214,7 +214,7 @@ namespace game
                 vanim = ANIM_VWEP_SHOOT;
                 vtime = lastaction;
             }
-            a[ai++] = modelattach("tag_weapon", mdl.vwep ? mdl.vwep : vweps[d->gunselect], vanim, vtime);
+            a[ai++] = modelattach("tag_weapon", mdl.vwep ? mdl.vwep : vweps[d->gunselect + (d->gunselect == WEAP_FIST && d->ammo[d->gunselect] < 1 ? sizeof(vweps)/sizeof(vweps[0]) : 0)], vanim, vtime);
         }
         if(d->state==CS_ALIVE)
         {
