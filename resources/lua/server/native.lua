@@ -18,10 +18,10 @@ ffi.cdef [[
         const char *shortName;
         const char *description;
     };
-    
+
     int getGameModeId();
     struct GameMode *getGameModeInfo(int id);
-    
+
     const char *getMapName();
     int getPlayerCount();
     int getTimeLeft();

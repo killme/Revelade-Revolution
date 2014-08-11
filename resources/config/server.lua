@@ -22,6 +22,12 @@ server {
 
     -- Hostname of the server, this should resolve to the server's ip
     host = "",
+
+    -- The maximum amount of bot non server admins will be allowed to add
+    botLimit = 8,
+
+    -- Enables or disables team switching bots
+    botBalance = true,
 }
 
 

@@ -159,11 +159,21 @@ function Handle:havePrivilege(cn, priv)
     return self:getPrivilege(cn) >= priv
 end
 
+function Handle:setBotLimit(limit)
+    self.native.set_botlimit(limit)
+end
+
+function Handle:setBotBalance(balance)
+    self.native.set_botbalance(balance and 1 or 0)
+end
+
 local settingsMapping = {
     port = "setPort",
     maximumClients = "setMaxClients",
     name = "setServerName",
     host = "setHostName",
+    botLimit = "setBotLimit",
+    botBalance = "setBotBalance"
 }
 function Handle:setSetting(name, value)
     local f = settingsMapping[name]
