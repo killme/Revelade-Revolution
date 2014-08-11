@@ -2228,15 +2228,6 @@ namespace game
 #endif
     }
 
-
-
-    VAR(VERSION, 0, version::getVersion(), 0);
-    VAR(VERSION_MAJOR, 0, version::getMajor(), 0);
-    VAR(VERSION_MINOR, 0, version::getMinor(), 0);
-    VAR(VERSION_PATCH, 0, version::getPatch(), 0);
-    VAR(VERSION_TAG, 0, version::getTag(), 0);
-    SVAR(VERSION_NAME, version::getVersionString());
-
     // any data written into this vector will get saved with the map data. Must take care to do own versioning, and endianess if applicable. Will not get called when loading maps from other games, so provide defaults.
     void writegamedata(vector<char> &extras) {}
     void readgamedata(vector<char> &extras) {}

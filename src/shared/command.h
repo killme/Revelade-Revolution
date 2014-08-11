@@ -178,6 +178,9 @@ static inline float parsefloat(const char *s)
 #define BSVAR(name, cur) _BSVAR(name, name, cur, 0)
 #define BSVARP(name, cur) _BSVAR(name, name, cur, IDF_PERSIST)
 
+#define CS_SCONSTANT(name, cur) char *name = svariable(#name, cur, &name, NULL, IDF_READONLY);
+#define CS_CONSTANT(name, cur) int name = variable(#name, 0, cur, cur, &name, NULL, IDF_READONLY);
+
 
 // new style macros, have the body inline, and allow binds to happen anywhere, even inside class constructors, and access the surrounding class
 #define _CCOMMAND(idtype, tv, n, g, proto, b) \

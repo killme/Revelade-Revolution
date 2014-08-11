@@ -1300,7 +1300,13 @@ void getfps_(int *raw)
 }
 
 COMMANDN(getfps, getfps_, "i");
-SVAR(TIG_GAME, game::gameident());
+CS_SCONSTANT(TIG_GAME, game::gameident());
+CS_CONSTANT(VERSION,            version::getVersion());
+CS_CONSTANT(VERSION_MAJOR,      version::getMajor());
+CS_CONSTANT(VERSION_MINOR,      version::getMinor());
+CS_CONSTANT(VERSION_PATCH,      version::getPatch());
+CS_CONSTANT(VERSION_TAG,        version::getTag());
+CS_SCONSTANT(VERSION_NAME,      version::getVersionString());
 
 bool inbetweenframes = false, renderedframe = true;
 
