@@ -257,13 +257,16 @@ namespace game
             {
                 if (bnc.bouncetype==BNC_GRENADE)
                 {
-                    int qdam = WEAP(bnc.gun,damage)*(bnc.owner->quadmillis ? 4 : 1);
-                    hits.setsize(0);
-                    explode(bnc.local, bnc.owner, bnc.o, NULL, qdam, bnc.gun);
-                    adddecal(WEAP(bnc.gun,decal), bnc.o, vec(0, 0, 1), WEAP(bnc.gun,projradius));
-                    if(bnc.local)
-                        addmsg(N_EXPLODE, "rci5v", bnc.owner, lastmillis-maptime, bnc.gun, bnc.id-maptime, 0,
-                                hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
+                    if(bnc.gun != WEAP_CROSSBOW+1024 || bnc.vel.magnitude() >= 10.0f)
+                    {
+                        int qdam = WEAP(bnc.gun,damage)*(bnc.owner->quadmillis ? 4 : 1);
+                        hits.setsize(0);
+                        explode(bnc.local, bnc.owner, bnc.o, NULL, qdam, bnc.gun);
+                        adddecal(WEAP(bnc.gun,decal), bnc.o, vec(0, 0, 1), WEAP(bnc.gun,projradius));
+                        if(bnc.local)
+                            addmsg(N_EXPLODE, "rci5v", bnc.owner, lastmillis-maptime, bnc.gun, bnc.id-maptime, 0,
+                                    hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
+                    }
                 }
                 delete bouncers.remove(i--);
             }
@@ -469,11 +472,12 @@ namespace game
     {
         if (WEAP_IS_EXPLOSIVE(gun))
         {
-            playsound(S_RLHIT, &v);
+            playsound(gun == WEAP_CROSSBOW+1024 ? S_CBOW : S_RLHIT, &v);
 
             bool newexp = newexplosion;
             int expcolor, expflamecolor;
             float expscale;
+            bool needExplosion = true;
 
             if (newexp) switch (gun)
             {
@@ -502,48 +506,54 @@ namespace game
                 expflamecolor = 0x201010;
                 expscale = 0.7f;
                 break;
+            case WEAP_CROSSBOW+1024:
+                needExplosion = false;
+                break;
             default:
                 newexp = false;
             }
 
-            if (newexp)
+            if(needExplosion)
             {
-                particle_splash(PART_EXP_FLAME, 30*expscale, 700, v, expflamecolor, 40.0f*expscale, 1, -8);
-                particle_splash(PART_EXP_SMOKE, 10*expscale, 1500, v, 0x1E1914, 50.0f*expscale, 1, -7);
-                particle_splash(PART_EXP_FLASH, 3, 300, v, 0xBE9350, 40.0f*expscale, 1, -10);
-                particle_splash(PART_EXP_RSPARKS, 30*expscale, 700, v, expcolor, 20.0f*expscale, 100, -20);
-                particle_splash(PART_EXP_SHOCKWAVE, 1, 350, vec(0.0f, 0.0f, 2.f).add(v), expcolor, 50.0f*expscale, 100, 0, true);
-                loopi(5)
+                if (newexp)
                 {
-                    vec to(rnd(100)-50, rnd(100)-50, rnd(100)-50);
-                    to.normalize();
-                    to.mul((rnd(30)+50)*expscale).add(v);
-                    particle_flare(v, to, 1500, PART_EXP_FLARE, expcolor, 5.0f, NULL, expgrow);
+                    particle_splash(PART_EXP_FLAME, 30*expscale, 700, v, expflamecolor, 40.0f*expscale, 1, -8);
+                    particle_splash(PART_EXP_SMOKE, 10*expscale, 1500, v, 0x1E1914, 50.0f*expscale, 1, -7);
+                    particle_splash(PART_EXP_FLASH, 3, 300, v, 0xBE9350, 40.0f*expscale, 1, -10);
+                    particle_splash(PART_EXP_RSPARKS, 30*expscale, 700, v, expcolor, 20.0f*expscale, 100, -20);
+                    particle_splash(PART_EXP_SHOCKWAVE, 1, 350, vec(0.0f, 0.0f, 2.f).add(v), expcolor, 50.0f*expscale, 100, 0, true);
+                    loopi(5)
+                    {
+                        vec to(rnd(100)-50, rnd(100)-50, rnd(100)-50);
+                        to.normalize();
+                        to.mul((rnd(30)+50)*expscale).add(v);
+                        particle_flare(v, to, 1500, PART_EXP_FLARE, expcolor, 5.0f, NULL, expgrow);
+                    }
                 }
-            }
-            else
-            {
-                int color = projpartpresets[WEAP(gun,projparts)[3]].color;
-                int fade = projpartpresets[WEAP(gun,projparts)[3]].fade;
+                else
+                {
+                    int color = projpartpresets[WEAP(gun,projparts)[3]].color;
+                    int fade = projpartpresets[WEAP(gun,projparts)[3]].fade;
 
-                particle_splash(PART_PLASMA_SOFT, 1, -fade, v, color, WEAP(gun,projradius)/2.f+4.f, 150, 0, true);
-                particle_fireball(v, WEAP(gun,projradius)/2.f, PART_EXPLOSION, fade, color, WEAP(gun,projradius)/3.f);
-                particle_splash(PART_SPARK, 70, fade*1.5f, v, color, 0.75f, WEAP(gun,projradius)/2.f, 1000.f);
-            }
+                    particle_splash(PART_PLASMA_SOFT, 1, -fade, v, color, WEAP(gun,projradius)/2.f+4.f, 150, 0, true);
+                    particle_fireball(v, WEAP(gun,projradius)/2.f, PART_EXPLOSION, fade, color, WEAP(gun,projradius)/3.f);
+                    particle_splash(PART_SPARK, 70, fade*1.5f, v, color, 0.75f, WEAP(gun,projradius)/2.f, 1000.f);
+                }
 
-            vec initcolor(WEAP(gun,color));
-            initcolor.div(2.0f);
-            adddynlight(v, 1.15f*WEAP(gun,projradius), WEAP(gun,color), 280, 280, 0, WEAP(gun,projradius)/2, initcolor);
+                vec initcolor(WEAP(gun,color));
+                initcolor.div(2.0f);
+                adddynlight(v, 1.15f*WEAP(gun,projradius), WEAP(gun,color), 280, 280, 0, WEAP(gun,projradius)/2, initcolor);
 
-            int numdebris = gun==WEAP_BARREL ? rnd(max(maxbarreldebris-5, 1))+5 : rnd(maxdebris-5)+5;
-            vec debrisvel = owner->o==v ? vec(0, 0, 0) : vec(owner->o).sub(v).normalize(), debrisorigin(v);
-            debrisorigin.add(vec(debrisvel).mul(WEAP(gun,damage)/10));
-            if(numdebris)
-            {
-                entitylight light;
-                lightreaching(debrisorigin, light.color, light.dir);
-                loopi(numdebris)
-                    spawnbouncer(debrisorigin, debrisvel, owner, gun==WEAP_BARREL ? BNC_BARRELDEBRIS : BNC_DEBRIS, &light);
+                int numdebris = gun==WEAP_BARREL ? rnd(max(maxbarreldebris-5, 1))+5 : rnd(maxdebris-5)+5;
+                vec debrisvel = owner->o==v ? vec(0, 0, 0) : vec(owner->o).sub(v).normalize(), debrisorigin(v);
+                debrisorigin.add(vec(debrisvel).mul(WEAP(gun,damage)/10));
+                if(numdebris)
+                {
+                    entitylight light;
+                    lightreaching(debrisorigin, light.color, light.dir);
+                    loopi(numdebris)
+                        spawnbouncer(debrisorigin, debrisvel, owner, gun==WEAP_BARREL ? BNC_BARRELDEBRIS : BNC_DEBRIS, &light);
+                }
             }
         }
         else
