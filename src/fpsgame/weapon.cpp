@@ -1011,7 +1011,6 @@ namespace game
         d->lastattackgun = d->gunselect;
         if(!d->infected && (d->ammo[WEAPONI(gun)] < 1 || d->ammo[WEAPONI(gun)] < WEAP(gun, numshots)))
         {
-            printf("Outta ammo\n");
             if(d==player1)
             {
                 msgsound(S_NOAMMO, d);
