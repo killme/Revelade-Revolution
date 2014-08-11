@@ -1883,7 +1883,13 @@ namespace server
         gamestate &gs = ci->state;
         int wait = millis - gs.lastshot;
         if(!gs.isalive(gamemillis) || wait<gs.gunwait || (WEAP(gun,range) && from.dist(to) > WEAP(gun,range) + 1)) return;
-        if (!CAN_SHOOT_WITH2(gs,gun)) return;
+        if (!CAN_SHOOT_WITH2(gs,gun))
+        {
+            #ifdef _DEBUG
+                conoutf("%s, cannot shoot with %i", colorname(ci), gun);
+            #endif
+            return;
+        }
         gs.ammo[WEAPONI(gun)] = max(gs.ammo[WEAPONI(gun)]-WEAP(gun,numshots), 0);
 
         gs.lastshot = millis;

@@ -16,6 +16,7 @@ enum
     WEAP_HEALER,
     WEAP_MORTAR,
     WEAP_PISTOL,
+    WEAP_INFECTED,
     WEAP_BITE,
     WEAP_BARREL,
     WEAP_INSANITY,
@@ -188,7 +189,7 @@ static const struct weapinfo {
         WEAP_FLAMEJET,  "Flame Jet",    "flameg",       NULL,           false,  false },
 
     {   S_CBOW,                 0,      HICON_CB,       1500,   25,     2048,   140,    100,    1,      0,      1,              PJ_PROJECTILE,                  4,      800,    0,      0,      0,      0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
-        S_CBOW,                 0,      HICON_CB,       400,    10,     1024,   140,    50,     1,      0,      1,              PJ_BOUNCER,                     4,      800,   10,      0,      0,      0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
+        S_CBOW,                 0,      HICON_CB,       400,    10,     1024,   140,    50,     1,      0,      1,              PJ_BOUNCER,                     4,      800,   10,     10,      1500,   0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
         WEAP_CROSSBOW,  "Crossbow",     "cbow",         NULL,           true,  false },
 
     {   S_FLAUNCH,              0,      HICON_GL,       500,    10,     1024,   130,    80,     1,      0,      1,              PJ_BOUNCER|PJT_TIMED,           1,      250,    50,     0,      1500,   0,      DECAL_SCORCH,   25.0f,  20.0f,  1.6f,   vec(0.25f, 1.0f, 1.0f),         {PP_MUZZLE_FLASH_4, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLUE },
@@ -201,11 +202,15 @@ static const struct weapinfo {
 
     {   S_FLAUNCH,              0,      HICON_RL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    260,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
         S_FLAUNCH,              0,      HICON_RL,       2200,   30,     4096,   170,    70,     1,      4,      1,              PJ_PROJECTILE,                  1,      50,     200,    160,    0,      0,      DECAL_SCORCH,   50.0f,  40.0f,  4.0f,   vec(0.8f, 0.7f, 0.4f),          {PP_MUZZLE_FLASH_10, 0, 0, PP_EXPLOSION_YELLOW },
-        WEAP_MORTAR,    "Mortar",       "mortar",       NULL,           false,  true },
+        WEAP_MORTAR,    "Mortar",       "mortar",       "emptyFist",    false,  true },
 
     {   S_PISTOL,               0,      HICON_PISTOL,   250,    7,      1024,   80,     20,     1,      0,      1,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   15.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
         S_PISTOL,               0,      HICON_PISTOL,   500,    7,      1024,   80,     10,     3,      1,      2,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   15.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
         WEAP_PISTOL,    "Pistol",       "pistol",       NULL,           false,  false },
+
+    {   S_PIGR1,                0,      HICON_BITE,     250,    1,      14,     0,      12,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+        S_PIGR1,                0,      HICON_BITE,     500,    1,      14,     0,      50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+        WEAP_INFECTED,  "Infected",     NULL,           NULL,           false,  false },
 
     {   S_PIGR1,                0,      HICON_BITE,     250,    1,      12,     0,      12,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
         S_PIGR1,                0,      HICON_BITE,     500,    1,      12,     0,      50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
@@ -241,7 +246,7 @@ static const struct weapinfo {
 #define GUN_FRAG_SPECIAL_INFECTED       " by eating his brain!"
 #define GUN_EXPLODE_SPECIAL            " with a direct hit!"
 
-#define GUN_FRAG_MESSAGE(gun, infected)         ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAG_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAG_BURN: (WEAP_IS_EXPLOSIVE(gun)?GUN_FRAG_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAG_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAG_INSANITY : GUN_FRAG_NORMAL))))
+#define GUN_FRAG_MESSAGE(gun, infected)         ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAG_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAG_BURN: (WEAP_IS_EXPLOSIVE(gun) && WEAPONI(gun) != WEAP_CROSSBOW ?GUN_FRAG_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAG_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAG_INSANITY : GUN_FRAG_NORMAL))))
 #define GUN_FRAGBY_MESSAGE(gun, infected)       ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAGBY_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAGBY_BURN: (WEAP_IS_EXPLOSIVE(gun)?GUN_FRAGBY_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAGBY_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAGBY_INSANITY : GUN_FRAGBY_NORMAL))))
 #define GUN_SPECIAL_MESSAGE(gun, infected)    (WEAP_IS_EXPLOSIVE(gun) ? GUN_EXPLODE_SPECIAL : (WEAP_IS_MELEE(gun) && infected ? GUN_FRAG_SPECIAL_INFECTED : GUN_FRAG_SPECIAL))
 #define GUN_SUICIDE_MESSAGE(gun)    (gun==-1? GUN_FRAG_NORMAL:(gun==-2? GUN_SUICIDE_FALL: GUN_SUICIDE_LAVA))
@@ -274,6 +279,7 @@ static const struct weapinfo {
 
 #define WEAP_VALID(gun)                (WEAPONI(gun)>=0&&WEAPONI(gun)<=NUMWEAPS)
 #define WEAP_USABLE(gun)            (WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_PISTOL)
+#define WEAP_USABLE_ZOMBIE(gun)            (WEAPONI(gun)==WEAP_INFECTED)
 
 #define WEAPONS_PER_CLASS            4
 #define MORTAR_MAX_AMMO                2
@@ -324,8 +330,8 @@ inline bool canshootwith(int playerclass, int gun, int gamemode)
 
 inline bool canshootwith(const int playerclass, const int gun, const int gamemode, const bool infected, const int *ammo)
 {
+    if (m_infection && infected) return WEAP_USABLE_ZOMBIE(gun);
     if (!WEAP_USABLE(gun)) return false;
-    if (m_infection && infected) return true;
     const playerclassinfo &pci = playerclasses[playerclass];
     if (m_classes) loopi(WEAPONS_PER_CLASS) if (pci.weap[i] == WEAPONI(gun)) return ammo[WEAPONI(gun)]!=0;
     return ammo[WEAPONI(gun)]!=0;
