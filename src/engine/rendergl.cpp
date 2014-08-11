@@ -839,7 +839,7 @@ void computevision()
     if(game::isinfected())
     {
         float zombiemax = fov*zombiedepth;
-        curfov += (0.5f+scopev*0.5f)*((zombiemax*0.5f)+(zombiemax*game::idlepulse(0.02f))+(zombiemax*zombiescale*(0.25f+0.75f*(1.f-sinf(RAD*fabs(camera1->pitch))))*0.5f));
+        curfov = clamp(curfov + (0.5f+scopev*0.5f)*((zombiemax*0.5f)+(zombiemax*game::idlepulse(0.02f))+(zombiemax*zombiescale*(0.25f+0.75f*(1.f-sinf(RAD*fabs(camera1->pitch))))*0.5f)), 0.f, 150.f);
     }
 }
 
