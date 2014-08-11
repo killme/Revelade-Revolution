@@ -255,6 +255,9 @@ namespace game
     }
 
     VARP(teamskins, 0, 0, 1);
+#ifdef _DEBUG
+    VAR(dbghitbox, 0, 0, 1);
+#endif
 
     void rendergame(bool mainpass)
     {
@@ -281,6 +284,51 @@ namespace game
             copystring(d->info, colorname(d));
             if (d->infected) concatstring(d->info, "  infected");
             if(d->state!=CS_DEAD) particle_text(d->abovehead(), d->info, PART_TEXT, 1, team ? (team==1 ? 0x6496FF : 0xFF4B19) : 0x1EC850, 2.0f);
+
+            #ifdef _DEBUG
+            if(dbghitbox && d->state!=CS_DEAD)
+            {
+                vec bottom(d->o), top(d->o);
+                bottom.z -= d->eyeheight;
+                top.z += d->aboveeye;
+
+                vec direction(d->yaw, d->pitch);
+                direction.z = 0;
+                direction.normalize().mul(d->radius);
+
+                int colors[] = {
+                    0xAAAAAA,
+                    0xAA0000,
+                    0xAAAA00,
+                    0x00AA00,
+                    0x000000,
+                    0x00AAAA,
+                    0x0000AA,
+                    0xAA00AA,
+                };
+
+                loopi(8)
+                {
+                    float angle = float(i)/8.f*float(2)*M_PI;
+                    vec spoke(direction);
+                    spoke.rotate_around_z(angle);
+
+                    vec bottomSpoke(spoke);
+                    bottomSpoke.add(bottom);
+
+                    vec topSpoke(spoke);
+                    topSpoke.add(top);
+
+                    spoke.add(d->o);
+
+                    #define PARTICLE_OPTS 0, PART_STREAK, colors[i], 0.10f
+                    particle_flare(bottom, bottomSpoke, PARTICLE_OPTS);
+                    particle_flare(bottomSpoke, topSpoke, PARTICLE_OPTS);
+                    particle_flare(topSpoke, top, PARTICLE_OPTS);
+                    #undef PARTICLE_OPTS
+                }
+            }
+            #endif
         }
         loopv(ragdolls)
         {
