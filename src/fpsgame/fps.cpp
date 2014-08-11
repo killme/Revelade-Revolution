@@ -723,7 +723,7 @@ namespace game
         if(m_sp && slowmosp && d==player1 && d->health < 1) d->health = 1;
 
         if(d->health<=0) { if(local) killed(d, actor, gun); }
-        else if(d==h) playsound(S_PAIN6);
+        else if(d==h) playsound(min<int>(S_PAIN_ALAN+d->playermodel, S_PAIN_ADVENT));
         else if (d->aitype != AI_ZOMBIE) playsound(S_PAIN1+rnd(5), &d->o);
     }
 

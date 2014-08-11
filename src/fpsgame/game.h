@@ -307,8 +307,16 @@ enum
     // player
     S_JUMP = 0, S_LAND,
 
+    // zombie pain sounds
     S_PAIN1, S_PAIN2, S_PAIN3,
-    S_PAIN4, S_PAIN5, S_PAIN6,
+    S_PAIN4, S_PAIN5,
+
+    // player pain sounds
+    S_PAIN_ALAN,
+    S_PAIN_SWAT,
+    S_PAIN_THIEF,
+    S_PAIN_ANETA,
+    S_PAIN_ADVENT,
 
     S_DIE1, S_DIE2,
 

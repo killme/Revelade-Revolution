@@ -420,7 +420,7 @@ namespace game
                         float qu = (float)quakemillis*(float)WEAP(gun,quakemul)*min((float)damage/140.f, 2.f)*2.f;
                         player1->addquake((int)qu);
                         damagecompass(damage, at ? at->o : f->o);
-                        playsound(S_PAIN6);
+                        playsound(min<int>(S_PAIN_ALAN+f->playermodel, S_PAIN_ADVENT));
                     }
                     else if (f->aitype != AI_ZOMBIE) playsound(S_PAIN1+rnd(5), &f->o);
                 }
