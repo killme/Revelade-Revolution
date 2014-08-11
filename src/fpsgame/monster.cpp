@@ -22,12 +22,6 @@ namespace game
 
     static const monstertype monstertypes[NUMMONSTERTYPES] =
     {
-        { WEAP_BITE,        18, 200, 3, 80,  100, 800, 1, 12, 100, S_PAINO, S_DIE1,   "zombie bike",    "playermodels/zombies/nazizombiebike",    NULL},
-        { WEAP_PISTOL,        18, 200, 3, 100, 300, 400, 4, 13, 115, S_PAINE, S_DEATHE, "nazi zombie",    "playermodels/zombies/nazizombie",    "playermodels/vwep/pistol"},
-        { WEAP_BITE,        18, 200, 3, 100, 300, 400, 4, 12, 115, S_PAINE, S_DEATHE, "nazi zombie 2",    "playermodels/zombies/nazizombie2",    NULL},
-        { WEAP_BITE,        20, 160, 3, 0,   100, 400, 1, 11,  90, S_PAINP, S_PIGGR2, "fast zombie",    "playermodels/zombies/fastzombie",    NULL},
-        { WEAP_BITE,        13, 160, 3, 0,   100, 400, 1, 12,  50, S_PAINS, S_DEATHS, "female",        "playermodels/zombies/female",        NULL},
-        { WEAP_BITE,        13, 160, 3, 0,   100, 400, 1,  9,  50, S_PAINS, S_DEATHS, "female 2",        "playermodels/zombies/female2",        NULL},
         { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 1",        "playermodels/zombies/zombie1",        NULL},
         { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 2",        "playermodels/zombies/zombie2",        NULL},
         { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINR, S_DEATHR, "zombie 3",        "playermodels/zombies/zombie3",        NULL},
@@ -36,8 +30,6 @@ namespace game
         { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 12,  75, S_PAINH, S_DEATHH, "zombie 6",        "playermodels/zombies/zombie6",        NULL},
         { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 13,  75, S_PAIND, S_DEATHD, "zombie 7",        "playermodels/zombies/zombie7",        NULL},
         { WEAP_BITE,        19,  40, 3, 0,   100, 400, 1,  4,  10, S_PAINR, S_DEATHR, "rat",        "playermodels/zombies/rat",        NULL},
-        { WEAP_ROCKETL,        13, 600, 1, 0,   100, 400, 1, 24, 200, S_PAIND, S_DEATHD, "zombie boss",    "playermodels/zombies/zombieboss",    "playermodels/vwep/rocket"},
-
         { WEAP_SLUGSHOT,    13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper sg",  "ogro2",                "ogro/vwep"},
         { WEAP_ROCKETL,        13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper rl",  "ogro2",                "ogro/vwep"},
     };

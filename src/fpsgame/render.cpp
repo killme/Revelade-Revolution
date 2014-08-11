@@ -79,13 +79,6 @@ namespace game
 
     static const playermodelinfo zombiemodels[] =
     {
-        { "playermodels/zombies/nazizombiebike",        NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "polder",       NULL, NULL, false, true },
-        { "playermodels/zombies/nazizombie",            NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "nazi_64",      NULL, NULL, false, true },
-        { "playermodels/zombies/nazizombie2",           NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "nazishot_64",  NULL, NULL, false, true },
-        { "playermodels/zombies/fastzombie",            NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "fast1_64",     NULL, NULL, false, true },
-        { "playermodels/zombies/female",                NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "femalez1_64",  NULL, NULL, false, true },
-        { "playermodels/zombies/female2",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "femalez2",     NULL, NULL, false, true },
-
         { "playermodels/zombies/zombie1",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicb_64",  NULL, NULL, false, true },
         { "playermodels/zombies/zombie2",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "zclassic",     NULL, NULL, false, true },
         { "playermodels/zombies/zombie3",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicd_64",  NULL, NULL, false, true },
