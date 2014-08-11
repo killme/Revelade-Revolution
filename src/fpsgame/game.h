@@ -780,7 +780,10 @@ struct fpsstate
             default:
             {
                 const playerclassinfo &pci = playerclasses[playerclass];
-                loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = max(min(ammo[pci.weap[i]]+GUN_AMMO_ADD(pci.weap[i], is.info-1), GUN_AMMO_MAX(pci.weap[i])), 0);
+                loopi(WEAPONS_PER_CLASS)
+                {
+                    ammo[pci.weap[i]] = max(min(ammo[pci.weap[i]]+max(ammo[pci.weap[i]] < 1 ? 1 : 0, GUN_AMMO_ADD(pci.weap[i], is.info-1)), GUN_AMMO_MAX(pci.weap[i])), 0);
+                }
                 break;
             }
         }

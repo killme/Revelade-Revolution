@@ -275,7 +275,7 @@ static const struct weapinfo {
 #define WEAP_VALID(gun)                (WEAPONI(gun)>=0&&WEAPONI(gun)<=NUMWEAPS)
 #define WEAP_USABLE(gun)            (WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_PISTOL)
 
-#define WEAPONS_PER_CLASS            3
+#define WEAPONS_PER_CLASS            4
 #define MORTAR_MAX_AMMO                2
 
 #define WEAP_MAX_IRSM                   3000
@@ -297,22 +297,22 @@ enum Abilities
 
 static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; const char* name; int abilities; } playerclasses[NUMPCS] =
 {
-    //  weap[0]         weap[1]         weap[2]                 maxhealth       armourtype      armour maxspeed name
-    {   {WEAP_SNIPER,   WEAP_MG,        WEAP_GRENADIER},        90,             A_GREEN,        50,    80,      "Offense",      0},
-    {   {WEAP_ROCKETL,  WEAP_SLUGSHOT,  WEAP_PISTOL},           80,             A_YELLOW,       60,    75,      "Defense",      0},
+    //  weap[0]         weap[1]         weap[2]         weap[3]                 maxhealth       armourtype      armour maxspeed name
+    {   {WEAP_SNIPER,   WEAP_MG,        WEAP_GRENADIER, WEAP_FIST},             90,             A_GREEN,        50,    80,      "Offense",      0},
+    {   {WEAP_ROCKETL,  WEAP_SLUGSHOT,  WEAP_PISTOL,    WEAP_FIST},             80,             A_YELLOW,       60,    75,      "Defense",      0},
     //  { {WEAP_MG,     WEAP_ROCKETL},                          110,            A_YELLOW,       70,    65,      "Heavy"},
-    {   {WEAP_FLAMEJET, WEAP_CROSSBOW,  WEAP_PISTOL},           70,             A_BLUE,         25,    115,     "Stealth",      0},
-    {   {WEAP_CROSSBOW, WEAP_HEALER,    WEAP_PISTOL},           60,             A_GREEN,        50,    100,     "Medic",        ABILITY_SEE_HEALTH}, // WEAP_BUILD
+    {   {WEAP_FLAMEJET, WEAP_CROSSBOW,  WEAP_PISTOL,    WEAP_FIST},             70,             A_BLUE,         25,    115,     "Stealth",      0},
+    {   {WEAP_CROSSBOW, WEAP_HEALER,    WEAP_PISTOL,    WEAP_FIST},             60,             A_GREEN,        50,    100,     "Medic",        ABILITY_SEE_HEALTH}, // WEAP_BUILD
 };
 
 static const playerclassinfo zombiepci = {
-    //  weap[0]         weap[1]         weap[2]                 maxhealth       armourtype      armour maxspeed name
-        {WEAP_BITE,     WEAP_BITE,      WEAP_BITE},             100,            A_BLUE,         50,    100,    "Zombie"
+    //  weap[0]         weap[1]         weap[2]                         maxhealth       armourtype      armour maxspeed name
+    {WEAP_BITE,     WEAP_BITE,      WEAP_BITE,      WEAP_BITE},         100,            A_BLUE,         50,    100,    "Zombie"
 };
 
 static const playerclassinfo juggernautpci = {
-    //  weap[0]         weap[1]         weap[2]                 maxhealth       armourtype      armour maxspeed name
-        {WEAP_BITE,     WEAP_BITE,      WEAP_BITE},             500,            A_YELLOW,       200,   50,     "Juggernaut"
+    //  weap[0]         weap[1]         weap[2]                         maxhealth       armourtype      armour maxspeed name
+    {WEAP_BITE,     WEAP_BITE,      WEAP_BITE,      WEAP_BITE},         500,            A_YELLOW,       200,   50,     "Juggernaut"
 };
 
 inline bool canshootwith(int playerclass, int gun, int gamemode)
