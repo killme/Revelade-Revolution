@@ -986,7 +986,7 @@ namespace game
 
     void shoot(fpsent *d, const vec &targ)
     {
-        int prevaction = d->lastaction, attacktime = lastmillis-prevaction, gun = d->gunselect+(d->altfire?1024:0);
+        int prevaction = d->lastaction, attacktime = lastmillis-prevaction, gun = (d->infected ? WEAP_BITE : d->gunselect) +(d->altfire?1024:0);
 
         if (allowedweaps != 0)
         {
