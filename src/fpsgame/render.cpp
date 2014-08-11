@@ -51,27 +51,27 @@ namespace game
         {
             "playermodels/alanharris",  "playermodels/alanharris/blue",         "playermodels/alanharris/red",  "playermodels/alanharris/hudguns",      NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/alanharris",  "playermodels/alanharrist_blue",        "playermodels/alanharris_red",  true,   true
+            "playermodels/alanharris",  "playermodels/alanharrist_blue",        "playermodels/alanharris_red",  true,   true,   0.0f,   0.0f,   0.0f
         },
         {
             "playermodels/swat",        "playermodels/swat/blue",               "playermodels/swat/red",        "playermodels/swat/hudguns",            NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/swat",        "playermodels/swat_blue",               "playermodels/swat_red",        true,   true
+            "playermodels/swat",        "playermodels/swat_blue",               "playermodels/swat_red",        true,   true,   0.0f,   0.0f,   0.0f
         },
         {
             "playermodels/thief",       "playermodels/thief/blue",              "playermodels/thief/red",       "playermodels/thief/hudguns",           NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/thief",  "playermodels/thief_blue",        "playermodels/thief_red",                  true,   true
+            "playermodels/thief",  "playermodels/thief_blue",        "playermodels/thief_red",                  true,   true,   0.0f,   0.0f,   0.0f
         },
         {
             "playermodels/aneta",       "playermodels/aneta/blue",              "playermodels/aneta/red",       "playermodels/aneta/hudguns",           NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/aneta",  "playermodels/aneta_blue",        "playermodels/aneta_red",                  true,   true
+            "playermodels/aneta",  "playermodels/aneta_blue",        "playermodels/aneta_red",                  true,   true,   0.0f,   0.0f,   0.0f
         },
         {
             "playermodels/advent",      "playermodels/advent/blue",             "playermodels/advent/red",      "playermodels/advent/hudguns",          NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/advent",  "playermodels/advent_blue",        "playermodels/advent_red",                  true,   true
+            "playermodels/advent",  "playermodels/advent_blue",        "playermodels/advent_red",                  true,   true,   0.0f,   0.0f,   0.0f
         },
     };
 
@@ -79,14 +79,14 @@ namespace game
 
     static const playermodelinfo zombiemodels[] =
     {
-        { "playermodels/zombies/zombie1",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicb_64",  NULL, NULL, false, true },
-        { "playermodels/zombies/zombie2",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "zclassic",     NULL, NULL, false, true },
-        { "playermodels/zombies/zombie3",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicd_64",  NULL, NULL, false, true },
-        { "playermodels/zombies/zombie4",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "zjhon",        NULL, NULL, false, true },
-        { "playermodels/zombies/zombie5",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicc",     NULL, NULL, false, true },
-        { "playermodels/zombies/zombie6",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "skeleton_64",  NULL, NULL, false, true },
-        { "playermodels/zombies/zombie7",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "heavy_64",     NULL, NULL, false, true },
-        { "playermodels/zombies/juggernaut",            NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "juggernaut",   NULL, NULL, false, true },
+        { "playermodels/zombies/zombie1",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicb_64",  NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
+        { "playermodels/zombies/zombie2",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "zclassic",     NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
+        { "playermodels/zombies/zombie3",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicd_64",  NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
+        { "playermodels/zombies/zombie4",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "zjhon",        NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
+        { "playermodels/zombies/zombie5",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicc",     NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
+        { "playermodels/zombies/zombie6",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "skeleton_64",  NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
+        { "playermodels/zombies/zombie7",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "heavy_64",     NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
+        { "playermodels/zombies/juggernaut",            NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "juggernaut",   NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
     };
 
     int chooserandomplayermodel(int seed)

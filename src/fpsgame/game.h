@@ -692,6 +692,15 @@ static struct itemstat { int add, max, sound; const char *name; int icon, info; 
     {20000, 30000, S_ITEMPUP,     "Q", HICON_QUAD},
 };
 
+struct playermodelinfo
+{
+    const char *ffa, *blueteam, *redteam, *hudguns,
+    *vwep, *quad, *armour[3],
+    *ffaicon, *blueicon, *redicon;
+    bool ragdoll, selectable;
+    float radius, eyeheight, aboveeye;
+};
+
 #include "weapons.h"
 
 #include "ai.h"
@@ -724,9 +733,9 @@ struct fpsstate
 
     bool hasmaxammo()
     {
-    const playerclassinfo &pci = playerclasses[playerclass];
-    loopi(WEAPONS_PER_CLASS) if (ammo[pci.weap[i]]<GUN_AMMO_MAX(pci.weap[i])) return true;
-    return false;
+        const playerclassinfo &pci = playerclasses[playerclass];
+        loopi(WEAPONS_PER_CLASS) if (ammo[pci.weap[i]]<GUN_AMMO_MAX(pci.weap[i])) return true;
+        return false;
     }
 
     bool canpickup(int type, int attr = 0)
@@ -879,6 +888,13 @@ struct fpsstate
     }
 };
 
+struct fpsent;
+
+namespace game
+{
+    extern const playermodelinfo &getplayermodelinfo(fpsent *);
+};
+
 struct fpsent : dynent, fpsstate
 {
     int weight;                         // affects the effectiveness of hitpush
@@ -976,6 +992,16 @@ struct fpsent : dynent, fpsstate
         lastnode = -1;
         onfire = 0;
         irsm = 0;
+
+        //Reset to defaults
+        radius = 4.1f;
+        eyeheight = 14;
+        aboveeye = 1;
+
+        const playermodelinfo &mdl = game::getplayermodelinfo(this);
+        radius = (mdl.radius > 0.f) ? mdl.radius : radius;
+        eyeheight = (mdl.eyeheight > 0.f) ? mdl.eyeheight : eyeheight;
+        aboveeye = (mdl.aboveeye > 0.f) ? mdl.aboveeye : aboveeye;
     }
 };
 
@@ -1236,14 +1262,6 @@ namespace game
     extern void getbestteams(vector<const char *> &best);
 
     // render
-    struct playermodelinfo
-    {
-        const char *ffa, *blueteam, *redteam, *hudguns,
-                   *vwep, *quad, *armour[3],
-                   *ffaicon, *blueicon, *redicon;
-        bool ragdoll, selectable;
-    };
-
     extern int playermodel, playerclass, teamskins, testteam;
 
     extern void saveragdoll(fpsent *d);
