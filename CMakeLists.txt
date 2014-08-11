@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+    cmake_minimum_required(VERSION 2.6)
 cmake_policy(SET CMP0012 NEW)
 project(ReveladeRevolution)
 
@@ -150,7 +150,8 @@ else()
     message(STATUS "Could not find platform definition. (${PLATFORM_FILE})")
 endif()
 
-if(${RELEASE_BUILD})
+option(RELEASE_BUILD_BARE "Should we only install the binaries and not all the content too." 0)
+if(${RELEASE_BUILD} AND NOT ${RELEASE_BUILD_BARE})
     install(
         DIRECTORY
             packages
