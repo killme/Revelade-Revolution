@@ -1788,7 +1788,7 @@ namespace server
         {
             if (m_survival && target->state.aitype==AI_ZOMBIE)
             {
-                const zombietype &zt = zombietypes[((zombie*)target)->ztype];
+                const ::monster::MonsterType &zt = ::monster::getMonsterType(((zombie*)target)->ztype);
                 actor->state.guts += zt.health/zt.freq*2;
                 sendf(actor->ownernum, 1, "ri3", N_GUTS, actor->clientnum, actor->state.guts);
             }

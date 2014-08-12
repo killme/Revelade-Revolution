@@ -3,36 +3,95 @@
 
 extern int physsteps;
 
+namespace monster
+{
+    static const MonsterType monstertypes[] =
+    {
+        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      11,     75, S_PAINB, S_DEATHB,  "zombie 1",             "playermodels/zombies/zombie1", NULL,           0},
+        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      11,     75, S_PAINB, S_DEATHB,  "zombie 2",             "playermodels/zombies/zombie2", NULL,           0},
+        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      11,     75, S_PAINR, S_DEATHR,  "zombie 3",             "playermodels/zombies/zombie3", NULL,           0},
+        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      10,     75, S_PAINR, S_DEATHR,  "zombie 4",             "playermodels/zombies/zombie4", NULL,           0},
+        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      10,     75, S_PAINH, S_DEATHH,  "zombie 5",             "playermodels/zombies/zombie5", NULL,           0},
+        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      12,     75, S_PAINH, S_DEATHH,  "zombie 6",             "playermodels/zombies/zombie6", NULL,           0},
+        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      13,     75, S_PAIND, S_DEATHD,  "zombie 7",             "playermodels/zombies/zombie7", NULL,           0},
+        { WEAP_BITE,        19,  40, 3, 0,      100,    400,    1,      4,      10, S_PAINR, S_DEATHR,  "rat",                  "playermodels/zombies/rat",     NULL,           MONSTER_TYPE_TRAIT_RAT},
+        { WEAP_SLUGSHOT,    13, 200, 0, 0,      2,      400,    0,      13,     75, S_PAIN4, S_DIE2,    "support trooper sg",   "ogro2",                        "ogro/vwep",    0},
+        { WEAP_ROCKETL,     13, 200, 0, 0,      2,      400,    0,      13,     75, S_PAIN4, S_DIE2,    "support trooper rl",   "ogro2",                        "ogro/vwep",    0},
+    };
+
+    const int NUMMONSTERTYPES = sizeof(monstertypes)/sizeof(monstertypes[0]);
+    const int MONSTER_TYPE_RAT = 7;
+
+    const MonsterType &getMonsterType(int id)
+    {
+        return monstertypes[id % NUMMONSTERTYPES];
+    }
+
+    bool isValidMonsterType(int id)
+    {
+        return id >= 0 && id < NUMMONSTERTYPES;
+    }
+
+    int getRandomType()
+    {
+        int n = rnd(::monster::TOTMFREQ), type;
+        for(int i = rnd(::monster::NUMMONSTERTYPES); ; i = (i+1) % ::monster::NUMMONSTERTYPES)
+        {
+            if((n -= ::monster::getMonsterType(i).freq)<0)
+            {
+                type = i; break;
+            }
+        }
+
+        return type;
+    }
+
+    int getRandomTypeWithTrait(int traits)
+    {
+        vector<int> types;
+        loopi(NUMMONSTERTYPES)
+        {
+            if(getMonsterType(i).traits & traits)
+            {
+                types.add(i);
+            }
+        }
+
+        int amount = types.length(); 
+        switch(amount)
+        {
+            case 0: return -1;
+            case 1: return types[0];
+            default:
+
+                int n = rnd(::monster::TOTMFREQ), type;
+                for(int i = rnd(amount); ; i = (i+1) % amount)
+                {
+                    if((n -= ::monster::getMonsterType(types[i]).freq)<0)
+                    {
+                        type = types[i]; break;
+                    }
+                }
+
+            return type;
+        }
+    }
+
+#ifndef STANDALONE
+    void preloadMonsters()
+    {
+        loopi(NUMMONSTERTYPES)
+        {
+            preloadmodel(monstertypes[i].mdlname);
+        }
+    }
+#endif
+}
+
+#ifndef STANDALONE
 namespace game
 {
     static vector<int> teleports;
-
-    static const int TOTMFREQ = 14;
-    //static const int TOTALMONSTERTYPES = 16;
-
-    struct monstertype      // see docs for how these values modify behaviour
-    {
-        short gun, speed, health, freq, lag, rate, pain, loyalty, bscale, weight;
-        short painsound, diesound;
-        const char *name, *mdlname, *vwepname;
-    };
-
-    static const monstertype monstertypes[] =
-    {
-        { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 1",        "playermodels/zombies/zombie1",        NULL},
-        { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 2",        "playermodels/zombies/zombie2",        NULL},
-        { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINR, S_DEATHR, "zombie 3",        "playermodels/zombies/zombie3",        NULL},
-        { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 10,  75, S_PAINR, S_DEATHR, "zombie 4",        "playermodels/zombies/zombie4",        NULL},
-        { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 10,  75, S_PAINH, S_DEATHH, "zombie 5",        "playermodels/zombies/zombie5",        NULL},
-        { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 12,  75, S_PAINH, S_DEATHH, "zombie 6",        "playermodels/zombies/zombie6",        NULL},
-        { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 13,  75, S_PAIND, S_DEATHD, "zombie 7",        "playermodels/zombies/zombie7",        NULL},
-        { WEAP_BITE,        19,  40, 3, 0,   100, 400, 1,  4,  10, S_PAINR, S_DEATHR, "rat",        "playermodels/zombies/rat",        NULL},
-        { WEAP_SLUGSHOT,    13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper sg",  "ogro2",                "ogro/vwep"},
-        { WEAP_ROCKETL,        13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper rl",  "ogro2",                "ogro/vwep"},
-    };
-
-    #define MONSTER_TYPE_RAT 7
-    static const int NUMMONSTERTYPES = sizeof(monstertypes)/sizeof(monstertypes[0]);
 
     VAR(level, 1, 2, 4);
     int skill;
@@ -64,13 +123,13 @@ namespace game
         {
             type = ENT_AI;
             respawn(gamemode);
-            if(_type>=NUMMONSTERTYPES || _type < 0)
+            if(!::monster::isValidMonsterType(_type))
             {
                 conoutf(CON_WARN, "warning: unknown monster in spawn: %d", _type);
                 _type = 0;
             }
             mtype = _type;
-            const monstertype &t = monstertypes[mtype];
+            const ::monster::MonsterType &t = ::monster::getMonsterType(_type);
             eyeheight = 8.0f;
             aboveeye = 7.0f;
             radius *= t.bscale/10.0f;
@@ -120,7 +179,8 @@ namespace game
 
         void monsteraction(int curtime)           // main AI thinking routine, called every frame for every monster
         {
-            if (!monstertypes[mtype].loyalty && (!enemy || enemy->state==CS_DEAD || lastmillis-lastshot > 3000))
+            const ::monster::MonsterType &monsterType = ::monster::getMonsterType(mtype);
+            if (!monsterType.loyalty && (!enemy || enemy->state==CS_DEAD || lastmillis-lastshot > 3000))
             {
                 lastshot = lastmillis;
                 if (bestenemy && bestenemy->state == CS_ALIVE) enemy = bestenemy;
@@ -128,15 +188,18 @@ namespace game
                 {
                     float bestdist = 9999999999, dist = 0;
                     loopv(monsters)
-                    if (monsters[i]->state == CS_ALIVE && monstertypes[monsters[i]->mtype].loyalty && (dist = o.squaredist(monsters[i]->o)) < bestdist)
                     {
-                        enemy = monsters[i];
-                        bestdist = dist;
+                        const ::monster::MonsterType &otherMonsterType = ::monster::getMonsterType(monsters[i]->mtype);
+                        if (monsters[i]->state == CS_ALIVE && otherMonsterType.loyalty && (dist = o.squaredist(monsters[i]->o)) < bestdist)
+                        {
+                            enemy = monsters[i];
+                            bestdist = dist;
+                        }
                     }
                     return;
                 }
             }
-            if(enemy->state==CS_DEAD) { enemy = monstertypes[mtype].loyalty? player1: bestenemy; anger = 0; }
+            if(enemy->state==CS_DEAD) { enemy = monsterType.loyalty? player1: bestenemy; anger = 0; }
             normalize_yaw(targetyaw);
             if(targetyaw>yaw)             // slowly turn monster towards his target
             {
@@ -154,7 +217,7 @@ namespace game
             if(blocked)                                                              // special case: if we run into scenery
             {
                 blocked = false;
-                if(!rnd(20000/monstertypes[mtype].speed))                            // try to jump over obstackle (rare)
+                if(!rnd(20000/monsterType.speed))                            // try to jump over obstackle (rare)
                 {
                     jumping = true;
                 }
@@ -204,7 +267,7 @@ namespace game
                         attacking = true;
                         if(rnd(100) < 20*level) attacktarget = enemy->headpos();
                         shoot(this, attacktarget);
-                        transition(M_ATTACKING, !monstertypes[mtype].loyalty, 600, 0);
+                        transition(M_ATTACKING, !monsterType.loyalty, 600, 0);
                         lastshot = lastmillis;
                     }
                     break;
@@ -221,7 +284,7 @@ namespace game
                         else 
                         {
                             bool melee = false, longrange = false;
-                            switch(monstertypes[mtype].gun)
+                            switch(monsterType.gun)
                             {
                                 case WEAP_BITE:
                                 case WEAP_FIST: melee = true; break;
@@ -231,11 +294,11 @@ namespace game
                             if((!melee || dist<20) && !rnd(longrange ? (int)dist/12+1 : min((int)dist/12+1,6)) && enemy->state==CS_ALIVE)      // get ready to fire
                             { 
                                 attacktarget = target;
-                                transition(M_AIMING, 0, monstertypes[mtype].lag, 10);
+                                transition(M_AIMING, 0, monsterType.lag, 10);
                             }
                             else                                                        // track player some more
                             {
-                                transition(M_HOME, 1, monstertypes[mtype].rate, 0);
+                                transition(M_HOME, 1, monsterType.rate, 0);
                             }
                         }
                     }
@@ -260,21 +323,22 @@ namespace game
 
         void monsterpain(int damage, fpsent *d)
         {
+            const ::monster::MonsterType &monsterType = ::monster::getMonsterType(mtype);
             if(d)
             {
                 if(d->type==ENT_AI)     // a monster hit us
                 {
-                    if(this!=d && monstertypes[mtype].loyalty)            // guard for RL guys shooting themselves :)
+                    if(this!=d && monsterType.loyalty)            // guard for RL guys shooting themselves :)
                     {
                         anger++;     // don't attack straight away, first get angry
                         int _anger = d->type==ENT_AI && mtype==((monster *)d)->mtype ? anger/2 : anger;
-                        if(_anger>=monstertypes[mtype].loyalty) enemy = d;     // monster infight if very angry
+                        if(_anger>=monsterType.loyalty) enemy = d;     // monster infight if very angry
                     }
                 }
                 else if(d->type==ENT_PLAYER) // player hit us
                 {
                     anger = 0;
-                    if (monstertypes[mtype].loyalty)
+                    if (monsterType.loyalty)
                     {
                         enemy = d;
                         if (!bestenemy || bestenemy->state==CS_DEAD) bestenemy = this;
@@ -286,15 +350,15 @@ namespace game
             damageeffect(damage, this);
             if((health -= damage)<=0)
             {
-                if (d == player1 && monstertypes[mtype].freq) d->guts += (3/monstertypes[mtype].freq) * (5*maxhealth/10);
+                if (d == player1 && monsterType.freq) d->guts += (3/monsterType.freq) * (5*maxhealth/10);
 
                 state = CS_DEAD;
                 lastpain = lastmillis;
-                playsound(monstertypes[mtype].diesound, &o);
+                playsound(monsterType.diesound, &o);
                 if (counts)
                 {
                     monsterkilled();
-                    if (mtype != MONSTER_TYPE_RAT && !(rand()%4)) spawnrat(o);
+                    if (!(monsterType.traits & ::monster::MONSTER_TYPE_TRAIT_RAT) && !(rand()%4)) spawnrat(o);
                 }
                 gibeffect(max(-health, 0), vel, this);
 
@@ -303,8 +367,8 @@ namespace game
             }
             else
             {
-                transition(M_PAIN, 0, monstertypes[mtype].pain, 200);      // in this state monster won't attack
-                playsound(monstertypes[mtype].painsound, &o);
+                transition(M_PAIN, 0, monsterType.pain, 200);      // in this state monster won't attack
+                playsound(monsterType.painsound, &o);
             }
         }
     };
@@ -325,7 +389,8 @@ namespace game
 
     void preloadmonsters()
     {
-        loopi(NUMMONSTERTYPES) preloadmodel(monstertypes[i].mdlname);
+        //TODO:directly call
+        ::monster::preloadMonsters();
     }
 
     vector<monster *> monsters;
@@ -334,15 +399,17 @@ namespace game
 
     void spawnmonster()     // spawn a random monster according to freq distribution in DMSP
     {
-        int n = rnd(TOTMFREQ), type;
-        for(int i = rnd(NUMMONSTERTYPES); ; i = (i+1)%NUMMONSTERTYPES)
-            if((n -= monstertypes[i].freq)<0) { type = i; break; }
-    if(m_sp) monsters.add(new monster(type, rnd(360), 0, M_SEARCH, 1000, 1));
+        int type = ::monster::getRandomType();
+
+        if(m_sp)
+        {
+            monsters.add(new monster(type, rnd(360), 0, M_SEARCH, 1000, 1));
+        }
     }
 
     void spawnrat(vec o)
     {
-        monster *mon = monsters.add(new monster(MONSTER_TYPE_RAT, rnd(360), 0, M_SEARCH, 1000, 1));
+        monster *mon = monsters.add(new monster(::monster::getRandomTypeWithTrait(::monster::MONSTER_TYPE_TRAIT_RAT), rnd(360), 0, M_SEARCH, 1000, 1));
         mon->o = o;
         mon->newpos = o;
         mon->counts = false;
@@ -475,15 +542,16 @@ namespace game
             monster &m = *monsters[i];
             //if(m.state!=CS_DEAD || lastmillis-m.lastpain<10000)
             {
+                const ::monster::MonsterType &monsterType = ::monster::getMonsterType(m.mtype);
                 modelattach vwep[2];
-                if(monstertypes[m.mtype].vwepname)
+                if(monsterType.vwepname)
                 {
-                    vwep[0] = modelattach("tag_weapon", monstertypes[m.mtype].vwepname, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
+                    vwep[0] = modelattach("tag_weapon", monsterType.vwepname, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
                 }
-                
+
                 float fade = 1;                
                 if(m.state==CS_DEAD) fade -= clamp(float(lastmillis - (m.lastpain + 9000))/1000, 0.0f, 1.0f);
-                renderclient(&m, monstertypes[m.mtype].mdlname, vwep[0].tag ? vwep : NULL, 0, m.monsterstate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
+                renderclient(&m, monsterType.mdlname, vwep[0].tag ? vwep : NULL, 0, m.monsterstate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
             }
         }
     }
@@ -540,4 +608,4 @@ namespace game
         }
     }
 }
-
+#endif

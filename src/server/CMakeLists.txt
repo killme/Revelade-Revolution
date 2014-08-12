@@ -22,6 +22,7 @@ set(SERVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/weapon
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/server
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/auth
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/monster
 
     ${CMAKE_CURRENT_SOURCE_DIR}/lua.cpp
 )

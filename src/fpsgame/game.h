@@ -85,6 +85,34 @@ enum {
     MONSTER_ZOMBIE_JUGGERNAUT,
 };
 
+
+namespace monster
+{
+    //const ::monster::MonsterType &monsterType = ::monster::getMonsterType(mtype);
+    enum TypeTraitFlags
+    {
+        MONSTER_TYPE_TRAIT_RAT  = 1 << 0,
+    };
+
+    struct MonsterType      // see docs for how these values modify behaviour
+    {
+        short gun, speed, health, freq, lag, rate, pain, loyalty, bscale, weight;
+        short painsound, diesound;
+        const char *name, *mdlname, *vwepname;
+        uchar traits;
+    };
+
+    extern const int NUMMONSTERTYPES;
+    static const int TOTMFREQ = 14;
+
+    const MonsterType &getMonsterType(int);
+    bool isValidMonsterType(int);
+    void preloadMonsters();
+
+    int getRandomTypeWithTrait(int);
+    int getRandomType();
+}
+
 enum
 {
     M_TEAM       = 1<<0,

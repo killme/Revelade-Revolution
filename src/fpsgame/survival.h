@@ -15,31 +15,6 @@ extern void dodamage(clientinfo *target, clientinfo *actor, int damage, int gun,
 
 static vector<int> surv_teleports;
 
-static const int TOTZOMBIEFREQ = 14;
-static const int NUMZOMBIETYPES = 17;
-
-struct zombietype      // see docs for how these values modify behaviour
-{
-    short gun, speed, health, freq, lag, rate, pain, loyalty, bscale, weight;
-    short painsound, diesound;
-    const char *name, *mdlname, *vwepname;
-};
-
-#define ZOMBIE_TYPE_RAT 13
-
-static const zombietype zombietypes[NUMZOMBIETYPES] =
-{
-    { WEAP_BITE,        13, 135, 6, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 1",           "playermodels/zombies/zombie1",         NULL},
-    { WEAP_BITE,        13, 135, 6, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 2",           "playermodels/zombies/zombie2",         NULL},
-    { WEAP_BITE,        13, 135, 6, 0,   100, 400, 1, 11,  75, S_PAINR, S_DEATHR, "zombie 3",           "playermodels/zombies/zombie3",         NULL},
-    { WEAP_BITE,        13, 135, 6, 0,   100, 400, 1, 10,  75, S_PAINR, S_DEATHR, "zombie 4",           "playermodels/zombies/zombie4",         NULL},
-    { WEAP_BITE,        13, 135, 6, 0,   100, 400, 1, 10,  75, S_PAINH, S_DEATHH, "zombie 5",           "playermodels/zombies/zombie5",         NULL},
-    { WEAP_BITE,        13, 135, 6, 0,   100, 400, 1, 12,  75, S_PAINH, S_DEATHH, "zombie 6",           "playermodels/zombies/zombie6",         NULL},
-    { WEAP_BITE,        13, 135, 6, 0,   100, 400, 1, 13,  75, S_PAIND, S_DEATHD, "zombie 7",           "playermodels/zombies/zombie7",         NULL},
-    { WEAP_BITE,        19,  30, 6, 0,   100, 400, 1,  4,  10, S_PAINR, S_DEATHR, "rat",                "playermodels/zombies/rat",             NULL},
-    { WEAP_SLUGSHOT,    13, 150, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper sg","ogro2",                                  "ogro/vwep"},
-    { WEAP_ROCKETL,     13, 150, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper rl","ogro2",                                  "ogro/vwep"},
-};
 
 static vector<int> teleports;
 struct zombie;
@@ -80,25 +55,22 @@ static int bestenemy;
 #ifdef SERVMODE
         void spawn()
         {
-            int n = rnd(TOTZOMBIEFREQ);
-            for(int i = rnd(NUMZOMBIETYPES); ; i = (i+1)%NUMZOMBIETYPES)
-            {
-                if((n -= zombietypes[i].freq)<0) { ztype = i; break; }
-                state.state = CS_ALIVE;
+            ztype = ::monster::getRandomType();
 
-                // mini algorithm to give each player a turn
-                // should probably be improved
-                do cslastowner = (cslastowner+1)%clients.length(); while (clients[cslastowner]->state.aitype != AI_NONE);
-                ownernum = clients[cslastowner]->clientnum;
+            state.state = CS_ALIVE;
 
-                sendf(-1, 1, "ri4", N_SURVSPAWNSTATE, clientnum, ztype, ownernum);
+            // mini algorithm to give each player a turn
+            // should probably be improved
+            do cslastowner = (cslastowner+1)%clients.length(); while (clients[cslastowner]->state.aitype != AI_NONE);
+            ownernum = clients[cslastowner]->clientnum;
 
-                const zombietype &t = zombietypes[ztype];
-                state.maxhealth = t.health;
-                state.respawn();
-                state.armour = 0;
-                state.ammo[t.gun] = 10000;
-            }
+            sendf(-1, 1, "ri4", N_SURVSPAWNSTATE, clientnum, ztype, ownernum);
+
+            const ::monster::MonsterType &t = ::monster::getMonsterType(ztype);
+            state.maxhealth = t.health;
+            state.respawn();
+            state.armour = 0;
+            state.ammo[t.gun] = 10000;
         }
 #else
         void spawn(int _type, vec _pos)
@@ -107,7 +79,7 @@ static int bestenemy;
             ztype = _type;
             o = _pos;
             newpos = o;
-            const zombietype &t = zombietypes[ztype];
+            const ::monster::MonsterType &t = ::monster::getMonsterType(ztype);
             type = ENT_AI;
             aitype = AI_ZOMBIE;
             eyeheight = 8.0f;
@@ -141,21 +113,22 @@ static int bestenemy;
 #ifndef SERVMODE
         void pain(int damage, fpsent *d)
         {
+            const ::monster::MonsterType &zombieType = ::monster::getMonsterType(ztype);
             if(d && damage)
             {
                 if(d->type==ENT_AI)     // a zombie hit us
                 {
-                    if(this!=d && zombietypes[ztype].loyalty)            // guard for RL guys shooting themselves :)
+                    if(this!=d && zombieType.loyalty)            // guard for RL guys shooting themselves :)
                     {
                         anger++;     // don't attack straight away, first get angry
                         int _anger = d->type==ENT_AI && ztype==((zombie *)d)->ztype ? anger/2 : anger;
-                        if(_anger>=zombietypes[ztype].loyalty) enemy = d->clientnum;     // monster infight if very angry
+                        if(_anger>=zombieType.loyalty) enemy = d->clientnum;     // monster infight if very angry
                     }
                 }
                 else if(d->type==ENT_PLAYER) // player hit us
                 {
                     anger = 0;
-                    if (zombietypes[ztype].loyalty)
+                    if (zombieType.loyalty)
                     {
                         enemy = d->clientnum;
                         if (bestenemy < 0 || !getclient(bestenemy) || getclient(bestenemy)->state==CS_DEAD) bestenemy = this->clientnum;
@@ -167,14 +140,14 @@ static int bestenemy;
 
             if(state == CS_DEAD)
             {
-                //if (d == player1 && zombietypes[ztype].freq) d->guts += (3/zombietypes[ztype].freq) * (5*maxhealth/10);
+                //if (d == player1 && zombieType.freq) d->guts += (3/zombieType.freq) * (5*maxhealth/10);
                 //lastpain = lastmillis;
-                playsound(zombietypes[ztype].diesound, &o);
+                playsound(zombieType.diesound, &o);
                 //if (counts) if (ztype != ZOMBIE_TYPE_RAT && !(rand()%4)) spawnrat(o);
             }
 
-            transition(M_PAIN, 0, zombietypes[ztype].pain, 200);      // in this state zombie won't attack
-            playsound(zombietypes[ztype].painsound, &o);
+            transition(M_PAIN, 0, zombieType.pain, 200);      // in this state zombie won't attack
+            playsound(zombieType.painsound, &o);
         }
 
         void normalize_yaw(float angle)
@@ -193,7 +166,8 @@ static int bestenemy;
 
         void zombieaction(int curtime)           // main AI thinking routine, called every frame for every monster
         {
-            if (!zombietypes[ztype].loyalty && (enemy < 0 || getclient(enemy) == NULL || getclient(enemy)->state==CS_DEAD || lastmillis-lastshot > 3000))
+            const ::monster::MonsterType &zombieType = ::monster::getMonsterType(ztype);
+            if (!zombieType.loyalty && (enemy < 0 || getclient(enemy) == NULL || getclient(enemy)->state==CS_DEAD || lastmillis-lastshot > 3000))
             {
                 lastshot = lastmillis;
                 if (bestenemy >= 0 && getclient(bestenemy) && getclient(bestenemy)->state == CS_ALIVE) enemy = bestenemy;
@@ -202,7 +176,8 @@ static int bestenemy;
                     float bestdist = 1e16f, dist = 0;
                     loopv(zombies)
                     {
-                        if (zombies[i]->state == CS_ALIVE && zombietypes[zombies[i]->ztype].loyalty && (dist = o.squaredist(zombies[i]->o)) < bestdist)
+                        const ::monster::MonsterType &otherZombieType = ::monster::getMonsterType(zombies[i]->ztype);
+                        if (zombies[i]->state == CS_ALIVE && otherZombieType.loyalty && (dist = o.squaredist(zombies[i]->o)) < bestdist)
                         {
                             enemy = zombies[i]->clientnum;
                             bestdist = dist;
@@ -215,7 +190,7 @@ static int bestenemy;
 
             if(getclient(enemy) == NULL || getclient(enemy)->state==CS_DEAD)
             {
-                enemy = zombietypes[ztype].loyalty ? players[rnd(players.length())]->clientnum : bestenemy; anger = 0;
+                enemy = zombieType.loyalty ? players[rnd(players.length())]->clientnum : bestenemy; anger = 0;
             }
 
             fpsent *enemyP = getclient(enemy);
@@ -239,7 +214,7 @@ static int bestenemy;
             if(blocked)                                                              // special case: if we run into scenery
             {
                 blocked = false;
-                if(!rnd(20000/zombietypes[ztype].speed))                            // try to jump over obstackle (rare)
+                if(!rnd(20000/zombieType.speed))                            // try to jump over obstackle (rare)
                 {
                     jumping = true;
                 }
@@ -291,9 +266,9 @@ static int bestenemy;
                         lastaction = 0;
                         attacking = true;
                         if(rnd(100) < 20) attacktarget = enemyP->headpos();
-                        gunselect = zombietypes[ztype].gun;
+                        gunselect = zombieType.gun;
                         shoot(this, attacktarget);
-                        transition(M_ATTACKING, !zombietypes[ztype].loyalty, 600, 0);
+                        transition(M_ATTACKING, !zombieType.loyalty, 600, 0);
                         lastshot = lastmillis;
                     }
                     break;
@@ -310,7 +285,7 @@ static int bestenemy;
                         else 
                         {
                             bool melee = false, longrange = false;
-                            switch(zombietypes[ztype].gun)
+                            switch(zombieType.gun)
                             {
                                 case WEAP_BITE:
                                 case WEAP_FIST: melee = true; break;
@@ -321,11 +296,11 @@ static int bestenemy;
                             if((!melee || dist<20) && !rnd(longrange ? (int)dist/12+1 : min((int)dist/12+1,6)) && enemyP->state==CS_ALIVE)      // get ready to fire
                             { 
                                 attacktarget = target;
-                                transition(M_AIMING, 0, zombietypes[ztype].lag, 10);
+                                transition(M_AIMING, 0, zombieType.lag, 10);
                             }
                             else                                                        // track player some more
                             {
-                                transition(M_HOME, 1, zombietypes[ztype].rate, 0);
+                                transition(M_HOME, 1, zombieType.rate, 0);
                             }
                         }
                     }
@@ -453,7 +428,8 @@ int newround(bool force = false)
 
     static void preloadzombies()
     {
-        loopi(NUMZOMBIETYPES) preloadmodel(zombietypes[i].mdlname);
+        //TODO: directly call preloadmonsters
+        preloadmonsters();
     }
 
     void zombiekilled(fpsent *d, fpsent *actor)
@@ -475,10 +451,11 @@ int newround(bool force = false)
             if(m.state!=CS_DEAD /*|| lastmillis-m.lastpain<10000*/)
             {
                 modelattach vwep[2];
-                vwep[0] = modelattach("tag_weapon", zombietypes[m.ztype].vwepname, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
+                const ::monster::MonsterType &t = ::monster::getMonsterType(m.ztype);
+                vwep[0] = modelattach("tag_weapon", t.vwepname, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
                 float fade = 1;
                 if(m.state==CS_DEAD) fade -= clamp(float(lastmillis - (m.lastpain + 9000))/1000, 0.0f, 1.0f);
-                renderclient(&m, zombietypes[m.ztype].mdlname, vwep, 0, m.zombiestate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
+                renderclient(&m, t.mdlname, vwep, 0, m.zombiestate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
             }
         }
     }
