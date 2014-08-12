@@ -9,7 +9,6 @@ namespace game
 
     static const int TOTMFREQ = 14;
     //static const int TOTALMONSTERTYPES = 16;
-    static const int NUMMONSTERTYPES = 17;
 
     struct monstertype      // see docs for how these values modify behaviour
     {
@@ -18,9 +17,7 @@ namespace game
         const char *name, *mdlname, *vwepname;
     };
 
-    #define MONSTER_TYPE_RAT 13
-
-    static const monstertype monstertypes[NUMMONSTERTYPES] =
+    static const monstertype monstertypes[] =
     {
         { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 1",        "playermodels/zombies/zombie1",        NULL},
         { WEAP_BITE,        13, 180, 3, 0,   100, 400, 1, 11,  75, S_PAINB, S_DEATHB, "zombie 2",        "playermodels/zombies/zombie2",        NULL},
@@ -33,6 +30,9 @@ namespace game
         { WEAP_SLUGSHOT,    13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper sg",  "ogro2",                "ogro/vwep"},
         { WEAP_ROCKETL,        13, 200, 0, 0,      2, 400, 0, 13,  75, S_PAIN4, S_DIE2, "support trooper rl",  "ogro2",                "ogro/vwep"},
     };
+
+    #define MONSTER_TYPE_RAT 7
+    static const int NUMMONSTERTYPES = sizeof(monstertypes)/sizeof(monstertypes[0]);
 
     VAR(level, 1, 2, 4);
     int skill;
