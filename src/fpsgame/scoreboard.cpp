@@ -90,10 +90,9 @@ namespace game
         loopv(players)
         {
             fpsent *o = players[i];
-            if (!m_infection) o->infected = false;
             if(!showconnecting && !o->name[0]) continue;
             if(o->state==CS_SPECTATOR) { spectators.add(o); continue; }
-            const char *team = (m_oneteam || m_teammode) && o->team[0] ? ((o->infected)? "infected": o->team) : NULL;
+            const char *team = (m_oneteam || m_teammode) && o->team[0] ? ((o->isInfected())? "infected": o->team) : NULL;
             bool found = false;
             loopj(numgroups)
             {
@@ -284,7 +283,7 @@ namespace game
 
                     gtextscale /= 1.5;
                         //g.textf("<none>", 0xFFFFDD, NULL, 10); //TODO: clantag
-                        if (m_classes) g.textf("%s", 0xFFFFDD, NULL, o->infected ? "zombie" : playerclasses[o->playerclass].name);
+                        if (m_classes) g.textf("%s", 0xFFFFDD, NULL, o->isInfected() ? "zombie" : playerclasses[o->playerclass].name);
                     gtextscale *= 1.5;
                 g.poplist();
             });

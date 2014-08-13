@@ -74,6 +74,7 @@ struct infectionclientmode : clientmode
         if(!victim) return;
         copystring(victim->team, zombie ? TEAM_1 : TEAM_0);
         aiman::changeteam(victim);
+        sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? 1 : 0); //TODO: pick random zombie type
         sendf(-1, 1, "riisi", N_SETTEAM, victim->clientnum, victim->team, -1);
         sendf(-1, 1, "ri6", N_DIED, victim->clientnum, victim->clientnum, victim->state.frags, 0 /* reason */, 0);
 
@@ -100,6 +101,19 @@ struct infectionclientmode : clientmode
         }
         
         return false;
+    }
+
+    void initclient(clientinfo *ci, packetbuf &p, bool connecting)
+    {
+        loopv(clients)
+        {
+            if(clients[i]->state.isInfected())
+            {
+                putint(p, N_INITFLAGS);
+                putint(p, clients[i]->clientnum);
+                putint(p, clients[i]->state.infectedType);
+            }
+        }
     }
     
     void entergame(clientinfo *ci)
@@ -320,14 +334,14 @@ struct infectionclientmode : clientmode
 
     void drawhud(fpsent *d, int w, int h)
     {
-        if(d->infected)
+        if(d->isInfected())
         {
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             float s = 24/2, maxdist = 400, mindist = 50+zombieradaroffset, scale = zombieradarscale;
 
-            loopv(players) if (players[i]!=d && players[i]->infected!=d->infected && players[i]->state == CS_ALIVE)
+            loopv(players) if (players[i]!=d && players[i]->isInfected()!=d->isInfected() && players[i]->state == CS_ALIVE)
                 drawblip(vec(d->o).sub(players[i]->o).rotate_around_z((-d->yaw)*RAD), w, h, s, maxdist, mindist, scale,
-                            players[i]->infected? 0: isteam(players[i]->team, d->team)? 1: 2);
+                            players[i]->isInfected()? 0: isteam(players[i]->team, d->team)? 1: 2);
         }
 
         if (d->state == CS_DEAD)
@@ -361,7 +375,7 @@ struct infectionclientmode : clientmode
     {
         float mindist = 1e16f;
         fpsent *closest = NULL;
-        loopv(players) if (players[i]->infected != d->infected && players[i]->state == CS_ALIVE)
+        loopv(players) if (players[i]->isInfected() != d->isInfected() && players[i]->state == CS_ALIVE)
         {
             if (!closest || players[i]->o.dist(closest->o) < mindist) closest = players[i];
         }
@@ -373,11 +387,11 @@ struct infectionclientmode : clientmode
 
     void aifind(fpsent *d, ai::aistate &b, vector<ai::interest> &interests)
     {
-        bool inf = d->infected;
+        bool inf = d->isInfected();
         loopv(players)
         {
             fpsent *f = players[i];
-            if (inf != f->infected && f->state == CS_ALIVE)
+            if (inf != f->isInfected() && f->state == CS_ALIVE)
             {
                 ai::interest &n = interests.add();
                 n.state = ai::AI_S_PURSUE;
@@ -392,11 +406,11 @@ struct infectionclientmode : clientmode
     bool aipursue(fpsent *d, ai::aistate &b)
     {
         fpsent *e = getclient(b.target);
-        if (d->infected && !e->infected && e->state == CS_ALIVE)
+        if (d->isInfected() && !e->isInfected() && e->state == CS_ALIVE)
         {
             return ai::defend(d, b, e->o, 5, 5, 2);
         }
-        else if (!d->infected && e->infected && e->state == CS_ALIVE)
+        else if (!d->isInfected() && e->isInfected() && e->state == CS_ALIVE)
         {
              return ai::violence(d, b, e, true);
         }

@@ -88,8 +88,8 @@ namespace ai
 
     bool canshoot(fpsent *d, fpsent *e)
     {
-        if((d->infected || weaprange(d, d->gunselect, e->o.squaredist(d->o))) && targetable(d, e))
-            return (d->infected || d->ammo[d->gunselect] > 0) && lastmillis - d->lastaction >= d->gunwait;
+        if((d->isInfected() || weaprange(d, d->gunselect, e->o.squaredist(d->o))) && targetable(d, e))
+            return (d->isInfected() || d->ammo[d->gunselect] > 0) && lastmillis - d->lastaction >= d->gunwait;
         return false;
     }
 

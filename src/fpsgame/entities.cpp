@@ -120,7 +120,7 @@ namespace entities
 
     void pickupeffects(int n, fpsent *d)
     {
-        if(!ents.inrange(n) || d->infected) return;
+        if(!ents.inrange(n) || d->isInfected()) return;
         int type = ents[n]->type;
         if(type<I_AMMO || type>I_QUAD) return;
         ents[n]->spawned = false;

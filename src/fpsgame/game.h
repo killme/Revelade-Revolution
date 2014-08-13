@@ -600,7 +600,7 @@ enum
     N_MAPCRC, N_CHECKMAPS,
     N_SWITCHNAME, N_SWITCHMODEL, N_SWITCHTEAM, N_SWITCHCLASS, N_SETCLASS,
     N_ONFIRE, N_SETONFIRE,
-    DEPRECATED_N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
+    N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
     N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_SURVROUNDOVER,
     N_GUTS, N_BUY,
     N_SERVER_COMMAND,
@@ -632,7 +632,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_MAPCRC, 0, N_CHECKMAPS, 1,
     N_SWITCHNAME, 0, N_SWITCHMODEL, 2, N_SWITCHTEAM, 0, N_SWITCHCLASS, 2, N_SETCLASS, 3,
     N_ONFIRE, 0/*4*/, N_SETONFIRE, 0/*4*/,
-    DEPRECATED_N_INFECT, 0, N_INITINF, 0, N_RADIOTEAM, 0, N_RADIOALL, 0,
+    N_INFECT, 0, N_INITINF, 0, N_RADIOTEAM, 0, N_RADIOALL, 0,
     N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURVNEWROUND, 0, N_SURVROUNDOVER, 2,
     N_GUTS, 3, N_BUY, 0, N_SERVER_COMMAND, 0,
     -1
@@ -743,10 +743,9 @@ struct fpsstate
     int ammo[NUMWEAPS];
     int aitype, skill;
     int playerclass, guts; // regenmillis;
-    bool infected; // for infection mode
-    int infectmillis;
+    int infectedType;
 
-    fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(0), guts(0), infected(false), infectmillis(0) {}
+    fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(0), guts(0), infectedType(0) {}
 
     //void baseammo(int gun, int k = 2, int scale = 1)
     //{
@@ -759,6 +758,11 @@ struct fpsstate
     //    ammo[gun] = min(ammo[gun] + (is.add*k)/scale, is.max);
     //}
 
+    inline bool isInfected()
+    {
+        return infectedType > 0;
+    }
+
     bool hasmaxammo()
     {
         const playerclassinfo &pci = playerclasses[playerclass];
@@ -768,7 +772,7 @@ struct fpsstate
 
     bool canpickup(int type, int attr = 0)
     {
-        if(infected) return false;
+        if(isInfected()) return false;
         if(type<I_AMMO || type>I_QUAD) return false;
         itemstat &is = itemstats[type-I_AMMO];
         switch(type)
@@ -828,13 +832,13 @@ struct fpsstate
         gunselect = WEAP_PISTOL;
         gunwait = 0;
         loopi(NUMWEAPS) ammo[i] = 0;
-        ammo[WEAP_FIST] = (infected)? 0: 1;
+        ammo[WEAP_FIST] = (isInfected())? 0: 1;
         hudgun = gunselect;
     }
 
     void spawnstate(int gamemode)
     {
-        if (!m_infection) infected = false;
+        if (!m_infection) infectedType = 0;
         if (!m_survival) guts = 0;
         if(m_demo)
         {
@@ -842,12 +846,12 @@ struct fpsstate
         }
         else if(m_classes && !m_efficiency)
         {
-            const playerclassinfo &pci = infected ? (m_juggernaut ? juggernautpci : zombiepci) : playerclasses[playerclass];
+            const playerclassinfo &pci = isInfected() ? (m_juggernaut ? juggernautpci : zombiepci) : playerclasses[playerclass];
             loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = GUN_AMMO_ADD(pci.weap[i],1);
             health = maxhealth = pci.maxhealth;
             armourtype = pci.armourtype;
             armour = pci.armour;
-            gunselect = infected? WEAP_FIST: playerclasses[playerclass].weap[0];
+            gunselect = isInfected() ? WEAP_FIST : playerclasses[playerclass].weap[0];
         }
         else if(m_insta)
         {
@@ -862,12 +866,12 @@ struct fpsstate
         }
         else if(m_efficiency)
         {
-            const playerclassinfo &pci = infected? zombiepci: playerclasses[playerclass];
+            const playerclassinfo &pci = isInfected() ? zombiepci: playerclasses[playerclass];
             loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = 999;
             health = maxhealth = pci.maxhealth;
             armourtype = pci.armourtype;
             armour = pci.armour;
-            gunselect = infected? WEAP_FIST: playerclasses[playerclass].weap[0];
+            gunselect = isInfected() ? WEAP_FIST: playerclasses[playerclass].weap[0];
         }
         //else if(m_regencapture)
         //{
@@ -1003,10 +1007,9 @@ struct fpsent : dynent, fpsstate
     {
         dynent::reset();
         fpsstate::respawn();
-        if (m_classes) maxspeed = (infected)? (m_juggernaut ? juggernautpci : zombiepci).maxspeed: playerclasses[playerclass].maxspeed;
+        if (m_classes) maxspeed = (isInfected() ? (m_juggernaut ? juggernautpci : zombiepci) : playerclasses[playerclass]).maxspeed;
         else maxspeed = 100;
-        infected = (m_infection && !strcmp(team, TEAM_1)) ? 1 : 0;
-        if(m_infection) infectmillis = m_juggernaut ? MONSTER_ZOMBIE_JUGGERNAUT : rnd(MONSTER_ZOMBIE_JUGGERNAUT);
+        if(!m_infection) infectedType = 0;
         respawned = suicided = -1;
         lastaction = 0;
         lastattackgun = gunselect;

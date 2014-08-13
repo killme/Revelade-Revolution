@@ -118,8 +118,8 @@ namespace game
 
     const playermodelinfo &getplayermodelinfo(fpsent *d)
     {
-        const playermodelinfo *mdl = d->infected ? getzombiemodelinfo(d->infectmillis)
-                                                 : getplayermodelinfo(forceplayermodels && player1 ? player1->playermodel : d->playermodel);
+        const playermodelinfo *mdl = d->isInfected() ? getzombiemodelinfo(d->infectedType)
+                                                     : getplayermodelinfo(forceplayermodels && player1 ? player1->playermodel : d->playermodel);
 
         if(!mdl || (!mdl->selectable && !allplayermodels))
         {
@@ -218,7 +218,7 @@ namespace game
         modelattach a[5];
         static const char *vweps[] = {"playermodels/vwep/fist", "playermodels/vwep/shotg", "playermodels/vwep/chaing", "playermodels/vwep/rocket", "playermodels/vwep/rifle", "playermodels/vwep/flameg", "playermodels/vwep/cbow", "playermodels/vwep/gl", "playermodels/vwep/healer", "playermodels/vwep/mortar", "playermodels/vwep/pistol", "playermodels/vwep/hand"};
         int ai = 0;
-        if((!mdl.vwep || d->gunselect!=WEAP_FIST) && d->gunselect<=WEAP_PISTOL && !d->infected)
+        if((!mdl.vwep || d->gunselect!=WEAP_FIST) && d->gunselect<=WEAP_PISTOL && !d->isInfected())
         {
             int vanim = ANIM_VWEP_IDLE|ANIM_LOOP, vtime = 0;
             if(lastaction && d->lastattackgun==d->gunselect && lastmillis < lastaction + delay)
@@ -253,7 +253,7 @@ namespace game
         renderclient(d, mdlname, a[0].tag ? a : NULL, hold, attack, delay, lastaction, intermission && d->state!=CS_DEAD ? 0 : d->lastpain, fade, ragdoll && mdl.ragdoll, d==player1);
 
         const playerclassinfo &pci = playerclasses[hudplayer()->playerclass];
-        if(pci.abilities & ABILITY_SEE_HEALTH && d->state == CS_ALIVE && !d->infected && !hudplayer()->infected)
+        if(pci.abilities & ABILITY_SEE_HEALTH && d->state == CS_ALIVE && !d->isInfected() && !hudplayer()->isInfected())
         {
             vec above(d->o);
             above.z += 4;
@@ -298,10 +298,10 @@ namespace game
             fpsent *d = players[i];
             if(d == player1 || d->state==CS_SPECTATOR || d->state==CS_SPAWNING || d->lifesequence < 0 || d == exclude) continue;
             int team = 0;
-            if((teamskins || m_teammode) && !(m_infection && d->infected)) team = !strcmp(d->team, TEAM_0) ? 1 : 2; // player1->team experimental
+            if((teamskins || m_teammode) && !(m_infection && d->isInfected())) team = !strcmp(d->team, TEAM_0) ? 1 : 2; // player1->team experimental
             renderplayer(d, getplayermodelinfo(d), team, 1, mainpass);
             copystring(d->info, colorname(d));
-            if (d->infected) concatstring(d->info, "  infected");
+            if (d->isInfected()) concatstring(d->info, "  infected");
             if(d->state!=CS_DEAD) particle_text(d->abovehead(), d->info, PART_TEXT, 1, team ? (team==1 ? 0x6496FF : 0xFF4B19) : 0x1EC850, 2.0f);
 
             #ifdef _DEBUG
@@ -353,13 +353,13 @@ namespace game
         {
             fpsent *d = ragdolls[i];
             int team = 0;
-            if(teamskins || m_teammode) team = d->infected? 0: !strcmp(hudplayer()->team, TEAM_0) ? 1 : 2;
+            if(teamskins || m_teammode) team = d->isInfected() ? 0 : !strcmp(hudplayer()->team, TEAM_0) ? 1 : 2;
             float fade = 1.0f;
             if(ragdollmillis && ragdollfade)
                 fade -= clamp(float(lastmillis - (d->lastupdate + max(ragdollmillis - ragdollfade, 0)))/min(ragdollmillis, ragdollfade), 0.0f, 1.0f);
             renderplayer(d, getplayermodelinfo(d), team, fade, mainpass);
         }
-        if(isthirdperson() && !followingplayer()) renderplayer(player1, getplayermodelinfo(player1), (teamskins || m_teammode) && !player1->infected ? 1 : 0, player1->state==CS_DEAD? 1: 0.3, mainpass);
+        if(isthirdperson() && !followingplayer()) renderplayer(player1, getplayermodelinfo(player1), (teamskins || m_teammode) && !player1->isInfected() ? 1 : 0, player1->state==CS_DEAD? 1: 0.3, mainpass);
         rendermonsters();
         rendermovables();
         entities::renderentities();
@@ -450,7 +450,7 @@ namespace game
 
     float mwait(fpsent* d = player1, int weap = -1)
     {
-        if(d->infected) return 0;
+        if(d->isInfected()) return 0;
         float mwait = clamp((((float)(lastmillis-d->lastaction)*(float)(lastmillis-d->lastaction))/((float)d->gunwait*(float)d->gunwait)), 0.f, 1.f),
             mweap[NUMWEAPS] = { 0, 0.2f, 0.0025f, 0.03f, 0.06f, 0, 0.03f, 0.02f, 0, 0, 0.01f, 0, 0 };
         return weap >= 0 ? mweap[weap] : (mwait < 0.5f ? mwait*2.f : 1.f-((mwait-0.5f)*2.f));
@@ -469,7 +469,7 @@ namespace game
         vec dir, orig = d->o;
         int fmillis = lastmillis-hudgunfm;
         extern int dbgisinfected;
-        bool isInfected = dbgisinfected || d->infected;
+        bool isInfected = dbgisinfected || d->isInfected();
 
         float yaw = d->yaw, pitch = d->pitch, hfade = min((((float)abs(fmillis-(hudgunfade/2.f)))/(hudgunfade/2.f)), 1.f), zfadespeed = isscopedweap(d->gunselect) ? 2.f : 1.f,
             zfadeamt = 1.f-min(scopev*zfadespeed, 1.f), zfade = !isInfected && zoom ? zfadeamt : 1.f, mfade = hfade*zfade, wfade = 0.06f*(1.f-hfade);
@@ -531,7 +531,7 @@ namespace game
 
         string gunname;
         extern int dbgisinfected;
-        if(!d->infected && !dbgisinfected)
+        if(!d->isInfected() && !dbgisinfected)
         {
             formatstring(gunname)(
                 "%s/%s",
@@ -579,7 +579,7 @@ namespace game
         int rtime = d->altfire? weapons[d->gunselect].attackdelay2: weapons[d->gunselect].attackdelay;
         bool noanim[NUMWEAPS] = { false, true, true, true, true, false, true, true, false, true, true, false, false },
             inzoom = zoom && scopev > 0.9f && noanim[d->gunselect]; // TODO: add ironscope animations to avoid this temp fix
-        if(d->lastaction && (d->lastattackgun==d->gunselect || d->infected) && lastmillis-d->lastaction<rtime && !inzoom)
+        if(d->lastaction && (d->lastattackgun==d->gunselect || d->isInfected()) && lastmillis-d->lastaction<rtime && !inzoom)
         {
             drawhudmodel(d, ANIM_GUN_SHOOT|ANIM_SETSPEED, rtime/17.0f, d->lastaction);
         }

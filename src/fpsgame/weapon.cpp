@@ -45,7 +45,7 @@ namespace game
             d->lastaction = lastmillis;
             d->gunwait = 400;
         }
-        if(!d->infected) disablezoom();
+        if(!d->isInfected()) disablezoom();
         if(gun!=d->gunselect)
         {
             addmsg(N_GUNSELECT, "rci", d, gun);
@@ -65,7 +65,7 @@ namespace game
             if(force || player1->ammo[gun]) break;
         }
         if(gun != player1->gunselect) gunselect(gun, player1);
-        else if(!player1->infected) playsound(S_NOAMMO);
+        else if(!player1->isInfected()) playsound(S_NOAMMO);
     }
     ICOMMAND(nextweapon, "ii", (int *dir, int *force), nextweapon(*dir, *force!=0));
 
@@ -81,7 +81,7 @@ namespace game
             if (weapon == 0) break;
         }
         if (weapon == 0) gunselect(gun, player1);
-        else if(!player1->infected) playsound(S_NOAMMO);
+        else if(!player1->isInfected()) playsound(S_NOAMMO);
     }
     COMMAND(setweapon, "i");
 
@@ -864,20 +864,20 @@ namespace game
             d->irsm = min(WEAP_MAX_IRSM, d->irsm + WEAP(gun,damage));
         }
 
-        if(
-                    (!d->infected && d->attacksound >= 0 && d->attacksound != WEAP(gun,sound)) ||
-                    (d->infected && d->attacksound >= 0 && d->attacksound != S_ZOMBIE_ATTACK))
-                {
-                    d->stopattacksound();
-                }
+        if((!d->isInfected() && d->attacksound >= 0 && d->attacksound != WEAP(gun,sound)) ||
+           (d->isInfected() && d->attacksound >= 0 && d->attacksound != S_ZOMBIE_ATTACK))
+        {
+            d->stopattacksound();
+        }
+
         if(d->idlesound >= 0) d->stopidlesound();
 
-                if(d->infected)
-                {
-                    d->attacksound = S_ZOMBIE_ATTACK;
-                    d->attackchan = playsound(S_ZOMBIE_ATTACK, d==hudplayer() ? NULL : &d->o, NULL, -1, 100, d->attackchan);
-                }
-                else if (WEAP(gun,looping))
+        if(d->isInfected())
+        {
+            d->attacksound = S_ZOMBIE_ATTACK;
+            d->attackchan = playsound(S_ZOMBIE_ATTACK, d==hudplayer() ? NULL : &d->o, NULL, -1, 100, d->attackchan);
+        }
+        else if (WEAP(gun,looping))
         {
             d->attacksound = WEAP(gun,sound);
             d->attackchan = playsound(WEAP(gun,sound), d==hudplayer() ? NULL : &d->o, NULL, -1, 100, d->attackchan);
@@ -996,7 +996,7 @@ namespace game
 
     void shoot(fpsent *d, const vec &targ)
     {
-        int prevaction = d->lastaction, attacktime = lastmillis-prevaction, gun = (d->infected ? WEAP_INFECTED : d->gunselect) +(d->altfire?1024:0);
+        int prevaction = d->lastaction, attacktime = lastmillis-prevaction, gun = (d->isInfected() ? WEAP_INFECTED : d->gunselect) +(d->altfire?1024:0);
 
         if (allowedweaps != 0)
         {
@@ -1009,7 +1009,7 @@ namespace game
         if((d==player1 || d->ai) && !d->attacking) return;
         d->lastaction = lastmillis;
         d->lastattackgun = d->gunselect;
-        if(!d->infected && (d->ammo[WEAPONI(gun)] < 1 || d->ammo[WEAPONI(gun)] < WEAP(gun, numshots)))
+        if(!d->isInfected() && (d->ammo[WEAPONI(gun)] < 1 || d->ammo[WEAPONI(gun)] < WEAP(gun, numshots)))
         {
             if(d==player1)
             {
@@ -1168,7 +1168,7 @@ namespace game
     {
         int gun = -1;
 
-        if (d->infected)
+        if (d->isInfected())
         {
             gun = WEAP_FIST;
 
@@ -1207,7 +1207,7 @@ namespace game
     {
         int sound = -1, radius = 0;
 
-        if(d->infected && d->state == CS_ALIVE)
+        if(d->isInfected() && d->state == CS_ALIVE)
         {
             sound = S_ZOMBIE_IDLE;
             radius = 50;

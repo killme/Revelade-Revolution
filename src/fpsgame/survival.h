@@ -844,7 +844,7 @@ int newround(bool force = false)
     {
         float mindist = 1e16f;
         fpsent *closest = NULL;
-        loopv(zombies) if (!zombies[i]->infected && zombies[i]->state == CS_ALIVE)
+        loopv(zombies) if (!zombies[i]->isInfected() && zombies[i]->state == CS_ALIVE)
         {
             if (!closest || zombies[i]->o.dist(closest->o) < mindist) closest = zombies[i];
         }

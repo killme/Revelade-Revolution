@@ -150,7 +150,10 @@ namespace game
     ICOMMAND(iszombiegame, "", (), intret(m_sp||m_survival));
 
     VAR(dbgisinfected, 0, 0, 1);
-    bool isinfected() { return dbgisinfected || hudplayer()->infected?true:false; }
+    bool isinfected()
+    {
+        return dbgisinfected || hudplayer()->isInfected();
+    }
     bool ismoving(bool move, bool strafe) { return (move && player1->move!=0) || (strafe && player1->strafe!=0); }
 
     SVARP(voicedir, "male");
@@ -793,19 +796,19 @@ namespace game
         else if(d==actor || actor->type==ENT_INANIMATE)
         {
             if (gun < -1) conoutf(contype, "\f2%s %s", dname, GUN_SUICIDE_MESSAGE(gun));
-            else conoutf(contype, "\f2%s %s %s", dname, GUN_FRAG_MESSAGE(gun, actor->infected), d==player1 ? "yourself!" : "thyself");
+            else conoutf(contype, "\f2%s %s %s", dname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), d==player1 ? "yourself!" : "thyself");
         }
         else if(isteam(d->team, actor->team))
         {
             contype |= CON_TEAMKILL;
-            if(actor==player1) conoutf(contype, "\f3you %s a teammate (%s)%s", GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
-            else if(d==player1) conoutf(contype, "\f3you were %s by a teammate (%s)%s", GUN_FRAGBY_MESSAGE(gun, actor->infected), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
-            else conoutf(contype, "\f2%s %s a teammate (%s)%s", aname, GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
+            if(actor==player1) conoutf(contype, "\f3you %s a teammate (%s)%s", GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+            else if(d==player1) conoutf(contype, "\f3you were %s by a teammate (%s)%s", GUN_FRAGBY_MESSAGE(gun, actor->isInfected()), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+            else conoutf(contype, "\f2%s %s a teammate (%s)%s", aname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
         }
         else
         {
-            if(d==player1) conoutf(contype, "\f2you were %s by %s%s", GUN_FRAGBY_MESSAGE(gun, actor->infected), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
-            else conoutf(contype, "\f2%s %s %s%s", aname, GUN_FRAG_MESSAGE(gun, actor->infected), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->infected): "");
+            if(d==player1) conoutf(contype, "\f2you were %s by %s%s", GUN_FRAGBY_MESSAGE(gun, actor->isInfected()), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+            else conoutf(contype, "\f2%s %s %s%s", aname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
         }
         if (m_dmsp)
         {
@@ -1137,7 +1140,7 @@ namespace game
         return cname[cidx];
     }
 
-    int dteamnum(fpsent *d) { return !m_teammode ? 3 : (d->infected ? 2 : (!strcmp(d->team, TEAM_0) ? 0 : 1)); }
+    int dteamnum(fpsent *d) { return !m_teammode ? 3 : (d->isInfected() ? 2 : (!strcmp(d->team, TEAM_0) ? 0 : 1)); }
     float colorteam[4][3] = { { 0.47f, 0.63f, 1.f }, { 1.f, 0.47f, 0.47f }, { 0.47f, 1.f, 0.47f }, { 1.f, 1.f, 1.f } };
 
     void suicide(physent *d, int type)
@@ -1408,13 +1411,13 @@ namespace game
         // draw ammo bar
 
         static Texture *ammo_bar = NULL;
-        if (d->infected) ammo_bar = textureload("data/hud/ammo_bar_inf.png", 0, true, false);
+        if (d->isInfected()) ammo_bar = textureload("data/hud/ammo_bar_inf.png", 0, true, false);
         else ammo_bar = textureload("data/hud/ammo_bar.png", 0, true, false);
         glBindTexture(GL_TEXTURE_2D, ammo_bar->id);
 
         float aw = 512*ammo_bar_scale, ah = 256*ammo_bar_scale, ax = rw - aw, ay = rh - ah;
 
-        if(!d->infected) glColor4f(colorteam[dteamnum(d)][0], colorteam[dteamnum(d)][1], colorteam[dteamnum(d)][2], 1.f);
+        if(!d->isInfected()) glColor4f(colorteam[dteamnum(d)][0], colorteam[dteamnum(d)][1], colorteam[dteamnum(d)][2], 1.f);
         else glColor4f(1.f, 1.f, 1.f, 0.5f);
         glBegin(GL_TRIANGLE_STRIP);
         glTexCoord2f(0, 0); glVertex2f(ax    ,    ay);
@@ -1484,7 +1487,7 @@ namespace game
         glScalef(1/1.5f, 1/1.5f, 1);
         loopi(NUMWEAPS)
         {
-            int gun = (i+1)%NUMWEAPS, index = d->infected?HICON_ZOMBIE:weapons[gun].icon;
+            int gun = (i+1)%NUMWEAPS, index = d->isInfected() ? HICON_ZOMBIE : weapons[gun].icon;
             if (!WEAP_USABLE(gun)) continue;
             if (gun == d->gunselect)
             {
@@ -1515,7 +1518,7 @@ namespace game
 
     void drawcrosshairhud(fpsent *d, int w, int h)
     {
-        if (!gunwaithud || d->gunwait <= 300 || d->infected) return;
+        if (!gunwaithud || d->gunwait <= 300 || d->isInfected()) return;
 
         float mwait = ((float)(lastmillis-d->lastaction)*(float)(lastmillis-d->lastaction))/((float)d->gunwait*(float)d->gunwait);
         mwait = clamp(mwait, 0.f, 1.f);
@@ -1634,12 +1637,12 @@ namespace game
             if(d->quadmillis) drawicon(HICON_QUAD, 80, 1200);
             if(ammohud) drawammohud(d, w, h);
             if(m_dmsp) drawroundicon(w,h);
-            if(!d->infected) drawcrosshairhud(d, w, h);
+            if(!d->isInfected()) drawcrosshairhud(d, w, h);
 
             if (!m_insta)
             {
                 static Texture *h_body_fire = NULL, *h_body = NULL, *h_body_white = NULL;
-                if (d->infected)
+                if (d->isInfected())
                 {
                     h_body_fire = textureload("data/hud/body_fire_inf.png", 0, true, false);
                     h_body = textureload("data/hud/body_inf.png", 0, true, false);
@@ -1673,7 +1676,7 @@ namespace game
                 // draw health
                 lasthp += float((d->health>lasthp)? 1: (d->health<lasthp)? -1: 0) * min(curtime/10.f, float(abs(d->health-lasthp)));
                 lasthp = min(lasthp, (float)d->maxhealth);
-                float b = d->infected ? 1.f : max(lasthp, 0.f) / d->maxhealth, ba = 1;
+                float b = d->isInfected() ? 1.f : max(lasthp, 0.f) / d->maxhealth, ba = 1;
                 if (b <= .4f)
                 {
                     ba = ((float)bt-500) / 500 + 0.2;
@@ -1685,12 +1688,12 @@ namespace game
                 drawhudbody(bx, by, width, height, 0);
 
                 glBindTexture(GL_TEXTURE_2D, h_body_white->id);
-                if (!d->infected) glColor4f(1-b, max(b-0.6f, 0.f), 0.0, ba);
+                if (!d->isInfected()) glColor4f(1-b, max(b-0.6f, 0.f), 0.0, ba);
                 else glColor4f(1.f, 1.f, 1.f, 0.5f);
                 drawhudbody(bx, by + (1-b) * height, width, b * height, 1-b);
 
                 // draw armour
-                if (d->armour && !d->infected)
+                if (d->armour && !d->isInfected())
                 {
                     vec col(1, 1, 1);
                     int maxarmour = 0;
@@ -2064,7 +2067,7 @@ namespace game
     void drawtimers(fpsent *d, int w, int h)
     {
         float cs = 0.06f*1800*w/h, blend = 1;
-        int rs = 1800/4, cx = 1800*w/h-(needminimap(!d->infected) ? rs+cs/2 : 0)-rs/10, cy = cs+rs/10;
+        int rs = 1800/4, cx = 1800*w/h-(needminimap(!d->isInfected()) ? rs+cs/2 : 0)-rs/10, cy = cs+rs/10;
         vec colour(colorteam[dteamnum(d)][0], colorteam[dteamnum(d)][1], colorteam[dteamnum(d)][2]);
         if(m_timed)
         {
@@ -2121,7 +2124,7 @@ namespace game
 
         if(needscorebar(player1)) drawscorebar(d, w, h); // draw scorebar
 
-        if(needminimap(!d->infected)) drawradarfull(d, w, h); // draw minimap
+        if(needminimap(!d->isInfected())) drawradarfull(d, w, h); // draw minimap
         if(showtimers) drawtimers(d, w, h);
 
         if(d->state!=CS_EDITING)
@@ -2200,7 +2203,7 @@ namespace game
         if((m_teammode || m_oneteam) && teamcrosshair)
         {
             dynent *o = intersectclosest(d->o, worldpos, d);
-            if(o && o->type==ENT_PLAYER && !((fpsent *)o)->infected && weapons[d->hudgun].damage > 0 && 0 == strcmp(((fpsent *)o)->team, d->team))
+            if(o && o->type==ENT_PLAYER && !((fpsent *)o)->isInfected() && weapons[d->hudgun].damage > 0 && 0 == strcmp(((fpsent *)o)->team, d->team))
             {
                 index = 1;
                 r = !strcmp(d->team, TEAM_0) ? 0 : 1;

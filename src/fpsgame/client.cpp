@@ -137,7 +137,7 @@ namespace game
         const playermodelinfo &mdl = getplayermodelinfo(d);
 
         const char *icon = isteam(player1->team, d->team) ? mdl.blueicon : mdl.redicon;
-        return (!m_teammode || d->infected || icon == NULL) ? mdl.ffaicon : icon;
+        return (!m_teammode || d->isInfected() || icon == NULL) ? mdl.ffaicon : icon;
     }
     ICOMMAND(getclienticon, "i", (int *cn), result(getclienticon(*cn)));
 
@@ -1219,11 +1219,6 @@ namespace game
                 getstring(text, p);
                 filtertext(d->team, text, false, MAXTEAMLEN);
 
-                if(m_infection)
-                {
-                    d->infected = isteam(d->team, TEAM_1);
-                }
-
                 d->playermodel = getint(p);
                 d->playerclass = getint(p);
                 break;
@@ -1638,7 +1633,6 @@ namespace game
                         if(s->state==CS_DEAD) showscores(false);
                         disablezoom();
                     }
-                    s->infected = 0;
                     s->state = CS_SPECTATOR;
                 }
                 else if(s->state==CS_SPECTATOR)
@@ -1661,11 +1655,6 @@ namespace game
                 if(reason >= 0 && size_t(reason) < sizeof(fmt)/sizeof(fmt[0]))
                     conoutf(fmt[reason], colorname(w), w->team);
 
-                if(m_infection)
-                {
-                    w->infected = isteam(w->team, TEAM_1);
-                }
-
                 break;
             }
 
@@ -1680,6 +1669,18 @@ namespace game
                 if (on) setonfire(fvic, fatt, gun, false);
                 else fvic->onfire = false;
                 break;
+            }
+
+            case N_INFECT:
+            {
+                int target = getint(p);
+                int type = getint(p);
+                fpsent *t = getclient(target);
+                printf("Infected %i = %i\n", target, type);
+                if(t)
+                {
+                    t->infectedType = type;
+                }
             }
 
             case N_RADIOALL:

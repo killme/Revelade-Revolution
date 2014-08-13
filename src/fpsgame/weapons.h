@@ -337,7 +337,7 @@ inline bool canshootwith(const int playerclass, const int gun, const int gamemod
     return ammo[WEAPONI(gun)]!=0;
 }
 
-#define CAN_SHOOT_WITH(d,gun) (d->aitype == AI_ZOMBIE? true: canshootwith(d->playerclass, gun, gamemode, d->infected, d->ammo))
-#define CAN_SHOOT_WITH2(d,gun) (d.aitype == AI_ZOMBIE? true: canshootwith(d.playerclass, gun, gamemode, d.infected, d.ammo))
+#define CAN_SHOOT_WITH(d,gun) (d->aitype == AI_ZOMBIE? true: canshootwith(d->playerclass, gun, gamemode, d->isInfected(), d->ammo))
+#define CAN_SHOOT_WITH2(d,gun) (d.aitype == AI_ZOMBIE? true: canshootwith(d.playerclass, gun, gamemode, d.isInfected(), d.ammo))
 
 #endif // WEAPONS_H_INCLUDED

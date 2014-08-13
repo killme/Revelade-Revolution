@@ -1394,11 +1394,6 @@ namespace server
     {
         gamestate &gs = ci->state;
 
-        if (m_infection)
-        {
-            gs.infected = !strcmp(ci->team, TEAM_1);
-        }
-
         gs.spawnstate(gamemode);
         gs.lifesequence = (gs.lifesequence + 1)&0x7F;
     }
