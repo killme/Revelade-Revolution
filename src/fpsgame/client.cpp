@@ -76,27 +76,6 @@ namespace game
     ICOMMAND(switchteam, "", (), if (!strcmp(player1->team, TEAM_0)) { switchteam(TEAM_1); } else { switchteam(TEAM_0); } );
     ICOMMAND(getteam, "", (), result(player1->team));
 
-    void switchplayermodel(int playermodel)
-    {
-        player1->playermodel = playermodel;
-        addmsg(N_SWITCHMODEL, "ri", player1->playermodel);
-    }
-
-    void switchplayerclass(int playerclass)
-    {
-        player1->playerclass = playerclass;
-        if (connected)
-        {
-            addmsg(N_SWITCHCLASS, "ri", player1->playerclass);
-            if (player1->state == CS_ALIVE) suicide(player1);
-
-            extern float lasthp;
-            extern float lastap;
-            lasthp = 0.f;
-            lastap = 0.f;
-        }
-    }
-
     void sendmapinfo()
     {
         sendcrc = true;
@@ -925,8 +904,8 @@ namespace game
             memset(connectpass, 0, sizeof(connectpass));
         }
         sendstring(hash, p);
-        putint(p, player1->playermodel);
-        putint(p, player1->playerclass);
+        putint(p, player1->playermodel = playermodel);
+        putint(p, player1->playerclass = playerclass);
         sendclientpacket(p.finalize(), 1);
     }
 
@@ -1120,7 +1099,6 @@ namespace game
                 int hasmap = getint(p);
                 if(!hasmap) initmap = true; // we are the first client on this server, set map
                 allowedweaps = getint(p);
-                //showgui("playerclass");
                 break;
             }
 
@@ -1268,7 +1246,7 @@ namespace game
             case N_SWITCHMODEL:
             {
                 int model = getint(p);
-                if(d)
+                if(d && d != player1)
                 {
                     d->playermodel = model;
                     if(d->ragdoll) cleanragdoll(d);

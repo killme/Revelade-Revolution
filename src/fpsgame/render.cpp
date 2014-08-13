@@ -27,7 +27,6 @@ namespace game
         r->edit = NULL;
         r->ai = NULL;
         r->attackchan = r->idlechan = -1;
-        if(d==player1) r->playermodel = playermodel;
         ragdolls.add(r);
         d->ragdoll = NULL;
     }
@@ -80,7 +79,8 @@ namespace game
         },
     };
 
-    VARFP(playermodel, 0, 1, sizeof(playermodels)/sizeof(playermodels[0]) - 1, changedplayermodel());
+    static const int NUMPLAYERMODELS = sizeof(playermodels)/sizeof(playermodels[0]);
+    VARP(playermodel, 0, 1, NUMPLAYERMODELS - 1);
 
     static const playermodelinfo zombiemodels[] =
     {
@@ -93,6 +93,8 @@ namespace game
         { "playermodels/zombies/zombie7",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "heavy_64",     NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
         { "playermodels/zombies/juggernaut",            NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "juggernaut",   NULL, NULL, false, true,        7.0f,   22.0f,   3.0f },
     };
+    
+    static const int NUMZOMBIEMODELS = sizeof(zombiemodels)/sizeof(zombiemodels[0]);
 
     int chooserandomplayermodel(int seed)
     {
@@ -105,29 +107,41 @@ namespace game
 
     const playermodelinfo *getplayermodelinfo(int n)
     {
-        if(size_t(n) >= sizeof(playermodels)/sizeof(playermodels[0])) return NULL;
-        return &playermodels[n];
+        if(n >= 0 && n < NUMPLAYERMODELS) return &playermodels[n];
+        return NULL;
     }
 
     const playermodelinfo *getzombiemodelinfo(int n)
     {
-        int sz = (int)(sizeof(zombiemodels)/sizeof(zombiemodels[0]));
-        return &zombiemodels[n % sz];
+        return &zombiemodels[n % NUMZOMBIEMODELS];
     }
 
     const playermodelinfo &getplayermodelinfo(fpsent *d)
     {
-        const playermodelinfo *mdl = d->infected? getzombiemodelinfo(d->infectmillis): getplayermodelinfo(d==player1 || forceplayermodels ? playermodel : d->playermodel);
+        const playermodelinfo *mdl = d->infected ? getzombiemodelinfo(d->infectmillis)
+                                                 : getplayermodelinfo(forceplayermodels && player1 ? player1->playermodel : d->playermodel);
+
         if(!mdl || (!mdl->selectable && !allplayermodels))
         {
-            mdl = getplayermodelinfo(playermodel);
+            //This will be called before the main player ent is set.
+            if(player1)
+            {
+                mdl = getplayermodelinfo(player1->playermodel);
+            }
+
+            if(!mdl || (!mdl->selectable && !allplayermodels))
+            {
+                mdl = getplayermodelinfo(playermodel);
+            }
         }
+
+        ASSERT(mdl);
+
         return *mdl;
     }
 
     void changedplayermodel()
     {
-        if(player1->clientnum < 0) player1->playermodel = playermodel;
         if(player1->ragdoll) cleanragdoll(player1);
         loopv(ragdolls)
         {

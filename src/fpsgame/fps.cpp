@@ -382,6 +382,16 @@ namespace game
         return d;
     }
 
+    void sendClassInfo()
+    {
+        if(playerclass != player1->playerclass) addmsg(N_SWITCHCLASS, "ri", player1->playerclass = playerclass);
+        if(playermodel != player1->playermodel)
+        {
+            addmsg(N_SWITCHMODEL, "ri", player1->playermodel = playermodel);
+            changedplayermodel(); // TODO: is this still needed?
+        }
+    }
+
     void respawnself()
     {
         if(paused || ispaused()) return;
@@ -390,6 +400,7 @@ namespace game
         {
             if(player1->respawned!=player1->lifesequence)
             {
+                sendClassInfo();
                 addmsg(N_TRYSPAWN, "rc", player1);
                 player1->respawned = player1->lifesequence;
             }
@@ -916,7 +927,7 @@ namespace game
 
     VARP(showmodeinfo, 0, 1, 1);
 
-    VARFP(playerclass, 0, 0, NUMPCS-1, if(player1->playerclass != playerclass) switchplayerclass(playerclass) );
+    VARP(playerclass, 0, 0, NUMPCS-1);
 
     void startgame()
     {
@@ -964,8 +975,6 @@ namespace game
             if(*best) conoutf(CON_GAMEINFO, "\f2try to beat your best score so far: %s", best);
         }
 
-        if(player1->playermodel != playermodel) switchplayermodel(playermodel);
-
         showscores(false);
         disablezoom();
         lasthit = 0;
@@ -981,6 +990,8 @@ namespace game
     {
         ai::savewaypoints();
         ai::clearwaypoints(true);
+
+        sendClassInfo();
 
         respawnent = -1; // so we don't respawn at an old spot
         if(!m_mp(gamemode)) spawnplayer(player1);

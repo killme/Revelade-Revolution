@@ -2786,15 +2786,21 @@ namespace server
 
             case N_SWITCHMODEL:
             {
-                ci->playermodel = getint(p);
-                QUEUE_MSG;
+                if(ci && ci->state.state == CS_DEAD)
+                {
+                    ci->playermodel = getint(p);
+                    QUEUE_MSG;
+                }
                 break;
             }
 
             case N_SWITCHCLASS:
             {
-                ci->state.playerclass = getint(p);
-                sendf(-1, 1, "ri3", N_SETCLASS, ci->clientnum, ci->state.playerclass);
+                if(ci && ci->state.state == CS_DEAD)
+                {
+                    ci->state.playerclass = getint(p);
+                    sendf(-1, 1, "ri3", N_SETCLASS, ci->clientnum, ci->state.playerclass);
+                }
                 break;
             }
 
