@@ -9,8 +9,13 @@ namespace game
     VARP(ragdollmillis, 0, 10000, 300000);
     VARP(ragdollfade, 0, 1000, 300000);
     extern int playermodel;
+#ifdef _DEBUG
     VARP(forceplayermodels, 0, 0, 1);
     VARP(allplayermodels, 0, 0, 1);
+#else
+    static const int forceplayermodels = 0;
+    static const int allplayermodels = 0;
+#endif
 
     vector<fpsent *> ragdolls;
 
