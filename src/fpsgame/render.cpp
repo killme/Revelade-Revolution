@@ -333,6 +333,18 @@ namespace game
                                 .mul(d->radius * 2)
                                 .add(d->o);
                         particle_flare(d->o, eyeSpoke, PARTICLE_OPTS);
+
+                        vec headSpoke (direction);
+                        headSpoke.normalize()
+                            .mul(d->radius * 2)
+                            .add(d->o);
+
+                        headSpoke.z = (d->eyeheight + d->aboveeye) * 0.8f + (d->o.z - d->eyeheight);
+
+                        vec head(d->o);
+                        head.z = headSpoke.z;
+
+                        particle_flare(head, headSpoke, PARTICLE_OPTS);
                     }
                     #undef PARTICLE_OPTS
                 }
