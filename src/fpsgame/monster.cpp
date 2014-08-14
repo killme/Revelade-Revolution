@@ -10,7 +10,7 @@ namespace monster
         {
             //PlayerClassInfo:
             //weap[4]                                       health, armourtype, armour, maxspeed,   name,       abilities
-            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 1", 0},
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 1", 0},
             // freq,    lag,    rate,   pain,   loyalty,    bscale, weight, painsound,  diesound, traits, 
                3,       0,      100,    400,    1,          11,     75,     S_PAINB,    S_DEATHB, 0,
             //ModelInfo:
@@ -18,32 +18,32 @@ namespace monster
             { "playermodels/zombies/zombie1",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicb_64",  NULL,       NULL,       false,      true,       3.5f,   16.5f,      1.0f },
         },
         {
-            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 2", 0},
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 2", 0},
                3,       0,      100,    400,    1,          11,     75,     S_PAINB,    S_DEATHB, 0,
             { "playermodels/zombies/zombie2",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zclassic",     NULL,       NULL,       false,      true,       3.8f,   14.0f,       1.0f },
         },
         { 
-            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 3", 0},
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 3", 0},
                3,       0,      100,    400,    1,          11,     75,     S_PAINR,    S_DEATHR, 0,
             { "playermodels/zombies/zombie3",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicd_64",  NULL,       NULL,       false,      true,       3.8f,   15.8f,       1.0f },
         },
         { 
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 4", 0},
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      72,         "zombie 4", 0},
                3,       0,      100,    400,    1,          10,     75,     S_PAINR,    S_DEATHR, 0,
             { "playermodels/zombies/zombie4",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zjhon",        NULL,       NULL,       false,      true,       3.8f,   17.0f,       1.0f },
         },
         { 
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 5", 0},
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      72,         "zombie 5", 0},
                3,       0,      100,    400,    1,          10,     75,     S_PAINH,    S_DEATHH, 0,
             { "playermodels/zombies/zombie5",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicc",     NULL,       NULL,       false,      true,       3.8f,   15.5f,       1.0f },
         },
         {
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 6", 0},
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      72,         "zombie 6", 0},
                3,       0,      100,    400,    1,          12,     75,     S_PAINH,    S_DEATHH, 0,
             { "playermodels/zombies/zombie6",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "skeleton_64",  NULL,       NULL,       false,      true,       3.8f,   15.5f,       1.0f },
         },
         {
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 7", 0},
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      72,         "zombie 7", 0},
                3,       0,      100,    400,    1,          13,     75,     S_PAIND,    S_DEATHD, 0,
             { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       false,      true,       4.5f,   17.0f,       1.0f },
         },
