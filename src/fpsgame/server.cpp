@@ -439,14 +439,6 @@ namespace server
     SVAR(serverdesc, "");
     SVAR(serverpass, "");
     SVAR(adminpass, "");
-    VARF(publicserver, 0, 0, 2, {
-        switch(publicserver)
-        {
-            case 0: default: mastermask = MM_PRIVSERV; break;
-            case 1: mastermask = MM_PUBSERV; break;
-            case 2: mastermask = MM_COOPSERV; break;
-        }
-    });
 
     VAR(maxzombies, 0, 20, 100);
     VAR(flaglimit, 0, 10, 100);
@@ -525,7 +517,6 @@ namespace server
             case 'n': setsvar("serverdesc", &arg[2]); return true;
             case 'y': setsvar("serverpass", &arg[2]); return true;
             case 'p': setsvar("adminpass", &arg[2]); return true;
-            case 'o': setvar("publicserver", atoi(&arg[2])); return true;
             case 'g': setvar("serverbotlimit", atoi(&arg[2])); return true;
         }
         return false;
