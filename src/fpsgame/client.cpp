@@ -1676,7 +1676,6 @@ namespace game
                 int target = getint(p);
                 int type = getint(p);
                 fpsent *t = getclient(target);
-                printf("Infected %i = %i\n", target, type);
                 if(t)
                 {
                     t->infectedType = type;

@@ -70,7 +70,6 @@ struct infectionclientmode : clientmode
     void sendZombieState(clientinfo *victim, bool zombie = true)
     {
         sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomType()+1 : 0);
-        printf("Sending infected %i %i -> all\n", victim->clientnum, victim->state.infectedType);
     }
 
     void makeZombie(clientinfo *victim, bool zombie = true)
@@ -115,7 +114,6 @@ struct infectionclientmode : clientmode
         {
             if(clients[i]->state.isInfected())
             {
-                printf("Sending infected %i %i -> %i\n", clients[i]->clientnum, clients[i]->state.infectedType, ci->clientnum);
                 putint(p, N_INFECT);
                 putint(p, clients[i]->clientnum);
                 putint(p, clients[i]->state.infectedType);
