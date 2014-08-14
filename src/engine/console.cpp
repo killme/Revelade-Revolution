@@ -54,7 +54,21 @@ void conoutfv(int type, const char *fmt, va_list args)
 
     if(type & console::verbosity)
     {
-        puts(buf);
+        if(!buf[0])
+        {
+            return;
+        }
+
+        string date = {0};
+        time_t timeValue = {0};
+        struct tm * timeinfo;
+
+        time (&timeValue);
+        timeinfo = localtime (&timeValue);
+
+        strftime(date, sizeof(date) - 1, "%Y-%m-%dT%H:%M:%S", timeinfo);
+
+        printf("[%s] %s\n", date, buf);
     }
 }
 
