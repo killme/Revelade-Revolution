@@ -876,59 +876,17 @@ struct fpsstate
         {
             gunselect = WEAP_FIST;
         }
-        else if(m_classes && !m_efficiency)
-        {
-            const playerclassinfo &pci = game::getplayerclassinfo(this);
-            loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = max(1, GUN_AMMO_ADD(pci.weap[i],1));
-            health = maxhealth = pci.maxhealth;
-            armourtype = pci.armourtype;
-            armour = pci.armour;
-            gunselect = pci.weap[0];
-        }
-        else if(m_insta)
-        {
-            armour = 0;
-            health = 1;
-            gunselect = WEAP_CROSSBOW;
-            ammo[WEAP_CROSSBOW] = 100;
-            //gunselect = WEAP_SNIPER;
-            //ammo[WEAP_SNIPER] = 100;
-            //gunselect = instaweapon;
-            //ammo[instaweapon] = 999;
-        }
-        else if(m_efficiency)
-        {
-            const playerclassinfo &pci = game::getplayerclassinfo(this);
-            loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = 999;
-            health = maxhealth = pci.maxhealth;
-            armourtype = pci.armourtype;
-            armour = pci.armour;
-            gunselect = pci.weap[0];
-        }
-        //else if(m_regencapture)
-        //{
-        //    armourtype = A_GREEN;
-        //    armour = 0;
-        //    gunselect = WEAP_PISTOL;
-        //    ammo[WEAP_PISTOL] = 40;
-        //    ammo[WEAP_GRENADIER] = 1;
-        //}
-        //else if(m_tactics)
-        //{
-        //    armourtype = A_GREEN;
-        //    armour = 100;
-        //    ammo[WEAP_PISTOL] = 40;
-        //    int spawngun1 = rnd(5)+1, spawngun2;
-        //    gunselect = spawngun1;
-        //    //baseammo(spawngun1, m_noitems ? 2 : 1);
-        //    do spawngun2 = rnd(5)+1; while(spawngun1==spawngun2);
-        //    //baseammo(spawngun2, m_noitems ? 2 : 1);
-        //    if(m_noitems) ammo[WEAP_GRENADIER] += 1;
-        //}
         else
         {
-            ammo[WEAP_PISTOL] = m_sp ? 80 : 40;
-            ammo[WEAP_GRENADIER] = 1;
+            const playerclassinfo &pci = game::getplayerclassinfo(this);
+            loopi(WEAPONS_PER_CLASS)
+            {
+                ammo[pci.weap[i]] = m_efficiency ? 999 : max(1, GUN_AMMO_ADD(pci.weap[i],1));
+            }
+            health = maxhealth = pci.maxhealth;
+            armourtype = pci.armourtype;
+            armour = pci.armour;
+            gunselect = pci.weap[0];
         }
     }
 

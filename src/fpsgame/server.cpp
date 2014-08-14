@@ -1376,7 +1376,7 @@ namespace server
         putint(p, gs.armourtype);
         putint(p, gs.playerclass);
         putint(p, gs.gunselect);
-        loopi(WEAP_PISTOL-WEAP_SLUGSHOT+1) putint(p, gs.ammo[WEAP_SLUGSHOT+i]);
+        loopi(NUMWEAPS) putint(p, gs.ammo[i]);
     }
 
     void relayf(int r, const char *s, ...)
@@ -1407,7 +1407,7 @@ namespace server
         sendf(ci->ownernum, 1, "ri2i8v", N_SPAWNSTATE, ci->clientnum, gs.lifesequence, gs.guts,
             gs.health, gs.maxhealth,
             gs.armour, gs.armourtype,
-            gs.playerclass, gs.gunselect, WEAP_PISTOL-WEAP_SLUGSHOT+1, &gs.ammo[WEAP_SLUGSHOT]);
+            gs.playerclass, gs.gunselect, NUMWEAPS, &gs.ammo);
         gs.lastspawn = gamemillis;
     }
 
@@ -1587,7 +1587,7 @@ namespace server
             gs.health, gs.maxhealth,
             gs.armour, gs.armourtype,
             gs.playerclass, gs.gunselect,
-            WEAP_PISTOL-WEAP_SLUGSHOT+1, &gs.ammo[WEAP_SLUGSHOT], -1);
+            NUMWEAPS, &gs.ammo, -1);
     }
 
     void sendinitclient(clientinfo *ci)

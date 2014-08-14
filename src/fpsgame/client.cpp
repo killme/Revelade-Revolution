@@ -1055,13 +1055,13 @@ namespace game
         {
             getint(p);
             getint(p);
-            loopi(WEAP_PISTOL-WEAP_SLUGSHOT+1) getint(p);
+            loopi(NUMWEAPS) getint(p);
         }
         else
         {
             d->playerclass = getint(p);
             d->gunselect = getint(p);
-            loopi(WEAP_PISTOL-WEAP_SLUGSHOT+1) d->ammo[WEAP_SLUGSHOT+i] = getint(p);
+            loopi(NUMWEAPS) d->ammo[i] = getint(p);
         }
     }
 
