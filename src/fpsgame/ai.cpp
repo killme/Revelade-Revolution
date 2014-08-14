@@ -179,7 +179,6 @@ namespace ai
             //Sync playermodel and playerclass
             addmsg(N_SWITCHCLASS, "rci", d, d->playerclass);
             addmsg(N_SWITCHMODEL, "rci", d, d->playermodel);
-            printf("Sent switchclass and switchmodel requests\n");
         }
 
         if(resetthisguy) removeweapons(d);

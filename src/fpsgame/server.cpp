@@ -2783,7 +2783,6 @@ namespace server
             case N_SWITCHMODEL:
             {
                 int model = getint(p);
-                printf("switch model\n");
                 if(cq && cq->state.state == CS_DEAD)
                 {
                     cq->state.playermodel = model;
@@ -2796,7 +2795,6 @@ namespace server
             case N_SWITCHCLASS:
             {
                 int pclass = getint(p);
-                printf("switch class\n");
                 if(cq && cq->state.state == CS_DEAD)
                 {
                     cq->state.playerclass = pclass;
