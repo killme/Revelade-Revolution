@@ -276,7 +276,7 @@ static const struct weapinfo {
 #define WEAP_NAME(gun)                (WEAPON(gun).name)
 #define WEAP_PROJTYPE(gun)            (WEAP(gun,projtype)&0xFF)
 
-#define WEAP_IS_MELEE(gun)            (WEAPONI(gun)==0)
+#define WEAP_IS_MELEE(gun)            (WEAPONI(gun)==WEAP_FIST || WEAPONI(gun)==WEAP_BITE || WEAPONI(gun)==WEAP_INFECTED)
 #define WEAP_IS_RAY(gun)            (WEAP_PROJTYPE(gun)==PJ_RAY)
 #define WEAP_IS_BOUNCER(gun)        (WEAP_PROJTYPE(gun)==PJ_BOUNCER)
 #define WEAP_IS_PROJECTILE(gun)        (WEAP_PROJTYPE(gun)==PJ_PROJECTILE)
