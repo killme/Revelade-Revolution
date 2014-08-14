@@ -45,8 +45,9 @@ struct infectionclientmode : clientmode
 
 #ifdef SERVMODE
 
-    infectionservmode() : timeLeft(0), nextInsanity(0) {}
+    infectionservmode() : timeLeft(0), nextInsanity(0), specialComming(false) {}
 
+    bool specialComming;
     vector<clientinfo *> spawning;
     
     bool isSpawning(clientinfo *ci)
@@ -69,7 +70,15 @@ struct infectionclientmode : clientmode
 
     void sendZombieState(clientinfo *victim, bool zombie = true)
     {
-        sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomType()+1 : 0);
+        if(specialComming)
+        {
+            specialComming = false;
+            sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomTypeWithTrait(monster::MONSTER_TYPE_TRAIT_BOSS)+1 : 0);
+        }
+        else
+        {
+            sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomType()+1 : 0);
+        }
     }
 
     void makeZombie(clientinfo *victim, bool zombie = true)
@@ -162,6 +171,7 @@ struct infectionclientmode : clientmode
             }
             nextInsanity = totalmillis + 20000 + rnd(20000);
             sendservmsgf(-1, "Insanity is upon us!");
+            specialComming = rnd(5)==1;
         }
     }
 
