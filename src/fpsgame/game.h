@@ -864,7 +864,6 @@ struct fpsstate
         gunselect = WEAP_PISTOL;
         gunwait = 0;
         loopi(NUMWEAPS) ammo[i] = 0;
-        ammo[WEAP_FIST] = (isInfected())? 0: 1;
         hudgun = gunselect;
     }
 
@@ -872,6 +871,7 @@ struct fpsstate
     {
         if (!m_infection) infectedType = 0;
         if (!m_survival) guts = 0;
+
         if(m_demo)
         {
             gunselect = WEAP_FIST;
@@ -879,7 +879,7 @@ struct fpsstate
         else if(m_classes && !m_efficiency)
         {
             const playerclassinfo &pci = game::getplayerclassinfo(this);
-            loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = GUN_AMMO_ADD(pci.weap[i],1);
+            loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = max(1, GUN_AMMO_ADD(pci.weap[i],1));
             health = maxhealth = pci.maxhealth;
             armourtype = pci.armourtype;
             armour = pci.armour;
