@@ -292,6 +292,8 @@ enum
     PART_EXP_FLARE,
     PART_EXP_RSPARKS,
     PART_EXP_SHOCKWAVE,
+
+    PART_DEBUG_LINE,
 };
 
 extern void particle_explodesplash(const vec &o, int fade, int type, int color = 0xFFFFFF, float size = 1, int gravity = -20, int num = 16);

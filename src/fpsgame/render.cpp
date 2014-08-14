@@ -321,10 +321,19 @@ namespace game
 
                     spoke.add(d->o);
 
-                    #define PARTICLE_OPTS 0, PART_STREAK, colors[i], 0.10f
+                    #define PARTICLE_OPTS 0, PART_DEBUG_LINE, colors[i], 0.10f
                     particle_flare(bottom, bottomSpoke, PARTICLE_OPTS);
                     particle_flare(bottomSpoke, topSpoke, PARTICLE_OPTS);
                     particle_flare(topSpoke, top, PARTICLE_OPTS);
+
+                    if(i == 0)
+                    {
+                        vec eyeSpoke(direction);
+                        eyeSpoke.normalize()
+                                .mul(d->radius * 2)
+                                .add(d->o);
+                        particle_flare(d->o, eyeSpoke, PARTICLE_OPTS);
+                    }
                     #undef PARTICLE_OPTS
                 }
             }

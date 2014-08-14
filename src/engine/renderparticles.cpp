@@ -952,6 +952,8 @@ static partrenderer *parts[] =
     new quadrenderer("<grey>data/particles/explosion/rsparks.png", PT_PART|PT_RND4|PT_GLARE|PT_EXPAND_FAST), // explosion rsparks
     &shockwave, // explosion shockwave
     //new swrenderer("<grey>data/particles/explosion/shockwave.png", PT_PART|PT_RND4|PT_GLARE|PT_ROT|PT_EXPAND_FAST), // explosion shockwave
+
+    new taperenderer("data/particles/debug.jpg", PT_TAPE)
 };
 
 void finddepthfxranges()
