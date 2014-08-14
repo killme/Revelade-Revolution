@@ -171,8 +171,16 @@ namespace ai
         copystring(d->team, team, MAXTEAMLEN+1);
         d->ownernum = ocn;
         d->skill = sk;
-        d->playermodel = chooserandomplayermodel(pm);
-        d->playerclass = (pc)? pc: rand()%NUMPCS;
+        d->playermodel = (pm < 0) ? chooserandomplayermodel(rand()) : pm;
+        d->playerclass = (pc < 0) ? rand()%NUMPCS : pc;
+
+        if(o == player1 && d->playermodel != pm)
+        {
+            //Sync playermodel and playerclass
+            addmsg(N_SWITCHCLASS, "rci", d, d->playerclass);
+            addmsg(N_SWITCHMODEL, "rci", d, d->playermodel);
+            printf("Sent switchclass and switchmodel requests\n");
+        }
 
         if(resetthisguy) removeweapons(d);
         if(d->ownernum >= 0 && player1->clientnum == d->ownernum)

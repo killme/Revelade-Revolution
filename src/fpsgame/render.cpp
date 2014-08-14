@@ -50,82 +50,6 @@ namespace game
         }
     }
 
-    static const playermodelinfo playermodels[] =
-    {
-        {
-            "playermodels/alanharris",  "playermodels/alanharris/blue",         "playermodels/alanharris/red",  "playermodels/alanharris/hudguns",      NULL,   NULL,
-            { NULL, NULL, NULL },
-            "playermodels/alanharris",  "playermodels/alanharrist_blue",        "playermodels/alanharris_red",  true,   true,   0.0f,   0.0f,   0.0f
-        },
-        {
-            "playermodels/swat",        "playermodels/swat/blue",               "playermodels/swat/red",        "playermodels/swat/hudguns",            NULL,   NULL,
-            { NULL, NULL, NULL },
-            "playermodels/swat",        "playermodels/swat_blue",               "playermodels/swat_red",        true,   true,   3.0f,   16.0f,   1.2f
-        },
-        {
-            "playermodels/thief",       "playermodels/thief/blue",              "playermodels/thief/red",       "playermodels/thief/hudguns",           NULL,   NULL,
-            { NULL, NULL, NULL },
-            "playermodels/thief",  "playermodels/thief_blue",        "playermodels/thief_red",                  true,   true,   3.0f,   16.0f,   1.2f
-        },
-        {
-            "playermodels/aneta",       "playermodels/aneta/blue",              "playermodels/aneta/red",       "playermodels/aneta/hudguns",           NULL,   NULL,
-            { NULL, NULL, NULL },
-            "playermodels/aneta",  "playermodels/aneta_blue",        "playermodels/aneta_red",                  true,   true,   3.0f,   13.5f,   1.0f
-        },
-        {
-            "playermodels/advent",      "playermodels/advent/blue",             "playermodels/advent/red",      "playermodels/advent/hudguns",          NULL,   NULL,
-            { NULL, NULL, NULL },
-            "playermodels/advent",  "playermodels/advent_blue",        "playermodels/advent_red",                  true,   true,   3.0f,   15.0f,   1.0f
-        },
-    };
-
-    static const int NUMPLAYERMODELS = sizeof(playermodels)/sizeof(playermodels[0]);
-    VARP(playermodel, 0, 1, NUMPLAYERMODELS - 1);
-
-    int chooserandomplayermodel(int seed)
-    {
-        static int choices[sizeof(playermodels)/sizeof(playermodels[0])];
-        int numchoices = 0;
-        loopi(sizeof(playermodels)/sizeof(playermodels[0])) if(i == playermodel || playermodels[i].selectable || allplayermodels) choices[numchoices++] = i;
-        if(numchoices <= 0) return -1;
-        return choices[(seed&0xFFFF)%numchoices];
-    }
-
-    const playermodelinfo *getplayermodelinfo(int n)
-    {
-        if(n >= 0 && n < NUMPLAYERMODELS) return &playermodels[n];
-        return NULL;
-    }
-
-    const playermodelinfo *getzombiemodelinfo(int n)
-    {
-        return &::monster::getMonsterType(n).modelInfo;
-    }
-
-    const playermodelinfo &getplayermodelinfo(fpsent *d)
-    {
-        const playermodelinfo *mdl = d->isInfected() ? getzombiemodelinfo(d->getMonsterType())
-                                                     : getplayermodelinfo(forceplayermodels && player1 ? player1->playermodel : d->playermodel);
-
-        if(!mdl || (!mdl->selectable && !allplayermodels))
-        {
-            //This will be called before the main player ent is set.
-            if(player1)
-            {
-                mdl = getplayermodelinfo(player1->playermodel);
-            }
-
-            if(!mdl || (!mdl->selectable && !allplayermodels))
-            {
-                mdl = getplayermodelinfo(playermodel);
-            }
-        }
-
-        ASSERT(mdl);
-
-        return *mdl;
-    }
-
     void changedplayermodel()
     {
         if(player1->ragdoll) cleanragdoll(player1);
@@ -155,8 +79,7 @@ namespace game
 
     void preloadplayermodel()
     {
-        int nummodels = sizeof(playermodels)/sizeof(playermodels[0]);
-        loopi(nummodels)
+        loopi(NUMPLAYERMODELS)
         {
             const playermodelinfo *mdl = getplayermodelinfo(i);
             if(!mdl) break;

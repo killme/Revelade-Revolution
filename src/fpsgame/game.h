@@ -110,8 +110,10 @@ struct fpsstate;
 namespace game
 {
     //TODO: move playermodel info to fpsstate
-    extern const playermodelinfo &getplayermodelinfo(fpsent *);
+    extern const playermodelinfo &getplayermodelinfo(fpsstate *);
     extern const playerclassinfo &getplayerclassinfo(fpsstate *);
+    extern const playermodelinfo *getplayermodelinfo(int n);
+    extern const int NUMPLAYERMODELS;
 };
 
 
@@ -629,7 +631,7 @@ enum
     N_PAUSEGAME,
     N_ADDBOT, N_DELBOT, N_INITAI, N_FROMAI, N_BOTLIMIT, N_BOTBALANCE,
     N_MAPCRC, N_CHECKMAPS,
-    N_SWITCHNAME, N_SWITCHMODEL, N_SWITCHTEAM, N_SWITCHCLASS, N_SETCLASS,
+    N_SWITCHNAME, N_SWITCHMODEL, N_SWITCHTEAM, N_SWITCHCLASS, DEPRECATED_N_SETCLASS,
     N_ONFIRE, N_SETONFIRE,
     N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
     N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_SURVROUNDOVER,
@@ -661,7 +663,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_PAUSEGAME, 2,
     N_ADDBOT, 2, N_DELBOT, 1, N_INITAI, 0, N_FROMAI, 2, N_BOTLIMIT, 2, N_BOTBALANCE, 2,
     N_MAPCRC, 0, N_CHECKMAPS, 1,
-    N_SWITCHNAME, 0, N_SWITCHMODEL, 2, N_SWITCHTEAM, 0, N_SWITCHCLASS, 2, N_SETCLASS, 3,
+    N_SWITCHNAME, 0, N_SWITCHMODEL, 2, N_SWITCHTEAM, 0, N_SWITCHCLASS, 2, DEPRECATED_N_SETCLASS, 0,
     N_ONFIRE, 0/*4*/, N_SETONFIRE, 0/*4*/,
     N_INFECT, 0, N_INITINF, 0, N_RADIOTEAM, 0, N_RADIOALL, 0,
     N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURVNEWROUND, 0, N_SURVROUNDOVER, 2,
@@ -764,12 +766,13 @@ struct fpsstate
     int gunselect, gunwait, hudgun;
     int ammo[NUMWEAPS];
     int aitype, skill;
-    int playerclass, guts; // regenmillis;
+    int playerclass, playermodel;
+    int guts; // regenmillis;
 
     //infectedType = monsterTypeID + 1
     int infectedType;
 
-    fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(0), guts(0), infectedType(0) {}
+    fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(-1), playermodel(-1), guts(0), infectedType(0) {}
 
     //void baseammo(int gun, int k = 2, int scale = 1)
     //{
@@ -929,7 +932,6 @@ struct fpsent : dynent, fpsstate
 
     int follow;
     string name, team, info;
-    int playermodel;
     ai::aiinfo *ai;
     int ownernum, lastnode;
 
@@ -950,7 +952,6 @@ struct fpsent : dynent, fpsstate
         deltayaw(0), deltapitch(0), newyaw(0), newpitch(0),
         smoothmillis(-1),
         follow(-1),
-        playermodel(-1),
         ai(NULL),
         ownernum(-1),
         muzzle(-1, -1, -1)
@@ -1279,7 +1280,6 @@ namespace game
     extern void clearragdolls();
     extern void moveragdolls();
     extern void changedplayermodel();
-    extern const playermodelinfo &getplayermodelinfo(fpsent *d);
     extern int chooserandomplayermodel(int seed);
     extern void swayhudgun(int curtime);
     extern vec hudgunorigin(int gun, const vec &from, const vec &to, fpsent *d);

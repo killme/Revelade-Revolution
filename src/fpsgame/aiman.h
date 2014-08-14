@@ -173,8 +173,8 @@ namespace aiman
         copystring(ci->name, getbotname(), MAXNAMELEN+1);
         ci->state.state = CS_DEAD;
         copystring(ci->team, team, MAXTEAMLEN+1);
-        ci->playermodel = rnd(128);
-        ci->state.playerclass = rnd(NUMPCS);
+        ci->state.playermodel = -1;
+        ci->state.playerclass = -1;
         ci->aireinit = 2;
         ci->connected = true;
         dorefresh = true;
@@ -216,7 +216,7 @@ namespace aiman
         if(ci->ownernum < 0) deleteai(ci);
         else if(ci->aireinit >= 1)
         {
-            sendf(-1, 1, "ri7ss", N_INITAI, ci->clientnum, ci->ownernum, ci->state.aitype, ci->state.skill, ci->playermodel, ci->state.playerclass, ci->name, ci->team);
+            sendf(-1, 1, "ri7ss", N_INITAI, ci->clientnum, ci->ownernum, ci->state.aitype, ci->state.skill, ci->state.playermodel, ci->state.playerclass, ci->name, ci->team);
             if(ci->aireinit == 2)
             {
                 ci->reassign();

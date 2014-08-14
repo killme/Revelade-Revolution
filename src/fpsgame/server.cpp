@@ -246,7 +246,6 @@ namespace server
     {
         int clientnum, ownernum, connectmillis, sessionid, overflow;
         string name, team, mapvote;
-        int playermodel;
         int modevote;
         int privilege;
         bool connected, local, timesync;
@@ -346,7 +345,6 @@ namespace server
         void reset()
         {
             name[0] = team[0] = 0;
-            playermodel = -1;
             privilege = PRIV_NONE;
             connected = local = false;
             position.setsize(0);
@@ -1214,7 +1212,7 @@ namespace server
             N_EXPLODEFX, N_DIED, N_SPAWNSTATE, N_FORCEDEATH, N_ITEMACC, N_ITEMSPAWN, N_TIMEUP, N_CDIS,
             N_PONG, N_RESUME, N_BASESCORE, N_BASEINFO, N_BASEREGEN, N_ANNOUNCE,
             N_SENDDEMOLIST, N_SENDDEMO, N_DEMOPLAYBACK, N_SENDMAP, N_DROPFLAG, N_SCOREFLAG, N_RETURNFLAG,
-            N_RESETFLAG, N_INVISFLAG, N_CLIENT, N_AUTHCHAL, N_INITAI, N_SETONFIRE, N_SETCLASS,
+            N_RESETFLAG, N_INVISFLAG, N_CLIENT, N_AUTHCHAL, N_INITAI, N_SETONFIRE,
             N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_GUTS };
         if(ci)
         {
@@ -1427,7 +1425,7 @@ namespace server
             putint(p, ci->ownernum);
             putint(p, ci->state.aitype);
             putint(p, ci->state.skill);
-            putint(p, ci->playermodel);
+            putint(p, ci->state.playermodel);
             putint(p, ci->state.playerclass);
             sendstring(ci->name, p);
             sendstring(ci->team, p);
@@ -1438,7 +1436,7 @@ namespace server
             putint(p, ci->clientnum);
             sendstring(ci->name, p);
             sendstring(ci->team, p);
-            putint(p, ci->playermodel);
+            putint(p, ci->state.playermodel);
             putint(p, ci->state.playerclass);
         }
     }
@@ -2353,7 +2351,7 @@ namespace server
                             return;
                         }
 
-                        ci->playermodel = getint(p);
+                        ci->state.playermodel = getint(p);
                         ci->state.playerclass = getint(p);
 
                         if(m_demo) enddemoplayback();
@@ -2784,9 +2782,12 @@ namespace server
 
             case N_SWITCHMODEL:
             {
-                if(ci && ci->state.state == CS_DEAD)
+                int model = getint(p);
+                printf("switch model\n");
+                if(cq && cq->state.state == CS_DEAD)
                 {
-                    ci->playermodel = getint(p);
+                    cq->state.playermodel = model;
+                    QUEUE_AI;
                     QUEUE_MSG;
                 }
                 break;
@@ -2794,10 +2795,13 @@ namespace server
 
             case N_SWITCHCLASS:
             {
-                if(ci && ci->state.state == CS_DEAD)
+                int pclass = getint(p);
+                printf("switch class\n");
+                if(cq && cq->state.state == CS_DEAD)
                 {
-                    ci->state.playerclass = getint(p);
-                    sendf(-1, 1, "ri3", N_SETCLASS, ci->clientnum, ci->state.playerclass);
+                    cq->state.playerclass = pclass;
+                    QUEUE_AI;
+                    QUEUE_MSG;
                 }
                 break;
             }

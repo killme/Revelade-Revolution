@@ -1249,12 +1249,13 @@ namespace game
                 break;
             }
 
-            case N_SETCLASS:
+            case N_SWITCHCLASS:
             {
-                int ac = getint(p);
                 int pclass = getint(p);
-                fpsent *fac = getclient(ac);
-                if(ac) fac->playerclass = pclass;
+                if(d && d != player1)
+                {
+                    d->playerclass = pclass;
+                }
                 break;
             }
 
