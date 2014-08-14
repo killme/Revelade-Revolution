@@ -1088,7 +1088,7 @@ namespace ai
         fpsent *e = getclient(d->ai->enemy);
         if(!d->hasammo(d->gunselect) || !hasrange(d, e, d->gunselect) || (d->gunselect != d->ai->weappref && (!isgoodammo(d->gunselect) || d->hasammo(d->ai->weappref))))
         {
-            static const int gunprefs[] = { WEAP_MG, WEAP_ROCKETL, WEAP_SLUGSHOT, WEAP_SNIPER, WEAP_FLAMEJET, WEAP_CROSSBOW, WEAP_GRENADIER, WEAP_PISTOL, WEAP_FIST, WEAP_INFECTED, WEAP_BITE };
+            static const int gunprefs[] = { WEAP_PREF_ORDER };
             int gun = -1;
             if(d->hasammo(d->ai->weappref) && hasrange(d, e, d->ai->weappref)) gun = d->ai->weappref;
             else
@@ -1098,7 +1098,7 @@ namespace ai
                     gun = gunprefs[i];
                     break;
                 }
-                if (!d->hasammo(gun)) gun = d->ammo[WEAP_BITE] ? WEAP_BITE : (d->ammo[WEAP_INFECTED] ? WEAP_INFECTED : WEAP_FIST);
+                if (!d->hasammo(gun)) gun = WEAP_FALLBACK(d->ammo);
             }
             if(gun >= 0 && gun != d->gunselect) gunselect(gun, d);
         }
