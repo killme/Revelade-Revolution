@@ -399,6 +399,8 @@ VAR(mdldebug, 0 , 1, 1);
 VAR(mdldebug, 0 , 0, 1);
 #endif
 
+static hashtable<const char *, char *> warningsDisplayed;
+
 model *loadmodel(const char *name, int i, bool msg)
 {
     if(!name)
@@ -432,7 +434,13 @@ model *loadmodel(const char *name, int i, bool msg)
         {
             if(mdldebug)
             {
-                conoutf(CON_ERROR, "\frFailed to load model: \fo%s", name);
+                char **warning = warningsDisplayed.access(name);
+                if(warning == NULL)
+                {
+                    char *newWarning = newstring(name);
+                    warningsDisplayed[newWarning] = newWarning;
+                    conoutf(CON_ERROR, "\frFailed to load model: \fo%s", name);
+                }
             }
             return NULL;
         }
