@@ -221,7 +221,7 @@ namespace game
 
         playsoundname(sound->path /*, speaker != NULL ? &speaker->o : NULL*/);
 
-    if (speaker == NULL)
+        if (speaker == NULL)
         {
             defformatstring(text)("%s", sound->text);
             if(!teamonly)
@@ -234,7 +234,7 @@ namespace game
             }
 
             addmsg(teamonly ? N_RADIOTEAM: N_RADIOALL, "rs", soundName);
-            }
+        }
     }
 
     ICOMMAND(radioregister, "sss", (const char *name, const char *path, const char *text), registerRadioSound(name, path, text));
@@ -293,13 +293,13 @@ namespace game
         {
             case BA_AMMO:
             {
-                const playerclassinfo &pci = playerclasses[d->playerclass];
+                const playerclassinfo &pci = game::getplayerclassinfo(d);
                 loopi(WEAPONS_PER_CLASS) d->ammo[pci.weap[i]] = min(d->ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
                 break;
             }
             case BA_AMMOD:
             {
-                const playerclassinfo &pci = playerclasses[d->playerclass];
+                const playerclassinfo &pci = game::getplayerclassinfo(d);
                 loopi(WEAPONS_PER_CLASS) d->ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
                 break;
             }
@@ -1487,7 +1487,7 @@ namespace game
         glScalef(1/1.5f, 1/1.5f, 1);
         loopi(NUMWEAPS)
         {
-            int gun = (i+1)%NUMWEAPS, index = d->isInfected() ? HICON_ZOMBIE : weapons[gun].icon;
+            int gun = (i+1)%NUMWEAPS, index = weapons[gun].icon;
             if (!WEAP_USABLE(gun)) continue;
             if (gun == d->gunselect)
             {
@@ -1596,7 +1596,7 @@ namespace game
         {
             fpsent *o = sg->players[i];
             draw_textx("%d", x, y, 255, 255, 255, 244, TEXT_LEFT_JUSTIFY, -1, -1, o->frags);
-            draw_textx("%s: %s%s", x+450, y, 255, 255, 255, 244, TEXT_RIGHT_JUSTIFY, -1, -1, colorname(o), !strcmp(o->team, TEAM_0) ? "\fb" : "\fr", playerclasses[o->playerclass].name);
+            draw_textx("%s: %s%s", x+450, y, 255, 255, 255, 244, TEXT_RIGHT_JUSTIFY, -1, -1, colorname(o), !strcmp(o->team, TEAM_0) ? "\fb" : "\fr", game::getplayerclassinfo(o).name);
             y += step;
         }
 

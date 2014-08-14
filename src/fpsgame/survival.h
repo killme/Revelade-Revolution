@@ -67,10 +67,10 @@ static int bestenemy;
             sendf(-1, 1, "ri4", N_SURVSPAWNSTATE, clientnum, ztype, ownernum);
 
             const ::monster::MonsterType &t = ::monster::getMonsterType(ztype);
-            state.maxhealth = t.health;
+            state.maxhealth = t.classInfo.maxhealth;
             state.respawn();
             state.armour = 0;
-            state.ammo[t.gun] = 10000;
+            state.ammo[t.classInfo.weap[0]] = 10000;
         }
 #else
         void spawn(int _type, vec _pos)
@@ -95,16 +95,19 @@ static int bestenemy;
             move = 1;
             if (t.loyalty == 0) enemy = -1;
             else enemy = players[rnd(players.length())]->clientnum;
-            maxspeed = (float)t.speed*4;
-            maxhealth = health = t.health;
+            maxspeed = (float)t.classInfo.maxspeed*4;
+            maxhealth = health = t.classInfo.maxhealth;
             armour = 0;
-            ammo[t.gun] = 10000;
-            gunselect = t.gun;
+            loopi(WEAPONS_PER_CLASS)
+            {
+                ammo[t.classInfo.weap[i]] = 10000;
+            }
+            gunselect = t.classInfo.weap[0];
             pitch = 0;
             roll = 0;
             state = CS_ALIVE;
             anger = 0;
-            copystring(name, t.name);
+            copystring(name, t.classInfo.name);
             counts = true;
             lastshot = 0;
         }
@@ -214,7 +217,7 @@ static int bestenemy;
             if(blocked)                                                              // special case: if we run into scenery
             {
                 blocked = false;
-                if(!rnd(20000/zombieType.speed))                            // try to jump over obstackle (rare)
+                if(!rnd(20000/zombieType.classInfo.maxspeed))                            // try to jump over obstackle (rare)
                 {
                     jumping = true;
                 }
@@ -266,7 +269,7 @@ static int bestenemy;
                         lastaction = 0;
                         attacking = true;
                         if(rnd(100) < 20) attacktarget = enemyP->headpos();
-                        gunselect = zombieType.gun;
+                        gunselect = zombieType.classInfo.weap[0];
                         shoot(this, attacktarget);
                         transition(M_ATTACKING, !zombieType.loyalty, 600, 0);
                         lastshot = lastmillis;
@@ -285,7 +288,7 @@ static int bestenemy;
                         else 
                         {
                             bool melee = false, longrange = false;
-                            switch(zombieType.gun)
+                            switch(gunselect)
                             {
                                 case WEAP_BITE:
                                 case WEAP_FIST: melee = true; break;
@@ -452,10 +455,10 @@ int newround(bool force = false)
             {
                 modelattach vwep[2];
                 const ::monster::MonsterType &t = ::monster::getMonsterType(m.ztype);
-                vwep[0] = modelattach("tag_weapon", t.vwepname, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
+                vwep[0] = modelattach("tag_weapon", t.modelInfo.vwep, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
                 float fade = 1;
                 if(m.state==CS_DEAD) fade -= clamp(float(lastmillis - (m.lastpain + 9000))/1000, 0.0f, 1.0f);
-                renderclient(&m, t.mdlname, vwep, 0, m.zombiestate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
+                renderclient(&m, t.modelInfo.ffa, vwep, 0, m.zombiestate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
             }
         }
     }

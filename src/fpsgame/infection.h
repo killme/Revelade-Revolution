@@ -66,7 +66,13 @@ struct infectionclientmode : clientmode
     {
         return false;
     }
-    
+
+    void sendZombieState(clientinfo *victim, bool zombie = true)
+    {
+        sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomType()+1 : 0);
+        printf("Sending infected %i %i -> all\n", victim->clientnum, victim->state.infectedType);
+    }
+
     void makeZombie(clientinfo *victim, bool zombie = true)
     {
         extern void sendspawn(clientinfo *ci);
@@ -74,7 +80,7 @@ struct infectionclientmode : clientmode
         if(!victim) return;
         copystring(victim->team, zombie ? TEAM_1 : TEAM_0);
         aiman::changeteam(victim);
-        sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? 1 : 0); //TODO: pick random zombie type
+        sendZombieState(victim, zombie);
         sendf(-1, 1, "riisi", N_SETTEAM, victim->clientnum, victim->team, -1);
         sendf(-1, 1, "ri6", N_DIED, victim->clientnum, victim->clientnum, victim->state.frags, 0 /* reason */, 0);
 
@@ -109,7 +115,8 @@ struct infectionclientmode : clientmode
         {
             if(clients[i]->state.isInfected())
             {
-                putint(p, N_INITFLAGS);
+                printf("Sending infected %i %i -> %i\n", clients[i]->clientnum, clients[i]->state.infectedType, ci->clientnum);
+                putint(p, N_INFECT);
                 putint(p, clients[i]->clientnum);
                 putint(p, clients[i]->state.infectedType);
             }
@@ -260,6 +267,14 @@ struct infectionclientmode : clientmode
         else
         {
             newRound();
+        }
+    }
+
+    void onSpawn(clientinfo *victim)
+    {
+        if (!m_juggernaut && isteam(victim->team, TEAM_1))
+        {
+            sendZombieState(victim);
         }
     }
 

@@ -82,20 +82,6 @@ namespace game
     static const int NUMPLAYERMODELS = sizeof(playermodels)/sizeof(playermodels[0]);
     VARP(playermodel, 0, 1, NUMPLAYERMODELS - 1);
 
-    static const playermodelinfo zombiemodels[] =
-    {
-        { "playermodels/zombies/zombie1",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicb_64",  NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
-        { "playermodels/zombies/zombie2",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "zclassic",     NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
-        { "playermodels/zombies/zombie3",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicd_64",  NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
-        { "playermodels/zombies/zombie4",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "zjhon",        NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
-        { "playermodels/zombies/zombie5",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "classicc",     NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
-        { "playermodels/zombies/zombie6",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "skeleton_64",  NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
-        { "playermodels/zombies/zombie7",               NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "heavy_64",     NULL, NULL, false, true,        0.0f,   0.0f,   0.0f },
-        { "playermodels/zombies/juggernaut",            NULL, NULL, NULL, NULL, NULL, { NULL, NULL, NULL },     "juggernaut",   NULL, NULL, false, true,        7.0f,   22.0f,   3.0f },
-    };
-    
-    static const int NUMZOMBIEMODELS = sizeof(zombiemodels)/sizeof(zombiemodels[0]);
-
     int chooserandomplayermodel(int seed)
     {
         static int choices[sizeof(playermodels)/sizeof(playermodels[0])];
@@ -113,12 +99,12 @@ namespace game
 
     const playermodelinfo *getzombiemodelinfo(int n)
     {
-        return &zombiemodels[n % NUMZOMBIEMODELS];
+        return &::monster::getMonsterType(n).modelInfo;
     }
 
     const playermodelinfo &getplayermodelinfo(fpsent *d)
     {
-        const playermodelinfo *mdl = d->isInfected() ? getzombiemodelinfo(d->infectedType)
+        const playermodelinfo *mdl = d->isInfected() ? getzombiemodelinfo(d->getMonsterType())
                                                      : getplayermodelinfo(forceplayermodels && player1 ? player1->playermodel : d->playermodel);
 
         if(!mdl || (!mdl->selectable && !allplayermodels))
@@ -185,12 +171,7 @@ namespace game
             if(mdl->quad) preloadmodel(mdl->quad);
             loopj(3) if(mdl->armour[j]) preloadmodel(mdl->armour[j]);
         }
-        nummodels = sizeof(zombiemodels)/sizeof(zombiemodels[0]);
-        loopi(nummodels)
-        {
-            const playermodelinfo *mdl = getzombiemodelinfo(i);
-            if(mdl) preloadmodel(mdl->ffa);
-        }
+        ::monster::preloadMonsters();
     }
 
     VAR(testquad, 0, 0, 1);
@@ -252,7 +233,7 @@ namespace game
         }
         renderclient(d, mdlname, a[0].tag ? a : NULL, hold, attack, delay, lastaction, intermission && d->state!=CS_DEAD ? 0 : d->lastpain, fade, ragdoll && mdl.ragdoll, d==player1);
 
-        const playerclassinfo &pci = playerclasses[hudplayer()->playerclass];
+        const playerclassinfo &pci = game::getplayerclassinfo(hudplayer());
         if(pci.abilities & ABILITY_SEE_HEALTH && d->state == CS_ALIVE && !d->isInfected() && !hudplayer()->isInfected())
         {
             vec above(d->o);

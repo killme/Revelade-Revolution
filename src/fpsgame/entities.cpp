@@ -110,8 +110,11 @@ namespace entities
     void repammo(fpsent *d, int type, bool local)
     {
         itemstat &is = itemstats[type-I_AMMO];
-        const playerclassinfo &pci = playerclasses[d->playerclass];
-        loopi(WEAPONS_PER_CLASS) d->ammo[pci.weap[i]] = max(min(d->ammo[pci.weap[i]]+GUN_AMMO_ADD(pci.weap[i], is.info-1), GUN_AMMO_MAX(pci.weap[i])), 0);
+        const playerclassinfo &pci = game::getplayerclassinfo(d);
+        loopi(WEAPONS_PER_CLASS)
+        {
+            d->ammo[pci.weap[i]] = max(min(d->ammo[pci.weap[i]]+GUN_AMMO_ADD(pci.weap[i], is.info-1), GUN_AMMO_MAX(pci.weap[i])), 0);
+        }
         if(local) msgsound(is.sound);
     }
 

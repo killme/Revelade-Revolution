@@ -7,16 +7,67 @@ namespace monster
 {
     static const MonsterType monstertypes[] =
     {
-        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      11,     75, S_PAINB, S_DEATHB,  "zombie 1",             "playermodels/zombies/zombie1", NULL,           0},
-        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      11,     75, S_PAINB, S_DEATHB,  "zombie 2",             "playermodels/zombies/zombie2", NULL,           0},
-        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      11,     75, S_PAINR, S_DEATHR,  "zombie 3",             "playermodels/zombies/zombie3", NULL,           0},
-        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      10,     75, S_PAINR, S_DEATHR,  "zombie 4",             "playermodels/zombies/zombie4", NULL,           0},
-        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      10,     75, S_PAINH, S_DEATHH,  "zombie 5",             "playermodels/zombies/zombie5", NULL,           0},
-        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      12,     75, S_PAINH, S_DEATHH,  "zombie 6",             "playermodels/zombies/zombie6", NULL,           0},
-        { WEAP_BITE,        13, 180, 3, 0,      100,    400,    1,      13,     75, S_PAIND, S_DEATHD,  "zombie 7",             "playermodels/zombies/zombie7", NULL,           0},
-        { WEAP_BITE,        19,  40, 3, 0,      100,    400,    1,      4,      10, S_PAINR, S_DEATHR,  "rat",                  "playermodels/zombies/rat",     NULL,           MONSTER_TYPE_TRAIT_RAT},
-        { WEAP_SLUGSHOT,    13, 200, 0, 0,      2,      400,    0,      13,     75, S_PAIN4, S_DIE2,    "support trooper sg",   "ogro2",                        "ogro/vwep",    0},
-        { WEAP_ROCKETL,     13, 200, 0, 0,      2,      400,    0,      13,     75, S_PAIN4, S_DIE2,    "support trooper rl",   "ogro2",                        "ogro/vwep",    0},
+        {
+            //PlayerClassInfo:
+            //weap[4]                                       health, armourtype, armour, maxspeed,   name,       abilities
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 1", 0},
+            // freq,    lag,    rate,   pain,   loyalty,    bscale, weight, painsound,  diesound, traits, 
+               3,       0,      100,    400,    1,          11,     75,     S_PAINB,    S_DEATHB, 0,
+            //ModelInfo:
+            // ffa,                             blueteam,   redteam,    hudguns,    vwep,   quad,   armour[3],              ffaicon,        blueicon,   redicon,    ragdoll,    selectable, radius, eyeheight,  aboveeye
+            { "playermodels/zombies/zombie1",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicb_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        {
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 2", 0},
+               3,       0,      100,    400,    1,          11,     75,     S_PAINB,    S_DEATHB, 0,
+            { "playermodels/zombies/zombie2",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zclassic",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        { 
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 3", 0},
+               3,       0,      100,    400,    1,          11,     75,     S_PAINR,    S_DEATHR, 0,
+            { "playermodels/zombies/zombie3",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicd_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        { 
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 4", 0},
+               3,       0,      100,    400,    1,          10,     75,     S_PAINR,    S_DEATHR, 0,
+            { "playermodels/zombies/zombie4",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zjhon",        NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        { 
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 5", 0},
+               3,       0,      100,    400,    1,          10,     75,     S_PAINH,    S_DEATHH, 0,
+            { "playermodels/zombies/zombie5",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicc",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        {
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 6", 0},
+               3,       0,      100,    400,    1,          12,     75,     S_PAINH,    S_DEATHH, 0,
+            { "playermodels/zombies/zombie6",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "skeleton_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        {
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 7", 0},
+               3,       0,      100,    400,    1,          13,     75,     S_PAIND,    S_DEATHD, 0,
+            { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        {
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 40,     0,          0,      52,         "rat",      0},
+               3,       0,      100,    400,    1,          4,      10,     S_PAINR,    S_DEATHR,  MONSTER_TYPE_TRAIT_RAT,
+            { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+        },
+        {
+            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 400,    A_YELLOW,   100,    28,         "juggernaut", 0},
+               0,       0,      100,    400,    1,          11,     100,    S_PAINH,    S_DEATHH, MONSTER_TYPE_TRAIT_BOSS,
+            { "playermodels/zombies/juggernaut",NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "juggernaut",   NULL,       NULL,       false,      true,       7.0f,   22.0f,      3.0f },
+        }
+        /* TODO
+        { 
+            //  gun,        speed   health, freq, lag, rate, pain, loyalty, bscale, weight, painsound, diesound, name, *mdlname, *vwepname uchar traits; playermodelinfo
+            WEAP_SLUGSHOT,  13,     200, 0, 0,      2,      400,    0,      13,     75, S_PAIN4, S_DIE2,    "support trooper sg",   "ogro2",                        "ogro/vwep",    0,
+            {}
+        },
+        { 
+            //  gun,        speed   health, freq, lag, rate, pain, loyalty, bscale, weight, painsound, diesound, name, *mdlname, *vwepname uchar traits; playermodelinfo
+            WEAP_ROCKETL,   13,     200, 0, 0,      2,      400,    0,      13,     75, S_PAIN4, S_DIE2,    "support trooper rl",   "ogro2",                        "ogro/vwep",    0,
+            {}
+        },*/
     };
 
     const int NUMMONSTERTYPES = sizeof(monstertypes)/sizeof(monstertypes[0]);
@@ -82,7 +133,7 @@ namespace monster
     {
         loopi(NUMMONSTERTYPES)
         {
-            preloadmodel(monstertypes[i].mdlname);
+            preloadmodel(monstertypes[i].modelInfo.ffa);
         }
     }
 #endif
@@ -143,16 +194,16 @@ namespace game
             move = _move;
             if (t.loyalty == 0) enemy = NULL;
             else enemy = player1;
-            gunselect = t.gun;
-            maxspeed = (float)t.speed*(4+(level*level*0.1));
-            health = t.health;
+            gunselect = t.classInfo.weap[0];
+            maxspeed = ((float)t.classInfo.maxspeed/4)*(4+(level*level*0.1));
+            health = t.classInfo.maxhealth;
             armour = 0;
             loopi(NUMWEAPS) ammo[i] = 10000;
             pitch = 0;
             roll = 0;
             state = CS_ALIVE;
             anger = 0;
-            copystring(name, t.name);
+            copystring(name, t.classInfo.name);
             counts = true;
             lastshot = 0;
         }
@@ -217,7 +268,7 @@ namespace game
             if(blocked)                                                              // special case: if we run into scenery
             {
                 blocked = false;
-                if(!rnd(20000/monsterType.speed))                            // try to jump over obstackle (rare)
+                if(!rnd(20000/(monsterType.classInfo.maxspeed/4)))                            // try to jump over obstackle (rare)
                 {
                     jumping = true;
                 }
@@ -284,7 +335,7 @@ namespace game
                         else 
                         {
                             bool melee = false, longrange = false;
-                            switch(monsterType.gun)
+                            switch(gunselect)
                             {
                                 case WEAP_BITE:
                                 case WEAP_FIST: melee = true; break;
@@ -544,14 +595,14 @@ namespace game
             {
                 const ::monster::MonsterType &monsterType = ::monster::getMonsterType(m.mtype);
                 modelattach vwep[2];
-                if(monsterType.vwepname)
+                if(monsterType.modelInfo.vwep)
                 {
-                    vwep[0] = modelattach("tag_weapon", monsterType.vwepname, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
+                    vwep[0] = modelattach("tag_weapon", monsterType.modelInfo.vwep, ANIM_VWEP_IDLE|ANIM_LOOP, 0);
                 }
 
                 float fade = 1;                
                 if(m.state==CS_DEAD) fade -= clamp(float(lastmillis - (m.lastpain + 9000))/1000, 0.0f, 1.0f);
-                renderclient(&m, monsterType.mdlname, vwep[0].tag ? vwep : NULL, 0, m.monsterstate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
+                renderclient(&m, monsterType.modelInfo.ffa, vwep[0].tag ? vwep : NULL, 0, m.monsterstate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
             }
         }
     }

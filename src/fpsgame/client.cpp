@@ -1681,6 +1681,7 @@ namespace game
                 {
                     t->infectedType = type;
                 }
+                break;
             }
 
             case N_RADIOALL:

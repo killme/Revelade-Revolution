@@ -86,31 +86,62 @@ enum {
 };
 
 
+#define WEAPONS_PER_CLASS            4
+
+struct playerclassinfo
+{
+    short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed;
+    const char* name;
+    int abilities;
+};
+
+struct playermodelinfo
+{
+    const char *ffa, *blueteam, *redteam, *hudguns,
+    *vwep, *quad, *armour[3],
+    *ffaicon, *blueicon, *redicon;
+    bool ragdoll, selectable;
+    float radius, eyeheight, aboveeye;
+};
+
+struct fpsent;
+struct fpsstate;
+
+namespace game
+{
+    //TODO: move playermodel info to fpsstate
+    extern const playermodelinfo &getplayermodelinfo(fpsent *);
+    extern const playerclassinfo &getplayerclassinfo(fpsstate *);
+};
+
+
 namespace monster
 {
     //const ::monster::MonsterType &monsterType = ::monster::getMonsterType(mtype);
     enum TypeTraitFlags
     {
         MONSTER_TYPE_TRAIT_RAT  = 1 << 0,
+        MONSTER_TYPE_TRAIT_BOSS = 1 << 1,
     };
 
     struct MonsterType      // see docs for how these values modify behaviour
     {
-        short gun, speed, health, freq, lag, rate, pain, loyalty, bscale, weight;
+        playerclassinfo classInfo;
+        short freq, lag, rate, pain, loyalty, bscale, weight;
         short painsound, diesound;
-        const char *name, *mdlname, *vwepname;
         uchar traits;
+        playermodelinfo modelInfo;
     };
 
     extern const int NUMMONSTERTYPES;
     static const int TOTMFREQ = 14;
 
-    const MonsterType &getMonsterType(int);
-    bool isValidMonsterType(int);
-    void preloadMonsters();
+    extern const MonsterType &getMonsterType(int);
+    extern bool isValidMonsterType(int);
+    extern void preloadMonsters();
 
-    int getRandomTypeWithTrait(int);
-    int getRandomType();
+    extern int getRandomTypeWithTrait(int);
+    extern int getRandomType();
 }
 
 enum
@@ -720,15 +751,6 @@ static struct itemstat { int add, max, sound; const char *name; int icon, info; 
     {20000, 30000, S_ITEMPUP,     "Q", HICON_QUAD},
 };
 
-struct playermodelinfo
-{
-    const char *ffa, *blueteam, *redteam, *hudguns,
-    *vwep, *quad, *armour[3],
-    *ffaicon, *blueicon, *redicon;
-    bool ragdoll, selectable;
-    float radius, eyeheight, aboveeye;
-};
-
 #include "weapons.h"
 
 #include "ai.h"
@@ -743,6 +765,8 @@ struct fpsstate
     int ammo[NUMWEAPS];
     int aitype, skill;
     int playerclass, guts; // regenmillis;
+
+    //infectedType = monsterTypeID + 1
     int infectedType;
 
     fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(0), guts(0), infectedType(0) {}
@@ -763,10 +787,18 @@ struct fpsstate
         return infectedType > 0;
     }
 
+    int getMonsterType()
+    {
+        return infectedType - 1;
+    }
+
     bool hasmaxammo()
     {
-        const playerclassinfo &pci = playerclasses[playerclass];
-        loopi(WEAPONS_PER_CLASS) if (ammo[pci.weap[i]]<GUN_AMMO_MAX(pci.weap[i])) return true;
+        const playerclassinfo &pci = game::getplayerclassinfo(this);
+        loopi(WEAPONS_PER_CLASS)
+        {
+            if (ammo[pci.weap[i]]<GUN_AMMO_MAX(pci.weap[i])) return true;
+        }
         return false;
     }
 
@@ -813,7 +845,7 @@ struct fpsstate
                 break;
             default:
             {
-                const playerclassinfo &pci = playerclasses[playerclass];
+                const playerclassinfo &pci = game::getplayerclassinfo(this);
                 loopi(WEAPONS_PER_CLASS)
                 {
                     ammo[pci.weap[i]] = max(min(ammo[pci.weap[i]]+max(ammo[pci.weap[i]] < 1 ? 1 : 0, GUN_AMMO_ADD(pci.weap[i], is.info-1)), GUN_AMMO_MAX(pci.weap[i])), 0);
@@ -846,12 +878,12 @@ struct fpsstate
         }
         else if(m_classes && !m_efficiency)
         {
-            const playerclassinfo &pci = isInfected() ? (m_juggernaut ? juggernautpci : zombiepci) : playerclasses[playerclass];
+            const playerclassinfo &pci = game::getplayerclassinfo(this);
             loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = GUN_AMMO_ADD(pci.weap[i],1);
             health = maxhealth = pci.maxhealth;
             armourtype = pci.armourtype;
             armour = pci.armour;
-            gunselect = isInfected() ? WEAP_FIST : playerclasses[playerclass].weap[0];
+            gunselect = pci.weap[0];
         }
         else if(m_insta)
         {
@@ -866,12 +898,12 @@ struct fpsstate
         }
         else if(m_efficiency)
         {
-            const playerclassinfo &pci = isInfected() ? zombiepci: playerclasses[playerclass];
+            const playerclassinfo &pci = game::getplayerclassinfo(this);
             loopi(WEAPONS_PER_CLASS) ammo[pci.weap[i]] = 999;
             health = maxhealth = pci.maxhealth;
             armourtype = pci.armourtype;
             armour = pci.armour;
-            gunselect = isInfected() ? WEAP_FIST: playerclasses[playerclass].weap[0];
+            gunselect = pci.weap[0];
         }
         //else if(m_regencapture)
         //{
@@ -916,15 +948,8 @@ struct fpsstate
 
     int hasammo(int gun, int exclude = -1)
     {
-        return gun >= 0 && gun <= NUMWEAPS && gun != exclude && ammo[gun] > 0;
+        return gun >= 0 && gun < NUMWEAPS && gun != exclude && ammo[gun] > 0;
     }
-};
-
-struct fpsent;
-
-namespace game
-{
-    extern const playermodelinfo &getplayermodelinfo(fpsent *);
 };
 
 struct fpsent : dynent, fpsstate
@@ -1007,8 +1032,7 @@ struct fpsent : dynent, fpsstate
     {
         dynent::reset();
         fpsstate::respawn();
-        if (m_classes) maxspeed = (isInfected() ? (m_juggernaut ? juggernautpci : zombiepci) : playerclasses[playerclass]).maxspeed;
-        else maxspeed = 100;
+        maxspeed = !m_classes ? 100 : game::getplayerclassinfo(this).maxspeed;
         if(!m_infection) infectedType = 0;
         respawned = suicided = -1;
         lastaction = 0;

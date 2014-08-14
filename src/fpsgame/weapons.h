@@ -20,7 +20,10 @@ enum
     WEAP_BITE,
     WEAP_BARREL,
     WEAP_INSANITY,
-    NUMWEAPS
+
+    NUMWEAPS,
+    WEAP_NONE = NUMWEAPS,
+    WEAP_USABLE_LAST = WEAP_BITE,
 };
 
 enum parttypes
@@ -160,7 +163,7 @@ static const struct weapinfo {
         projtype, projmdl, projspeed, projradius, projgravity, projlife, projfree, decal; float decalsize, muzzlelightsize, quakemul; vec color; uchar projparts[4];
     short sound2, looping2, icon2, attackdelay2, kickamount2, range2, power2, damage2, numrays2, offset2, numshots2, // altfire
         projtype2, projmdl2, projspeed2, projradius2, projgravity2, projlife2, projfree2, decal2; float decalsize2, muzzlelightsize2, quakemul2; vec color2; uchar projparts2[4];
-    short id; const char *name, *file, *emptyFile; bool scoped, autodown; } weapons[NUMWEAPS] =
+    short id; const char *name, *file, *emptyFile; bool scoped, autodown; } weapons[] =
 {
     //  sound                   lp      icon            atckdly kick    range   power   damage  numrays offset  numshots        projtype                        mdl     prjspd  rad     gvt     prjlife -free   decal           dclsz   mzllsz  quakem  color           projparts
     //  id              name,           file,           empty file      scoped, autodown
@@ -208,12 +211,12 @@ static const struct weapinfo {
         S_PISTOL,               0,      HICON_PISTOL,   500,    7,      1024,   80,     10,     3,      1,      2,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      DECAL_BULLET,   2.0f,   15.0f,  1.0f,   vec(0.5f, 0.375f, 0.25f),       {PP_MUZZLE_FLASH_5, PP_STREAK_FLARE_2, 0, PP_SPARK_SPLASH_1 },
         WEAP_PISTOL,    "Pistol",       "pistol",       NULL,           false,  false },
 
-    {   S_PIGR1,                0,      HICON_BITE,     250,    1,      14,     0,      12,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
-        S_PIGR1,                0,      HICON_BITE,     500,    1,      14,     0,      50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+    {   S_PIGR1,                0,      HICON_BITE,     250,    1,      14,     198,    12,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+        S_PIGR1,                0,      HICON_BITE,     500,    1,      14,     198,    50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
         WEAP_INFECTED,  "Infected",     NULL,           NULL,           false,  false },
 
-    {   S_PIGR1,                0,      HICON_BITE,     250,    1,      12,     0,      12,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
-        S_PIGR1,                0,      HICON_BITE,     500,    1,      12,     0,      50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+    {   S_PIGR1,                0,      HICON_BITE,     250,    1,      12,     198,    12,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
+        S_PIGR1,                0,      HICON_BITE,     500,    1,      12,     198,    50,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
         WEAP_BITE,      "Bite",         NULL,           NULL,           false,  false },
 
     {   -1,                     0,      HICON_BARREL,   0,      0,      0,      0,      120,    1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0 },
@@ -222,7 +225,11 @@ static const struct weapinfo {
 
     {   -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
         -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      20,     1,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
-        WEAP_INSANITY,  "Insanity",     NULL,           NULL,           false,  false }
+        WEAP_INSANITY,  "Insanity",     NULL,           NULL,           false,  false },
+
+    {   -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      0,      0,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
+        -1,                     0,      HICON_INSANITY, 0,      0,      0,      0,      0,      0,      0,      0,              PJ_RAY,                         0,      0,      0,      0,      0,      0,      -1,             0.0f,   0.0f,   1.0f,   vec(0,0,0),                     {0, 0, 0, 0},
+        WEAP_NONE,      "None",         NULL,           NULL,           false,  false }
 };
 
 
@@ -277,11 +284,10 @@ static const struct weapinfo {
 #define WEAP_IS_SPECIAL(gun)        (WEAP_PROJTYPE(gun)==PJ_SPECIAL)
 #define WEAP_IS_INSANITY(gun)        (WEAPONI(gun)==WEAP_INSANITY)
 
-#define WEAP_VALID(gun)                (WEAPONI(gun)>=0&&WEAPONI(gun)<=NUMWEAPS)
-#define WEAP_USABLE(gun)            (WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_PISTOL)
+#define WEAP_VALID(gun)                (WEAPONI(gun)>=0&&WEAPONI(gun)<NUMWEAPS)
+#define WEAP_USABLE(gun)            (WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_USABLE_LAST)
 #define WEAP_USABLE_ZOMBIE(gun)            (WEAPONI(gun)==WEAP_INFECTED)
 
-#define WEAPONS_PER_CLASS            4
 #define MORTAR_MAX_AMMO                2
 
 #define WEAP_MAX_IRSM                   3000
@@ -301,43 +307,10 @@ enum Abilities
     ABILITY_SEE_HEALTH = 1 << 0,
 };
 
-static const struct playerclassinfo { short weap[WEAPONS_PER_CLASS], maxhealth, armourtype, armour, maxspeed; const char* name; int abilities; } playerclasses[NUMPCS] =
-{
-    //  weap[0]         weap[1]         weap[2]         weap[3]                 maxhealth       armourtype      armour maxspeed name
-    {   {WEAP_SNIPER,   WEAP_MG,        WEAP_GRENADIER, WEAP_FIST},             90,             A_GREEN,        50,    80,      "Offense",      0},
-    {   {WEAP_ROCKETL,  WEAP_SLUGSHOT,  WEAP_PISTOL,    WEAP_FIST},             80,             A_YELLOW,       60,    75,      "Defense",      0},
-    //  { {WEAP_MG,     WEAP_ROCKETL},                          110,            A_YELLOW,       70,    65,      "Heavy"},
-    {   {WEAP_FLAMEJET, WEAP_CROSSBOW,  WEAP_PISTOL,    WEAP_FIST},             70,             A_BLUE,         25,    115,     "Stealth",      0},
-    {   {WEAP_CROSSBOW, WEAP_HEALER,    WEAP_PISTOL,    WEAP_FIST},             60,             A_GREEN,        50,    100,     "Medic",        ABILITY_SEE_HEALTH}, // WEAP_BUILD
-};
+bool canshootwith(fpsstate *d, int gun, int gamemode, bool checkAmmo = false);
 
-static const playerclassinfo zombiepci = {
-    //  weap[0]         weap[1]         weap[2]                         maxhealth       armourtype      armour maxspeed name
-    {WEAP_BITE,     WEAP_BITE,      WEAP_BITE,      WEAP_BITE},         100,            A_BLUE,         50,    100,    "Zombie"
-};
 
-static const playerclassinfo juggernautpci = {
-    //  weap[0]         weap[1]         weap[2]                         maxhealth       armourtype      armour maxspeed name
-    {WEAP_BITE,     WEAP_BITE,      WEAP_BITE,      WEAP_BITE},         500,            A_YELLOW,       200,   50,     "Juggernaut"
-};
-
-inline bool canshootwith(int playerclass, int gun, int gamemode)
-{
-    const playerclassinfo &pci = playerclasses[playerclass];
-    if (m_classes) loopi(WEAPONS_PER_CLASS) if (pci.weap[i] == WEAPONI(gun)) return true;
-    return false;
-}
-
-inline bool canshootwith(const int playerclass, const int gun, const int gamemode, const bool infected, const int *ammo)
-{
-    if (m_infection && infected) return WEAP_USABLE_ZOMBIE(gun);
-    if (!WEAP_USABLE(gun)) return false;
-    const playerclassinfo &pci = playerclasses[playerclass];
-    if (m_classes) loopi(WEAPONS_PER_CLASS) if (pci.weap[i] == WEAPONI(gun)) return ammo[WEAPONI(gun)]!=0;
-    return ammo[WEAPONI(gun)]!=0;
-}
-
-#define CAN_SHOOT_WITH(d,gun) (d->aitype == AI_ZOMBIE? true: canshootwith(d->playerclass, gun, gamemode, d->isInfected(), d->ammo))
-#define CAN_SHOOT_WITH2(d,gun) (d.aitype == AI_ZOMBIE? true: canshootwith(d.playerclass, gun, gamemode, d.isInfected(), d.ammo))
+#define CAN_SHOOT_WITH(d,gun) (d->aitype == AI_ZOMBIE? true: canshootwith( d, gun, gamemode))
+#define CAN_SHOOT_WITH2(d,gun) (d.aitype == AI_ZOMBIE? true: canshootwith(&d, gun, gamemode))
 
 #endif // WEAPONS_H_INCLUDED

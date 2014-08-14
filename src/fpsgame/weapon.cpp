@@ -4,8 +4,47 @@
 
 VARP(quakemillis, 0, 400, 10000);
 
+bool canshootwith(fpsstate *d, int gun, int gamemode, bool checkAmmo)
+{
+    const playerclassinfo &pci = game::getplayerclassinfo(d);
+    if (m_classes)
+    {
+        loopi(WEAPONS_PER_CLASS)
+        {
+            if (pci.weap[i] == WEAPONI(gun))
+            {
+                return !checkAmmo || d->ammo[WEAPONI(gun)] > 0;
+            }
+        }
+    }
+    return false;
+}
+
+
 namespace game
 {
+    static const playerclassinfo playerclasses[NUMPCS] =
+    {
+        //  weap[0]         weap[1]         weap[2]         weap[3]                 maxhealth       armourtype      armour maxspeed name
+        {   {WEAP_SNIPER,   WEAP_MG,        WEAP_GRENADIER, WEAP_FIST},             90,             A_GREEN,        50,    80,      "Offense",      0},
+        {   {WEAP_ROCKETL,  WEAP_SLUGSHOT,  WEAP_PISTOL,    WEAP_FIST},             80,             A_YELLOW,       60,    75,      "Defense",      0},
+        //  { {WEAP_MG,     WEAP_ROCKETL},                          110,            A_YELLOW,       70,    65,      "Heavy"},
+        {   {WEAP_FLAMEJET, WEAP_CROSSBOW,  WEAP_PISTOL,    WEAP_FIST},             70,             A_BLUE,         25,    115,     "Stealth",      0},
+        {   {WEAP_CROSSBOW, WEAP_HEALER,    WEAP_PISTOL,    WEAP_FIST},             60,             A_GREEN,        50,    100,     "Medic",        ABILITY_SEE_HEALTH}, // WEAP_BUILD
+    };
+
+    const playerclassinfo &getplayerclassinfo(fpsstate *ent)
+    {
+        if(ent->isInfected())
+        {
+            return ::monster::getMonsterType(ent->getMonsterType()).classInfo;
+        }
+        else
+        {
+            ASSERT(0 <= ent->playerclass && ent->playerclass < NUMPCS);
+            return playerclasses[ent->playerclass % NUMPCS];
+        }
+    }
 #ifndef STANDALONE
     static const int MONSTERDAMAGEFACTOR = 4;
     static const int OFFSETMILLIS = 500;
@@ -996,7 +1035,7 @@ namespace game
 
     void shoot(fpsent *d, const vec &targ)
     {
-        int prevaction = d->lastaction, attacktime = lastmillis-prevaction, gun = (d->isInfected() ? WEAP_INFECTED : d->gunselect) +(d->altfire?1024:0);
+        int prevaction = d->lastaction, attacktime = lastmillis-prevaction, gun = d->gunselect +(d->altfire?1024:0);
 
         if (allowedweaps != 0)
         {
@@ -1294,9 +1333,9 @@ namespace game
             obstacles.avoidnear(NULL, bnc.o.z + WEAP(bnc.gun,projradius) + 1, bnc.o, radius + WEAP(bnc.gun,projradius));
         }
     }
-    #define GET_PCI(i) ((i >= 0 && i<NUMPCS) ? playerclasses[i] : zombiepci)
+    #define GET_PCI(i) ((i >= 0 && i<NUMPCS) ? playerclasses[i] : ::monster::getMonsterType(i-NUMPCS).classInfo)
     #define GET_PCI_WEAP_ID(pci, i) (i >= 0 && i < WEAPONS_PER_CLASS ? pci.weap[i] : 0)
-    #define GET_WEAP(i) (i >= 0 && i<NUMWEAPS ? weapons[i] : weapons[0])
+    #define GET_WEAP(i) (i >= 0 && i<=NUMWEAPS ? weapons[i] : weapons[0])
 
     ICOMMAND(getplayerclassnum, "", (), intret(NUMPCS));
     ICOMMAND(getplayerclassname, "i", (int *i), result(GET_PCI(*i).name));

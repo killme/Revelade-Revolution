@@ -598,6 +598,8 @@ namespace server
         virtual bool extinfoteam(const char *team, ucharbuf &p) { return false; }
         virtual clientinfo *getcinfo(int n) { return NULL; }
 
+        virtual void onSpawn(clientinfo *victim) {}
+
         virtual void buildworldstate(worldstate &ws) { }
         virtual bool shouldBalanceBots(bool botbalance) { return botbalance; }
     };
@@ -1784,7 +1786,7 @@ namespace server
             if (m_survival && target->state.aitype==AI_ZOMBIE)
             {
                 const ::monster::MonsterType &zt = ::monster::getMonsterType(((zombie*)target)->ztype);
-                actor->state.guts += zt.health/zt.freq*2;
+                actor->state.guts += zt.classInfo.maxhealth/zt.freq*2;
                 sendf(actor->ownernum, 1, "ri3", N_GUTS, actor->clientnum, actor->state.guts);
             }
             target->state.deaths++;
@@ -2634,6 +2636,7 @@ namespace server
                     cq->state.respawn();
                 }
                 cleartimedevents(cq);
+                if (smode) smode->onSpawn(cq);
                 sendspawn(cq);
                 break;
 
@@ -3253,14 +3256,14 @@ namespace server
                     {
                         case game::BA_AMMO:
                         {
-                            const playerclassinfo &pci = playerclasses[gs.playerclass];
+                            const playerclassinfo &pci = game::getplayerclassinfo(&gs);
                             loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = min(gs.ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
                             break;
                         }
 
                         case game::BA_AMMOD:
                         {
-                            const playerclassinfo &pci = playerclasses[gs.playerclass];
+                            const playerclassinfo &pci = game::getplayerclassinfo(&gs);
                             loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
                             break;
                         }

@@ -88,8 +88,8 @@ namespace ai
 
     bool canshoot(fpsent *d, fpsent *e)
     {
-        if((d->isInfected() || weaprange(d, d->gunselect, e->o.squaredist(d->o))) && targetable(d, e))
-            return (d->isInfected() || d->ammo[d->gunselect] > 0) && lastmillis - d->lastaction >= d->gunwait;
+        if((weaprange(d, d->gunselect, e->o.squaredist(d->o))) && targetable(d, e))
+            return d->ammo[d->gunselect] > 0 && lastmillis - d->lastaction >= d->gunwait;
         return false;
     }
 
@@ -102,7 +102,7 @@ namespace ai
     { // add margins of error
         if(weaprange(d, d->gunselect, dist) || (d->skill <= 100 && !rnd(d->skill)))
         {
-            if(d->gunselect == WEAP_FIST) return true;
+            if(d->gunselect == WEAP_FIST || d->gunselect == WEAP_INFECTED) return true;
             float skew = clamp(float(lastmillis-d->ai->enemymillis)/float((d->skill*weapons[d->gunselect].attackdelay/200.f)), 0.f, weapons[d->gunselect].projspeed ? 0.25f : 1e16f),
             offy = yaw-d->yaw, offp = pitch-d->pitch;
             if(offy > 180) offy -= 360;
@@ -326,7 +326,7 @@ namespace ai
 
     bool defend(fpsent *d, aistate &b, const vec &pos, float guard, float wander, int walk)
     {
-        bool hasenemy = enemy(d, b, pos, wander, d->gunselect == WEAP_FIST);
+        bool hasenemy = enemy(d, b, pos, wander, d->gunselect == WEAP_FIST || d->gunselect == WEAP_INFECTED);
         if(!walk)
         {
             if(d->feetpos().squaredist(pos) <= guard*guard)
@@ -532,7 +532,7 @@ namespace ai
         if(d->ai && canmove(d) && targetable(d, e)) // see if this ai is interested in a grudge
         {
             aistate &b = d->ai->getstate();
-            if(violence(d, b, e, d->gunselect == WEAP_FIST)) return;
+            if(violence(d, b, e, d->gunselect == WEAP_FIST || d->gunselect == WEAP_INFECTED)) return;
         }
         if(checkothers(targets, d, AI_S_DEFEND, AI_T_PLAYER, d->clientnum, true))
         {
@@ -541,7 +541,7 @@ namespace ai
                 fpsent *t = getclient(targets[i]);
                 if(!t->ai || !canmove(t) || !targetable(t, e)) continue;
                 aistate &c = t->ai->getstate();
-                if(violence(t, c, e, d->gunselect == WEAP_FIST)) return;
+                if(violence(t, c, e, d->gunselect == WEAP_FIST || d->gunselect == WEAP_INFECTED)) return;
             }
         }
     }
@@ -713,7 +713,7 @@ namespace ai
                     if(e && e->state == CS_ALIVE)
                     {
                         float guard = SIGHTMIN, wander = weapons[d->gunselect].range;
-                        if(d->gunselect == WEAP_FIST) guard = 0.f;
+                        if(d->gunselect == WEAP_FIST  || d->gunselect == WEAP_INFECTED) guard = 0.f;
                         return patrol(d, b, e->feetpos(), guard, wander) ? 1 : 0;
                     }
                     break;
@@ -916,7 +916,7 @@ namespace ai
 
     bool lockon(fpsent *d, fpsent *e, float maxdist)
     {
-        if(d->gunselect == WEAP_FIST && !d->blocked && !d->timeinair)
+        if((d->gunselect == WEAP_FIST || d->gunselect == WEAP_INFECTED) && !d->blocked && !d->timeinair)
         {
             vec dir = vec(e->o).sub(d->o);
             float xydist = dir.x*dir.x+dir.y*dir.y, zdist = dir.z*dir.z, mdist = maxdist*maxdist, ddist = d->radius*d->radius+e->radius*e->radius;
@@ -956,13 +956,13 @@ namespace ai
             {
                 if(targetable(d, f))
                 {
-                    if(!enemyok) violence(d, b, f, d->gunselect == WEAP_FIST);
+                    if(!enemyok) violence(d, b, f, d->gunselect == WEAP_FIST  || d->gunselect == WEAP_INFECTED);
                     enemyok = true;
                     e = f;
                 }
                 else enemyok = false;
             }
-            else if(!enemyok && target(d, b, d->gunselect == WEAP_FIST, false, SIGHTMIN))
+            else if(!enemyok && target(d, b, d->gunselect == WEAP_FIST  || d->gunselect == WEAP_INFECTED, false, SIGHTMIN))
                 enemyok = (e = getclient(d->ai->enemy)) != NULL;
         }
         if(enemyok)
@@ -1091,7 +1091,7 @@ namespace ai
                     gun = gunprefs[i];
                     break;
                 }
-                if (!d->hasammo(gun)) gun = WEAP_FIST;
+                if (!d->hasammo(gun)) gun = d->ammo[WEAP_INFECTED] ? WEAP_INFECTED : WEAP_FIST;
             }
             if(gun >= 0 && gun != d->gunselect) gunselect(gun, d);
         }
@@ -1173,7 +1173,7 @@ namespace ai
         {
             if(allowmove)
             {
-                if(!request(d, b)) target(d, b, d->gunselect == WEAP_FIST, b.idle ? true : false);
+                if(!request(d, b)) target(d, b, d->gunselect == WEAP_FIST || d->gunselect == WEAP_INFECTED, b.idle ? true : false);
                 shoot(d, d->ai->target);
             }
             if(!intermission)

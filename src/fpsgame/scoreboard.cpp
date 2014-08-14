@@ -283,7 +283,10 @@ namespace game
 
                     gtextscale /= 1.5;
                         //g.textf("<none>", 0xFFFFDD, NULL, 10); //TODO: clantag
-                        if (m_classes) g.textf("%s", 0xFFFFDD, NULL, o->isInfected() ? "zombie" : playerclasses[o->playerclass].name);
+                        if (m_classes)
+                        {
+                            g.textf("%s", 0xFFFFDD, NULL, game::getplayerclassinfo(o).name);
+                        }
                     gtextscale *= 1.5;
                 g.poplist();
             });
