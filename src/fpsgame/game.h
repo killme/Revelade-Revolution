@@ -766,7 +766,7 @@ struct fpsstate
     int armour, armourtype;
     int quadmillis;
     int gunselect, gunwait, hudgun;
-    int ammo[NUMWEAPS];
+    int ammo[NUMWEAPS+1];//+1 -> WEAP_NONE TODO: find a cleaner way of doing this
     int aitype, skill;
     int playerclass, playermodel;
     int guts; // regenmillis;
@@ -868,7 +868,7 @@ struct fpsstate
         quadmillis = 0;
         gunselect = WEAP_PISTOL;
         gunwait = 0;
-        loopi(NUMWEAPS) ammo[i] = 0;
+        loopi(NUMWEAPS+1) ammo[i] = 0;
         hudgun = gunselect;
     }
 

@@ -15,7 +15,7 @@ namespace monster
                3,       0,      100,    400,    1,          11,     75,     S_PAINB,    S_DEATHB, 0,
             //ModelInfo:
             // ffa,                             blueteam,   redteam,    hudguns,    vwep,   quad,   armour[3],              ffaicon,        blueicon,   redicon,    ragdoll,    selectable, radius, eyeheight,  aboveeye
-            { "playermodels/zombies/zombie1",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicb_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+            { "playermodels/zombies/zombie1",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicb_64",  NULL,       NULL,       false,      true,       3.5f,   16.5f,      1.0f },
         },
 //         {
 //             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 2", 0},
@@ -48,12 +48,12 @@ namespace monster
 //             { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
 //         },
         {
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 40,     0,          0,      52,         "rat",      0},
-               3,       0,      100,    400,    1,          4,      10,     S_PAINR,    S_DEATHR,  MONSTER_TYPE_TRAIT_RAT,
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 40,     0,          0,      180,        "rat",      0},
+               0,       0,      100,    400,    1,          4,      10,     S_PAINR,    S_DEATHR,  MONSTER_TYPE_TRAIT_RAT,
             { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       false,      true,       3.0f,   3.0f,       0.5f },
         },
         {
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 400,    A_YELLOW,   100,    28,         "juggernaut", 0},
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 400,    A_YELLOW,   100,    28,         "juggernaut", 0},
                0,       0,      100,    400,    1,          11,     100,    S_PAINH,    S_DEATHH, MONSTER_TYPE_TRAIT_BOSS,
             { "playermodels/zombies/juggernaut",NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "juggernaut",   NULL,       NULL,       false,      true,       7.0f,   22.0f,      3.0f },
         }
