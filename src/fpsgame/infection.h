@@ -68,27 +68,27 @@ struct infectionclientmode : clientmode
         return false;
     }
 
-    void sendZombieState(clientinfo *victim, bool zombie = true)
+    void sendZombieState(clientinfo *victim, bool zombie = true, int type = 0)
     {
-        if(specialComming)
+        if(specialComming && zombie && type == 0)
         {
             specialComming = false;
             sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomTypeWithTrait(monster::MONSTER_TYPE_TRAIT_BOSS)+1 : 0);
         }
         else
         {
-            sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomType()+1 : 0);
+            sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = (type == 0 && zombie ? monster::getRandomType()+1 : type));
         }
     }
 
-    void makeZombie(clientinfo *victim, bool zombie = true)
+    void makeZombie(clientinfo *victim, bool zombie = true, int type = 0)
     {
         extern void sendspawn(clientinfo *ci);
         ASSERT(victim != NULL && "Victim cannot be null");
         if(!victim) return;
         copystring(victim->team, zombie ? TEAM_1 : TEAM_0);
         aiman::changeteam(victim);
-        sendZombieState(victim, zombie);
+        sendZombieState(victim, zombie, type);
         sendf(-1, 1, "riisi", N_SETTEAM, victim->clientnum, victim->team, -1);
         sendf(-1, 1, "ri6", N_DIED, victim->clientnum, victim->clientnum, victim->state.frags, 0 /* reason */, 0);
 
@@ -304,6 +304,11 @@ struct infectionclientmode : clientmode
         if(!isZombieAvailable(TEAM_0, victim) || (m_juggernaut && isteam(victim->team, TEAM_1)))
         {
             newRound();
+        }
+        else if(isteam(victim->team, TEAM_1) && ::monster::shouldSpawnRat())
+        {
+            makeZombie(victim, true, ::monster::getRandomTypeWithTrait(::monster::MONSTER_TYPE_TRAIT_RAT));
+            didRespawn = true;
         }
 
         return didRespawn;

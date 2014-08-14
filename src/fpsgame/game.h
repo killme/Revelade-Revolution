@@ -144,6 +144,8 @@ namespace monster
 
     extern int getRandomTypeWithTrait(int);
     extern int getRandomType();
+
+    extern bool shouldSpawnRat();
 }
 
 enum

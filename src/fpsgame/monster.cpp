@@ -17,40 +17,40 @@ namespace monster
             // ffa,                             blueteam,   redteam,    hudguns,    vwep,   quad,   armour[3],              ffaicon,        blueicon,   redicon,    ragdoll,    selectable, radius, eyeheight,  aboveeye
             { "playermodels/zombies/zombie1",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicb_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
         },
-        {
-            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 2", 0},
-               3,       0,      100,    400,    1,          11,     75,     S_PAINB,    S_DEATHB, 0,
-            { "playermodels/zombies/zombie2",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zclassic",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
-        },
-        { 
-            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 3", 0},
-               3,       0,      100,    400,    1,          11,     75,     S_PAINR,    S_DEATHR, 0,
-            { "playermodels/zombies/zombie3",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicd_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
-        },
-        { 
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 4", 0},
-               3,       0,      100,    400,    1,          10,     75,     S_PAINR,    S_DEATHR, 0,
-            { "playermodels/zombies/zombie4",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zjhon",        NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
-        },
-        { 
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 5", 0},
-               3,       0,      100,    400,    1,          10,     75,     S_PAINH,    S_DEATHH, 0,
-            { "playermodels/zombies/zombie5",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicc",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
-        },
-        {
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 6", 0},
-               3,       0,      100,    400,    1,          12,     75,     S_PAINH,    S_DEATHH, 0,
-            { "playermodels/zombies/zombie6",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "skeleton_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
-        },
-        {
-            { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 7", 0},
-               3,       0,      100,    400,    1,          13,     75,     S_PAIND,    S_DEATHD, 0,
-            { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
-        },
+//         {
+//             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 2", 0},
+//                3,       0,      100,    400,    1,          11,     75,     S_PAINB,    S_DEATHB, 0,
+//             { "playermodels/zombies/zombie2",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zclassic",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+//         },
+//         { 
+//             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      52,         "zombie 3", 0},
+//                3,       0,      100,    400,    1,          11,     75,     S_PAINR,    S_DEATHR, 0,
+//             { "playermodels/zombies/zombie3",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicd_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+//         },
+//         { 
+//             { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 4", 0},
+//                3,       0,      100,    400,    1,          10,     75,     S_PAINR,    S_DEATHR, 0,
+//             { "playermodels/zombies/zombie4",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zjhon",        NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+//         },
+//         { 
+//             { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 5", 0},
+//                3,       0,      100,    400,    1,          10,     75,     S_PAINH,    S_DEATHH, 0,
+//             { "playermodels/zombies/zombie5",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicc",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+//         },
+//         {
+//             { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 6", 0},
+//                3,       0,      100,    400,    1,          12,     75,     S_PAINH,    S_DEATHH, 0,
+//             { "playermodels/zombies/zombie6",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "skeleton_64",  NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+//         },
+//         {
+//             { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 180,    0,          0,      52,         "zombie 7", 0},
+//                3,       0,      100,    400,    1,          13,     75,     S_PAIND,    S_DEATHD, 0,
+//             { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+//         },
         {
             { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 40,     0,          0,      52,         "rat",      0},
                3,       0,      100,    400,    1,          4,      10,     S_PAINR,    S_DEATHR,  MONSTER_TYPE_TRAIT_RAT,
-            { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       false,      true,       0.0f,   0.0f,       0.0f },
+            { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       false,      true,       3.0f,   3.0f,       0.5f },
         },
         {
             { {WEAP_BITE, WEAP_BITE, WEAP_BITE, WEAP_BITE}, 400,    A_YELLOW,   100,    28,         "juggernaut", 0},
@@ -71,7 +71,6 @@ namespace monster
     };
 
     const int NUMMONSTERTYPES = sizeof(monstertypes)/sizeof(monstertypes[0]);
-    const int MONSTER_TYPE_RAT = 7;
 
     const MonsterType &getMonsterType(int id)
     {
@@ -126,6 +125,11 @@ namespace monster
 
             return type;
         }
+    }
+
+    bool shouldSpawnRat()
+    {
+        return !(rand()%4);
     }
 
 #ifndef STANDALONE
@@ -409,7 +413,7 @@ namespace game
                 if (counts)
                 {
                     monsterkilled();
-                    if (!(monsterType.traits & ::monster::MONSTER_TYPE_TRAIT_RAT) && !(rand()%4)) spawnrat(o);
+                    if (!(monsterType.traits & ::monster::MONSTER_TYPE_TRAIT_RAT) && ::monster::shouldSpawnRat()) spawnrat(o);
                 }
                 gibeffect(max(-health, 0), vel, this);
 
