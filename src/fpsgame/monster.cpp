@@ -129,7 +129,7 @@ namespace monster
 
     bool shouldSpawnRat()
     {
-        return !(rand()%4);
+        return rnd(8) == 0;
     }
 
 #ifndef STANDALONE

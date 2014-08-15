@@ -307,7 +307,7 @@ struct infectionclientmode : clientmode
         }
         else if(isteam(victim->team, TEAM_1) && ::monster::shouldSpawnRat())
         {
-            makeZombie(victim, true, ::monster::getRandomTypeWithTrait(::monster::MONSTER_TYPE_TRAIT_RAT));
+            makeZombie(victim, true, ::monster::getRandomTypeWithTrait(::monster::MONSTER_TYPE_TRAIT_RAT)+1);
             didRespawn = true;
         }
 
