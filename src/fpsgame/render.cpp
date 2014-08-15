@@ -103,8 +103,28 @@ namespace game
 
     void renderplayer(fpsent *d, const playermodelinfo &mdl, int team, float fade, bool mainpass)
     {
-        d->gunselect = d->gunselect%NUMWEAPS; // bug fix
-        int lastaction = d->lastaction, hold = mdl.vwep || d->gunselect==WEAP_PISTOL ? 0 : (ANIM_HOLD1+d->gunselect)|ANIM_LOOP, attack = ANIM_ATTACK1+d->gunselect, delay = mdl.vwep ? 300 : weapons[d->gunselect].attackdelay+50;
+        ASSERT(d->gunselect >= 0 && d->gunselect < NUMWEAPS);
+        int lastaction = d->lastaction,
+            hold = mdl.vwep || d->gunselect==WEAP_PISTOL ? 0
+                                                         : clamp<int>(ANIM_HOLD1+d->gunselect, ANIM_HOLD1, ANIM_HOLD7)|ANIM_LOOP,
+            attack = clamp<int>(ANIM_ATTACK1+d->gunselect, ANIM_ATTACK1, ANIM_ATTACK7),
+            delay = mdl.vwep ? 300 : weapons[d->gunselect].attackdelay+50;
+
+        //Zombies use attack indexes based on the zombie class
+        if(d->isInfected())
+        {
+            const playerclassinfo &info = ::game::getplayerclassinfo(d);
+            loopi(WEAPONS_PER_CLASS)
+            {
+                if(info.weap[i] == d->gunselect)
+                {
+                    hold = clamp<int>(ANIM_HOLD1+d->gunselect, ANIM_HOLD1, ANIM_HOLD7)|ANIM_LOOP;
+                    attack = clamp<int>(ANIM_ATTACK1+d->gunselect, ANIM_ATTACK1, ANIM_ATTACK7);
+                    break;
+                }
+            }
+        }
+
         if(intermission && d->state!=CS_DEAD)
         {
             lastaction = 0;

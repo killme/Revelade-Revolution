@@ -44,6 +44,9 @@ static inline void swap(T &a, T &b)
 #ifdef min
 #undef min
 #endif
+#ifdef clamp
+#undef clamp
+#endif
 template<class T>
 static inline T max(T a, T b)
 {
@@ -55,7 +58,11 @@ static inline T min(T a, T b)
     return a < b ? a : b;
 }
 
-#define clamp(a,b,c) (max(b, min(a, c)))
+template<class T>
+static inline T clamp(T a, T b, T c)
+{
+    return (max(b, min(a, c)));
+}
 #define rnd(x) ((int)(randomMT()&0xFFFFFF)%(x))
 #define rndscale(x) (float((randomMT()&0xFFFFFF)*double(x)/double(0xFFFFFF)))
 #define detrnd(s, x) ((int)(((((uint)(s))*1103515245+12345)>>16)%(x)))

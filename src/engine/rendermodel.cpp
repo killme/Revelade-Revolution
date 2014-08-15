@@ -1031,6 +1031,7 @@ void loadskin(const char *dir, const char *altdir, Texture *&skin, Texture *&mas
 VAR(animoverride, -1, 0, NUMANIMS-1);
 VAR(testanims, 0, 0, 1);
 VAR(testpitch, -90, 0, 90);
+VAR(dumpanims, 0, 0, 1);
 
 VARP(testp, -180, 0, 180);
 VARP(testy, -180, 0, 180);
@@ -1093,6 +1094,7 @@ void renderclient(dynent *d, const char *mdlname, modelattach *attachments, int 
     if(d->state==CS_LAGGED) fade = min(fade, 0.3f);
     else flags |= MDL_DYNSHADOW;
     if(playerpreviewing) flags &= ~(MDL_LIGHT|MDL_FULLBRIGHT|MDL_CULL_VFC|MDL_CULL_OCCLUDED|MDL_CULL_QUERY|MDL_CULL_DIST|MDL_DYNSHADOW);
+    if(dumpanims) printf("Anim %p %i %i\n", d, anim & ANIM_INDEX, (anim >> ANIM_SECONDARY) & ANIM_INDEX);
     rendermodel(NULL, mdlname, anim, o, yaw, pitch, flags, d, attachments, basetime, 0, fade);
     if (player->irsm) rendermodel(NULL, mdlname, anim, o, yaw, pitch, MDL_GHOST | MDL_CULL_VFC | MDL_LIGHT, d, attachments, basetime, 0, fade <= 1.f ? fade*0.6f*min((float)player->irsm/800.f, 1.f) : 1.f);
 
