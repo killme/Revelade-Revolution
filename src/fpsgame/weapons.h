@@ -192,7 +192,7 @@ static const struct weapinfo {
         WEAP_FLAMEJET,  "Flame Jet",    "flameg",       NULL,           false,  false },
 
     {   S_CBOW,                 0,      HICON_CB,       1500,   25,     2048,   140,    100,    1,      0,      1,              PJ_PROJECTILE,                  4,      800,    0,      0,      0,      0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
-        S_CBOW,                 0,      HICON_CB,       400,    10,     1024,   140,    50,     1,      0,      1,              PJ_BOUNCER,                     4,      800,   10,     10,      1500,   0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
+        S_CBOW,                 0,      HICON_CB,       400,    10,     1024,   140,    50,     1,      0,      2,              PJ_BOUNCER,                     4,      800,   10,     10,      1500,   0,      DECAL_CRACK,    2.5f,   0.0f,   1.0f,   vec(0,0,0),                     {0, PP_SMOKE_TRAIL_2, 0, PP_SPARK_SPLASH_2 },
         WEAP_CROSSBOW,  "Crossbow",     "cbow",         NULL,           true,  false },
 
     {   S_FLAUNCH,              0,      HICON_GL,       500,    10,     1024,   130,    80,     1,      0,      1,              PJ_BOUNCER|PJT_TIMED,           1,      250,    50,     0,      1500,   0,      DECAL_SCORCH,   25.0f,  20.0f,  1.6f,   vec(0.25f, 1.0f, 1.0f),         {PP_MUZZLE_FLASH_4, PP_SMOKE_SPLASH_4, 0, PP_EXPLOSION_BLUE },

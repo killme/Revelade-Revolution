@@ -48,7 +48,7 @@ namespace monster
             { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       false,      true,       4.5f,   17.0f,       1.0f },
         },
         {
-            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 40,     0,          0,      180,        "rat",      0},
+            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 40,     0,          0,      130,        "rat",      0},
                0,       0,      100,    400,    1,          4,      10,     S_PAINR,    S_DEATHR,  MONSTER_TYPE_TRAIT_RAT,
             { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       false,      true,       3.0f,   3.0f,       0.5f },
         },
