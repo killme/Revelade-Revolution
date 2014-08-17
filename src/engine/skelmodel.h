@@ -1261,14 +1261,14 @@ struct skelmodel : animmodel
             }
             else if(usematskel) loopi(count)
             {
-                glProgramEnvParameter4fv_(GL_VERTEX_PROGRAM_ARB, 10 + 3*(offset+i), sc.mdata[offset+i].a.v);
-                glProgramEnvParameter4fv_(GL_VERTEX_PROGRAM_ARB, 11 + 3*(offset+i), sc.mdata[offset+i].b.v);
-                glProgramEnvParameter4fv_(GL_VERTEX_PROGRAM_ARB, 12 + 3*(offset+i), sc.mdata[offset+i].c.v);
+                glProgramEnvParameter4fvARB_(GL_VERTEX_PROGRAM_ARB, 10 + 3*(offset+i), sc.mdata[offset+i].a.v);
+                glProgramEnvParameter4fvARB_(GL_VERTEX_PROGRAM_ARB, 11 + 3*(offset+i), sc.mdata[offset+i].b.v);
+                glProgramEnvParameter4fvARB_(GL_VERTEX_PROGRAM_ARB, 12 + 3*(offset+i), sc.mdata[offset+i].c.v);
             }
             else loopi(count)
             {
-                glProgramEnvParameter4fv_(GL_VERTEX_PROGRAM_ARB, 10 + 2*(offset+i), sc.bdata[offset+i].real.v);
-                glProgramEnvParameter4fv_(GL_VERTEX_PROGRAM_ARB, 11 + 2*(offset+i), sc.bdata[offset+i].dual.v);
+                glProgramEnvParameter4fvARB_(GL_VERTEX_PROGRAM_ARB, 10 + 2*(offset+i), sc.bdata[offset+i].real.v);
+                glProgramEnvParameter4fvARB_(GL_VERTEX_PROGRAM_ARB, 11 + 2*(offset+i), sc.bdata[offset+i].dual.v);
             }
             if(offset) lastbdata = usematskel ? (void *)sc.mdata : (void *)sc.bdata;
             else lastsdata = usematskel ? (void *)sc.mdata : (void *)sc.bdata;
@@ -1301,7 +1301,7 @@ struct skelmodel : animmodel
             }
             else
             {
-                glUniformBuffer_((GLuint)Shader::lastshader->program, u.loc, bc.ubuf); 
+                glUniformBuffer_(Shader::lastshader->program, u.loc, bc.ubuf); 
                 u.version = bc.version;
                 u.data = &bc.ubuf;
             }

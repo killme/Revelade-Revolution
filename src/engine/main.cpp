@@ -1326,7 +1326,13 @@ namespace console
     extern int verbosity;
 }
 
+VAR(numcpus, 1, 1, 16);
+
+#ifdef __APPLE__
+int real_main(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
     #ifdef RR_NEED_AUTH
     ltc_mp = ltm_desc;

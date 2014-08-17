@@ -322,11 +322,16 @@ void pasteconsole()
     concatstring(commandbuf, cb);
     GlobalUnlock(cb);
     CloseClipboard();
-    #elif defined(__APPLE__)
-    extern void mac_pasteconsole(char *commandbuf);
-
-    mac_pasteconsole(commandbuf);
-    #else
+#elif defined(__APPLE__)
+	extern char *mac_pasteconsole(int *cblen);
+    int cblen = 0;
+	uchar *cb = (uchar *)mac_pasteconsole(&cblen);
+    if(!cb) return;
+    size_t commandlen = strlen(commandbuf);
+    int decoded = decodeutf8((uchar *)&commandbuf[commandlen], int(sizeof(commandbuf)-1-commandlen), cb, cblen);
+    commandbuf[commandlen + decoded] = '\0';
+    free(cb);
+	#else
     SDL_SysWMinfo wminfo;
     SDL_VERSION(&wminfo.version);
     wminfo.subsystem = SDL_SYSWM_X11;
