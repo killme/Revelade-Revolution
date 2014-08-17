@@ -444,6 +444,7 @@ namespace server
     VAR(flaglimit, 0, 10, 100);
     VAR(timelimit, 0, 10, 1000);
     VAR(allowweaps, 0, 0, 2);
+    VAR(persistteams, 0, 0, 1);
 
     void *newclientinfo() { return new clientinfo; }
     void deleteclientinfo(void *ci) { delete (clientinfo *)ci; }
@@ -1612,7 +1613,7 @@ namespace server
 
         if(!m_mp(gamemode)) kicknonlocalclients(DISC_PRIVATE);
 
-        if(m_teammode) autoteam();
+        if(m_teammode && !persistteams) autoteam();
         else if (m_oneteam) loopv(clients) strcpy(clients[i]->team, TEAM_0);
 
         if(m_capture) smode = &capturemode;
