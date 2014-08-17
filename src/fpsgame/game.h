@@ -1146,7 +1146,7 @@ namespace game
     extern void spawnplayer(fpsent *);
     extern void deathstate(fpsent *d, bool restore = false);
     extern void damaged(int damage, fpsent *d, fpsent *actor, bool local = true, int gun = -1);
-    extern void killed(fpsent *d, fpsent *actor, int gun = -1, bool special = false);
+    extern void killed(fpsent *d, fpsent *actor, int gun = -1, int special = 0);
     extern void timeupdate(int timeremain);
     extern void msgsound(int n, physent *d = NULL);
     extern void drawicon(int icon, float x, float y, float sz = 120);

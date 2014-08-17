@@ -90,7 +90,7 @@ struct infectionclientmode : clientmode
         aiman::changeteam(victim);
         sendZombieState(victim, zombie, type);
         sendf(-1, 1, "riisi", N_SETTEAM, victim->clientnum, victim->team, -1);
-        sendf(-1, 1, "ri6", N_DIED, victim->clientnum, victim->clientnum, victim->state.frags, 0 /* reason */, 0);
+        sendf(-1, 1, "ri6", N_DIED, victim->clientnum, victim->clientnum, victim->state.frags, 0 /* reason */, -1);
 
         victim->position.setsize(0);
         victim->state.state = CS_DEAD;

@@ -1376,7 +1376,7 @@ namespace game
                     particle_textcopy(actor->abovehead(), ds, PART_TEXT, 2000, 0x32FF64, 4.0f, -8);
                 }
                 if(!victim) break;
-                killed(victim, actor, gun, special!=0);
+                killed(victim, actor, gun, special);
                 break;
             }
 

@@ -769,7 +769,7 @@ namespace game
         }
     }
 
-    void killed(fpsent *d, fpsent *actor, int gun, bool special)
+    void killed(fpsent *d, fpsent *actor, int gun, int special)
     {
         if(d->state==CS_EDITING)
         {
@@ -787,28 +787,32 @@ namespace game
 
         fpsent *h = followingplayer();
         if(!h) h = player1;
-        int contype = d==h || actor==h ? CON_FRAG_SELF : CON_FRAG_OTHER;
-        string dname, aname;
-        copystring(dname, d==player1 ? "you" : colorname(d));
-        copystring(aname, actor==player1 ? "you" : colorname(actor));
-        if(actor->type==ENT_AI)
-            conoutf(contype, "\f2%s were killed by %s!", dname, aname);
-        else if(d==actor || actor->type==ENT_INANIMATE)
+        if(special != -1)
         {
-            if (gun < -1) conoutf(contype, "\f2%s %s", dname, GUN_SUICIDE_MESSAGE(gun));
-            else conoutf(contype, "\f2%s %s %s", dname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), d==player1 ? "yourself!" : "thyself");
-        }
-        else if(isteam(d->team, actor->team))
-        {
-            contype |= CON_TEAMKILL;
-            if(actor==player1) conoutf(contype, "\f3you %s a teammate (%s)%s", GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
-            else if(d==player1) conoutf(contype, "\f3you were %s by a teammate (%s)%s", GUN_FRAGBY_MESSAGE(gun, actor->isInfected()), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
-            else conoutf(contype, "\f2%s %s a teammate (%s)%s", aname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
-        }
-        else
-        {
-            if(d==player1) conoutf(contype, "\f2you were %s by %s%s", GUN_FRAGBY_MESSAGE(gun, actor->isInfected()), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
-            else conoutf(contype, "\f2%s %s %s%s", aname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+            int contype = d==h || actor==h ? CON_FRAG_SELF : CON_FRAG_OTHER;
+            string dname, aname;
+            copystring(dname, d==player1 ? "you" : colorname(d));
+            copystring(aname, actor==player1 ? "you" : colorname(actor));
+
+            if(actor->type==ENT_AI)
+                conoutf(contype, "\f2%s were killed by %s!", dname, aname);
+            else if(d==actor || actor->type==ENT_INANIMATE)
+            {
+                if (gun < -1) conoutf(contype, "\f2%s %s", dname, GUN_SUICIDE_MESSAGE(gun));
+                else conoutf(contype, "\f2%s %s %s", dname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), d==player1 ? "yourself!" : "thyself");
+            }
+            else if(isteam(d->team, actor->team))
+            {
+                contype |= CON_TEAMKILL;
+                if(actor==player1) conoutf(contype, "\f3you %s a teammate (%s)%s", GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+                else if(d==player1) conoutf(contype, "\f3you were %s by a teammate (%s)%s", GUN_FRAGBY_MESSAGE(gun, actor->isInfected()), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+                else conoutf(contype, "\f2%s %s a teammate (%s)%s", aname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+            }
+            else
+            {
+                if(d==player1) conoutf(contype, "\f2you were %s by %s%s", GUN_FRAGBY_MESSAGE(gun, actor->isInfected()), aname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+                else conoutf(contype, "\f2%s %s %s%s", aname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
+            }
         }
         if (m_dmsp)
         {

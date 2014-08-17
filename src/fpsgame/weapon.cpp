@@ -544,7 +544,7 @@ namespace game
             h.lifesequence = f->lifesequence;
             h.info1 = int(info1*DMF);
             h.info2 = info2;
-            h.headshot = headshot;
+            h.headshot = headshot ? 1 : 0;
             h.dir = f==at ? ivec(0, 0, 0) : ivec(int(vel.x*DNF), int(vel.y*DNF), int(vel.z*DNF));
             if(at==player1)
             {
@@ -866,7 +866,7 @@ namespace game
                 if(exploded)
                 {
                     if(p.local)
-                        addmsg(N_EXPLODE, "rci5v", p.owner, lastmillis-maptime, p.gun, p.id-maptime, WEAP_IS_EXPLOSIVE(p.gun)? (int)directhit: (int)headshot,
+                        addmsg(N_EXPLODE, "rci5v", p.owner, lastmillis-maptime, p.gun, p.id-maptime, (WEAP_IS_EXPLOSIVE(p.gun)? directhit : headshot) ? 1 : 0,
                                 hits.length(), hits.length()*sizeof(hitmsg)/sizeof(int), hits.getbuf());
                     projs.remove(i--);
                     continue;
