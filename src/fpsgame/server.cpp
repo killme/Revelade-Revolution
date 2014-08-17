@@ -3302,14 +3302,14 @@ namespace server
             case N_SERVER_COMMAND:
             {
                 int req = getint(p);
-                int argc = min(getint(p), 10);
+                int argc = getint(p);
 
                 if(argc < 1 || ci == NULL) return;
                 vector<char *> args;
                 loopi(argc)
                 {
                     getstring(text, p);
-                    args.add(newstring(text));
+                    if(argc < 10) args.add(newstring(text));
                 }
 
                 conoutf("%s executed %s (argc: %i)\n", colorname(ci), args[0], argc);
@@ -3320,12 +3320,12 @@ namespace server
                 if(lua::pushEvent("client.command"))
                 {
                     lua_pushnumber(lua::L, ci->clientnum);
-                    lua_pushnumber(lua::L, argc);
+                    lua_pushnumber(lua::L, args.length());
                     loopv(args)
                     {
                         lua_pushstring(lua::L, args[i]);
                     }
-                    lua_call(lua::L, 2+argc, 1);
+                    lua_call(lua::L, 2+args.length(), 1);
                         const char *str = lua_tostring(lua::L, -1);
                         if(str) copystring(result, str);
                     lua_pop(lua::L, 1);
