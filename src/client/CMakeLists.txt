@@ -81,6 +81,11 @@ if(${BUILD_TARGET_OSX})
         ${CLIENT_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/../engine/macutils.mm)
 elseif(${BUILD_TARGET_WINDOWS})
+    set(CLIENT_SOURCES
+        ${CLIENT_SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../vcpp/SDL_win32_main.c
+    )
+
     option(CLIENT_USE_WINDRES "Add icon to executable." 0)
 
     if(${CLIENT_USE_WINDRES})
