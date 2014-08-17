@@ -445,6 +445,7 @@ namespace server
     VAR(timelimit, 0, 10, 1000);
     VAR(allowweaps, 0, 0, 2);
     VAR(persistteams, 0, 0, 1);
+    VAR(intermissionstats, 0, 1, 1);
 
     void *newclientinfo() { return new clientinfo; }
     void deleteclientinfo(void *ci) { delete (clientinfo *)ci; }
@@ -1751,6 +1752,35 @@ namespace server
             sendf(-1, 1, "ri2", N_TIMEUP, 0);
             if(smode) smode->intermission();
             intermmillis = gamemillis + 40000;
+
+            if(intermissionstats)
+            {
+                #define MAX_VAR(x) \
+                    string max##x##Msg = {0}; int max##x = 0; clientinfo *max##x##Client = NULL; \
+                    loopv(clients) \
+                    { \
+                        if(clients[i]->state. x == max##x) \
+                        { \
+                            max##x##Client = NULL; \
+                            break; \
+                        } \
+                        else if(clients[i]->state. x > max##x) \
+                        { \
+                            max##x = clients[i]->state. x; \
+                            max##x##Client = clients[i]; \
+                    } \
+                } \
+                if(max##x##Client) formatstring(max##x##Msg)("Max " #x ": %s (%i), ", colorname(max##x##Client), max##x);
+
+                MAX_VAR(frags)
+                MAX_VAR(flags)
+                MAX_VAR(deaths)
+                MAX_VAR(shotdamage)
+                MAX_VAR(damage)
+
+                sendservmsgf(-1, "\f2%s%s%s%s%s", maxfragsMsg, m_ctf ? maxflagsMsg : "", maxdeathsMsg, maxshotdamageMsg, maxdamageMsg);
+                #undef MAX_VAR
+            }
         }
     }
 
