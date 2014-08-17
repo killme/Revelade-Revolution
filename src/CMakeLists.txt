@@ -57,6 +57,11 @@ elseif(${BUILD_TARGET_OSX})
     find_library(SDL_IMAGE_LIBRARY SDL_image)
     find_library(SDL_MIXER_LIBRARY SDL_mixer)
 
+    find_library(CORESERVICES_LIBRARY CoreServices)
+    find_library(COCOA_LIBRARY Cocoa)
+
+    set(SDL_LIBRARIES "${SDL_LIBRARY};${SDL_MIXER_LIBRARY};${SDL_IMAGE_LIBRARY};${CORESERVICES_LIBRARY};${COCOA_LIBRARY}")
+    
     find_path(SDL_INCLUDE_DIR SDL.h)
     find_path(SDL_IMAGE_INCLUDE_DIR SDL_image.h)
     find_path(SDL_MIXER_INCLUDE_DIR SDL_mixer.h)
