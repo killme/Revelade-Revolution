@@ -410,7 +410,7 @@ namespace game
 
     void drawhudmodel(fpsent *d, int anim, float speed = 0, int base = 0)
     {
-        if(d->gunselect>WEAP_PISTOL) return;
+        if(d->gunselect>WEAP_BITE) return;
         vec dir, orig = d->o;
         int fmillis = lastmillis-hudgunfm;
         extern int dbgisinfected;
@@ -426,7 +426,7 @@ namespace game
             if (fmillis>=(hudgunfade/2.f)) d->hudgun = d->gunselect;
         }
         if (fmillis>hudgunfade) { hudgun = 1; hfade *= zoom && isscopedweap(d->gunselect) ? zfadeamt : 1.f; }
-        int hudindex = isInfected ? WEAP_BARREL+1 : d->hudgun;
+        int hudindex = isInfected ? WEAP_INFECTED : d->hudgun;
         float firstpersonshift = ironsight[hudindex][0][0]*mfade+ironsight[hudindex][1][0]*(1.f-mfade)+mwait(d, hudindex)*mwait(d)*0.75f,
             firstpersonadjust = ironsight[hudindex][0][1]*mfade+ironsight[hudindex][1][1]*(1.f-mfade)-mwait(d, hudindex)*mwait(d)-wfade,
             firstpersondist = ironsight[hudindex][0][2]*mfade+ironsight[hudindex][1][2]*(1.f-mfade),
@@ -607,7 +607,7 @@ namespace game
             preloadmodel(fname);
         }
 
-        preloadmodel("hudguns/zombie");
+        preloadmodel("packages/models/playermodels/zombies/hudguns");
     }
 
     void preload()
