@@ -551,6 +551,8 @@ namespace game
             previewent->light.dir = vec(0, -1, 2).normalize();
             loopi(WEAP_PISTOL) previewent->ammo[i] = GUN_AMMO_MAX(i);
         }
+        previewent->playermodel = playermodel;
+        previewent->playerclass = playerclass;
         previewent->gunselect = WEAP_PISTOL/*int(totalmillis%(5000*WEAP_PISTOL)/5000.0f)*/; // need better models first
         previewent->yaw = sinf(RAD*((totalmillis%(360*50))/50))*22.5f+157.5f;
         previewent->light.millis = -1;
