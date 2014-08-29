@@ -176,7 +176,7 @@ namespace aiman
         ci->state.playermodel = -1;
         ci->state.playerclass = -1;
         ci->aireinit = 2;
-        ci->connected = true;
+        ci->connectionState = CONNECTION_STATE_CONNECTED;
         dorefresh = true;
         if(smode) smode->entergame(ci);
 #ifdef XRRS

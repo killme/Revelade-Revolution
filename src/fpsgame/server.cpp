@@ -242,13 +242,20 @@ namespace server
 
     extern int gamemillis, nextexceeded;
 
+    enum
+    {
+        CONNECTION_STATE_NONE = 0,
+        CONNECTION_STATE_CONNECTED
+    };
+
     struct clientinfo
     {
         int clientnum, ownernum, connectmillis, sessionid, overflow;
         string name, team, mapvote;
         int modevote;
         int privilege;
-        bool connected, local, timesync;
+        int connectionState;
+        bool local, timesync;
         int gameoffset, lastevent, pushed, exceeded;
         gamestate state;
         vector<gameevent *> events;
@@ -346,7 +353,8 @@ namespace server
         {
             name[0] = team[0] = 0;
             privilege = PRIV_NONE;
-            connected = local = false;
+            connectionState = CONNECTION_STATE_NONE;
+            local = false;
             position.setsize(0);
             messages.setsize(0);
             ping = 0;
@@ -1439,7 +1447,7 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
-            if(!ci->connected || ci->clientnum == exclude) continue;
+            if(ci->connectionState != CONNECTION_STATE_CONNECTED || ci->clientnum == exclude) continue;
 
             putinitclient(ci, p);
         }
@@ -2202,7 +2210,7 @@ namespace server
     void clientdisconnect(int n)
     {
         clientinfo *ci = getinfo(n);
-        if(ci->connected)
+        if(ci->connectionState == CONNECTION_STATE_CONNECTED)
         {
             #ifdef SERVER
             if(lua::pushEvent("client.disconnect"))
@@ -2291,7 +2299,7 @@ namespace server
     bool allowbroadcast(int n)
     {
         clientinfo *ci = getinfo(n);
-        return ci && ci->connected;
+        return ci && ci->connectionState == CONNECTION_STATE_CONNECTED;
     }
 
     void receivefile(int sender, uchar *data, int len)
@@ -2328,7 +2336,7 @@ namespace server
         connects.removeobj(ci);
         clients.add(ci);
 
-        ci->connected = true;
+        ci->connectionState = CONNECTION_STATE_CONNECTED;
         ci->needclipboard = totalmillis;
         if(mastermode>=MM_LOCKED) ci->state.state = CS_SPECTATOR;
         ci->state.lasttimeplayed = lastmillis;
@@ -2349,7 +2357,7 @@ namespace server
         char text[MAXTRANS];
         int type;
         clientinfo *ci = sender>=0 ? getinfo(sender) : NULL, *cq = ci, *cm = ci;
-        if(ci && !ci->connected)
+        if(ci && ci->connectionState != CONNECTION_STATE_CONNECTED)
         {
             if(chan!=1) return;
             else
