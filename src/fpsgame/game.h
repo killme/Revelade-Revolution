@@ -616,21 +616,21 @@ enum
 
     /**
      * N_AUTH_SERVER_HELLO
-     * The server sends it's certificate
+     * The server sends its certificate
      */
     CONNECTION_STATE_SERVER_HELLO,
 
     /**
      * N_CLIENT_AUTH
-     * The client sends it's certificate
-     * and some encrypted random data for the server to decrypt with it's private key
+     * The client sends its certificate
+     * and some encrypted random data for the server to decrypt with its private key
      */
     CONNECTION_STATE_CLIENT_AUTH,
 
     /**
      * N_SERVER_AUTH
      * The server sends the result of the challenge
-     * aswell as some random data for the client to decrypt with it's private key
+     * aswell as some random data for the client to decrypt with its private key
      */
     CONNECTION_STATE_SERVER_AUTH,
 

@@ -94,6 +94,15 @@ namespace entities
                 case TELEPORT:
                     if(e.attr2 < 0) continue;
                     break;
+                case FLAG:
+                    if(editmode)
+                    {
+                        rendermodel(&e.light, (e.attr2 == 1 ? RR_MODEL_FLAG_BLUE : (e.attr2 == 2 ? RR_MODEL_FLAG_RED : RR_MODEL_FLAG_NEUTRAL)), ANIM_MAPMODEL|ANIM_LOOP,
+                                    e.o, e.attr1, 0,
+                                    MDL_DYNSHADOW | MDL_CULL_VFC | MDL_CULL_OCCLUDED,
+                                    NULL, NULL, 0, 0, 0.3f);
+                    }
+                    break;
                 default:
                     if(!e.spawned || e.type < I_AMMO || e.type > I_QUAD) continue;
             }
