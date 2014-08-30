@@ -211,6 +211,7 @@ namespace server
         int maxhealth, frags, flags, deaths, teamkills, shotdamage, damage;
         int timeplayed;
         float effectiveness;
+        int infectedType;
 
         void save(gamestate &gs)
         {
@@ -223,6 +224,7 @@ namespace server
             damage = gs.damage;
             timeplayed = gs.timeplayed;
             effectiveness = gs.effectiveness;
+            infectedType = gs.infectedType;
         }
 
         void restore(gamestate &gs)
@@ -237,6 +239,7 @@ namespace server
             gs.damage = damage;
             gs.timeplayed = timeplayed;
             gs.effectiveness = effectiveness;
+            gs.infectedType = infectedType;
         }
     };
 

@@ -132,7 +132,12 @@ struct infectionclientmode : clientmode
     
     void entergame(clientinfo *ci)
     {
-        if(isZombieAvailable(TEAM_1, ci))
+        //Restored from an earlier state
+        if(ci->state.isInfected())
+        {
+            makeZombie(ci, true, ci->state.infectedType);
+        }
+        else if(isZombieAvailable(TEAM_1, ci))
         {
             makeZombie(ci, false);
         }
