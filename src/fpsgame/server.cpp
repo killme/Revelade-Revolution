@@ -242,12 +242,6 @@ namespace server
 
     extern int gamemillis, nextexceeded;
 
-    enum
-    {
-        CONNECTION_STATE_NONE = 0,
-        CONNECTION_STATE_CONNECTED
-    };
-
     struct clientinfo
     {
         int clientnum, ownernum, connectmillis, sessionid, overflow;
@@ -262,16 +256,17 @@ namespace server
         vector<uchar> position, messages;
         int posoff, poslen, msgoff, msglen;
         vector<clientinfo *> bots;
-        string authrandom;
+        ustring authrandom;
         int ping, aireinit;
         string clientmap;
         int mapcrc;
         bool warned, gameclip;
         ENetPacket *clipboard;
         int lastclipboard, needclipboard;
+        stream *clientCertificate;
 
-        clientinfo() : clipboard(NULL) { reset(); }
-        ~clientinfo() { events.deletecontents(); cleanclipboard(); }
+        clientinfo() : clipboard(NULL), clientCertificate(NULL) { reset(); }
+        ~clientinfo() { events.deletecontents(); cleanclipboard(); DELETEP(clientCertificate); }
 
         void addevent(gameevent *e)
         {
@@ -360,6 +355,7 @@ namespace server
             ping = 0;
             aireinit = 0;
             needclipboard = 0;
+            DELETEP(clientCertificate);
             cleanclipboard();
             mapchange();
         }
@@ -496,7 +492,7 @@ namespace server
     void sendservmsg(const char *s)
     {
 #ifdef STANDALONE
-        conoutf("Broadcast: %s\n", s);
+        conoutf("Broadcast: %s", s);
 #endif
         sendf(-1, 1, "ris", N_SERVMSG, s);
     }
@@ -507,7 +503,7 @@ namespace server
 #ifdef STANDALONE
         if(cn == -1)
         {
-            conoutf("Broadcast: %s\n", str);
+            conoutf("Broadcast: %s", str);
         }
 #endif
         sendf(cn, 1, "ris", N_SERVMSG, str);
@@ -537,6 +533,7 @@ namespace server
     {
         smapname[0] = '\0';
         resetitems();
+        auth::init();
     }
 
     int numclients(int exclude = -1, bool nospec = true, bool noai = true, bool priv = false)
@@ -833,7 +830,7 @@ namespace server
         }
         else
         {
-            conoutf(CON_ERROR, "Could not write demo, could not open demo file: %s\n", demoname);
+            conoutf(CON_ERROR, "Could not write demo, could not open demo file: %s", demoname);
         }
         DELETEP(demotmp);
     }
@@ -1213,7 +1210,7 @@ namespace server
             N_EXPLODEFX, N_DIED, N_SPAWNSTATE, N_FORCEDEATH, N_ITEMACC, N_ITEMSPAWN, N_TIMEUP, N_CDIS,
             N_PONG, N_RESUME, N_BASESCORE, N_BASEINFO, N_BASEREGEN, N_ANNOUNCE,
             N_SENDDEMOLIST, N_SENDDEMO, N_DEMOPLAYBACK, N_SENDMAP, N_DROPFLAG, N_SCOREFLAG, N_RETURNFLAG,
-            N_RESETFLAG, N_INVISFLAG, N_CLIENT, N_AUTHCHAL, N_INITAI, N_SETONFIRE,
+            N_RESETFLAG, N_INVISFLAG, N_CLIENT, N_AUTH_SERVER_HELLO, N_SERVER_AUTH, N_INITAI, N_SETONFIRE,
             N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_GUTS };
         if(ci)
         {
@@ -2167,7 +2164,19 @@ namespace server
 
     void sendservinfo(clientinfo *ci)
     {
-        sendf(ci->clientnum, 1, "ri5s", N_SERVINFO, ci->clientnum, PROTOCOL_VERSION, ci->sessionid, serverpass[0] ? 1 : 0, serverdesc);
+        int authMode = 0;
+        if(serverpass[0])           authMode |= 1 << 0;
+        if(auth::serverCertificate) authMode |= 1 << 1;
+
+        sendf(ci->clientnum, 1, "ri5s", N_SERVINFO, ci->clientnum, PROTOCOL_VERSION, ci->sessionid, authMode, serverdesc);
+
+        // TODO Note: we assume that the client will always receive N_AUTH_SERVER_HELLO AFTER N_SERVINFO due to the fact it's sending a file. Can we be so certain?
+        if(auth::serverCertificate)
+        {
+            conoutf("Sending server authentication info to %i", ci->clientnum);
+            ci->connectionState = CONNECTION_STATE_SERVER_HELLO;
+            sendfile(ci->clientnum, 2, auth::serverCertificate, "ri", N_AUTH_SERVER_HELLO);
+        }
     }
 
     void noclients()
@@ -2349,6 +2358,14 @@ namespace server
 
         if(m_demo) setupdemoplayback();
         if(smode) smode->entergame(ci);
+
+        #ifdef SERVER
+        if(lua::pushEvent("client.connect"))
+        {
+            lua_pushnumber(lua::L, ci->clientnum);
+            lua_call(lua::L, 1, 0);
+        }
+        #endif
     }
 
     void parsepacket(int sender, int chan, packetbuf &p)     // has to parse exactly each byte of the packet
@@ -2359,7 +2376,8 @@ namespace server
         clientinfo *ci = sender>=0 ? getinfo(sender) : NULL, *cq = ci, *cm = ci;
         if(ci && ci->connectionState != CONNECTION_STATE_CONNECTED)
         {
-            if(chan!=1) return;
+            // Only allow client to send us a file while when it should
+            if(chan != 1 && (chan != 2 || ci->connectionState != CONNECTION_STATE_SERVER_HELLO)) return;
             else
             {
                 type = getint(p);
@@ -2368,6 +2386,7 @@ namespace server
                 {
                     case N_CONNECT:
                     {
+                        if(chan != 1) return;
                         getstring(text, p);
                         filtertext(text, text, NAMEALLOWSPACES, MAXNAMELEN);
                         if(!text[0]) copystring(text, "unnamed");
@@ -2389,97 +2408,138 @@ namespace server
                         const char *worst = m_teammode ? chooseworstteam(text, ci) : NULL;
                         copystring(ci->team, worst ? worst : TEAM_0, MAXTEAMLEN+1);
 
-                    #ifdef SERVER
-                        if(lua::pushEvent("client.connect"))
-                        {
-                            lua_pushnumber(lua::L, ci->clientnum);
-                            lua_call(lua::L, 1, 0);
-                        }
-                    #endif
-
-                    #ifdef RR_NEED_AUTH
-                        if(auth::haveCertificateFor(ci->name))
-                        {
-                            auth::getRandom(&ci->authrandom);
-                            sendf(ci->clientnum, 1, "ris", N_AUTHCHAL, ci->authrandom);
-                        }
-                        else
-                        {
-                            finishConnect(ci);
-                        }
-                    #else
-                        finishConnect(ci);
-                    #endif
+                        // Only finish connection when we're not waiting for authentication
+                        if(ci->connectionState == CONNECTION_STATE_NONE) finishConnect(ci);
                     }
                     break;
 
-                    case N_AUTHTRY:
-                    {
-                        string message, signature;
-                        getstring(message, p, sizeof(message));
-                        getstring(signature, p, sizeof(signature));
-
-                        if(strcmp(message, ci->authrandom) == 0 && auth::checkCertificateFor(ci->name, ci->authrandom, signature))
+                    case N_CLIENT_AUTH:
+                        if(ci->connectionState != CONNECTION_STATE_SERVER_HELLO) return;
+                        if(chan == 1)
                         {
-                            defformatstring(fileName)("cert/users/%s.privilege", ci->name);
-                            stream *f = openfile(fileName, "r");
-                            if(f)
+                            // Client does not have a cert, we don't allow that in vanilla
+                            sendservmsgf(sender, "This servers requires you to be authenticated to play.");
+                            conoutf("%i failed to authenticate (no cert).", sender);
+                            disconnect_client(sender, DISC_KICK);
+                        }
+                        else
+                        {
+                            conoutf("Receiving client certificate and challenge from %s.", colorname(ci));
+
+                            int encryptedRandomnessLength = getint(p);
+                            ucharbuf encryptedRandomness = p.subbuf(encryptedRandomnessLength);
+
+                            defformatstring(clientCertFileName)("resources/cert/current-client-%i.pub", ci->clientnum);
+                            ci->clientCertificate = opentempfile(clientCertFileName, "w+b");
+
+                            if(!ci->clientCertificate)
                             {
-                                string str = {0};
-                                f->read(&str, sizeof(str));
+                                sendservmsgf(sender, "Could not open client cert file on the server.");
+                                conoutf("Could not open cert file for %s.", colorname(ci));
+                                disconnect_client(sender, DISC_KICK);
+                            }
+                            else
+                            {
+                                ci->clientCertificate->seek(0, SEEK_SET);
+                                ci->clientCertificate->write(p.buf+p.len, p.remaining());
+                                ci->clientCertificate->seek(0, SEEK_SET);
 
-                                char *s;
-                                s = (char *)strstr(str, "\n");
-                                if(s)
+                                if(!auth::verifyCertificateWithCA(ci->clientCertificate))
                                 {
-                                    s[0] = '\0';
+                                    sendservmsgf(sender, "Failed to verify certificate with CA.");
+                                    conoutf("%s's certificate could not be verified with CA.", colorname(ci));
+                                    disconnect_client(sender, DISC_KICK);
                                 }
-                                s = (char *)strstr(str, "\r");
-                                if(s)
+                                else if(!auth::verifyNotInCRL(ci->clientCertificate))
                                 {
-                                    s[0] = '\0';
-                                }
-
-
-                                if(strcmp(str, "moderator") == 0)
-                                {
-                                    ci->privilege = PRIV_MODERATOR_INACTIVE;
-                                }
-                                else if(strcmp(str, "developer") == 0)
-                                {
-                                    ci->privilege = PRIV_DEVELOPER_INACTIVE;
-                                }
-                                else if(strcmp(str, "creator") == 0)
-                                {
-                                    ci->privilege = PRIV_CREATOR_INACTIVE;
-                                }
-                                else if(strcmp(str, "admin") == 0)
-                                {
-                                    ci->privilege = PRIV_ADMIN_INACTIVE;
+                                    sendservmsgf(sender, "Your certificate was found in the CRL.");
+                                    conoutf("Client certificate is in the CRL %s.", colorname(ci));
+                                    disconnect_client(sender, DISC_KICK);
                                 }
                                 else
                                 {
-                                    ci->privilege = PRIV_PLAYER;
+                                    uchar *out = NULL; int outSize = 0;
+                                    if(!auth::decryptWithPrivateCert(auth::serverCertificatePrivate, encryptedRandomness.buf, encryptedRandomness.maxlen, &out, &outSize))
+                                    {
+                                        sendservmsgf(sender, "Failed to decrypt the random data.");
+                                        conoutf("Failed to decrypt the random client data of %s.", colorname(ci));
+                                        disconnect_client(sender, DISC_KICK);
+                                    }
+                                    else
+                                    {
+                                        uchar *challengeOut = NULL; int challengeOutSize = 0;
+
+                                        auth::getRandom(&ci->authrandom);
+
+                                        if(!auth::encryptWithPublicCert(ci->clientCertificate, ci->authrandom, sizeof(string), &challengeOut, &challengeOutSize))
+                                        {
+                                            sendservmsgf(sender, "Failed to generate challenge.");
+                                            conoutf("Failed to generate challenge for %s.", colorname(ci));
+                                            disconnect_client(sender, DISC_KICK);
+                                        }
+                                        else
+                                        {
+                                            // Return the favour
+                                            // NOTE: we use channel 2 here too, even though we're not sending files
+                                            ci->connectionState = CONNECTION_STATE_CLIENT_AUTH;
+                                            sendf(sender, 2, "rim+m+", N_SERVER_AUTH, outSize, out, challengeOutSize, challengeOut);
+                                            delete [] challengeOut;
+                                            delete [] out;
+                                        }
+                                    }
                                 }
-
-                                sendPrivilegeList();
-
-                                delete f;
                             }
+                        }
+                    break;
 
-                            printf("Client %s(%i) successfully authenticated (%s(%i)).\n", ci->name, ci->clientnum, getPrivilegeName(ci->privilege), ci->privilege);
-                            finishConnect(ci);
+                    case N_AUTH_FINISH:
+                    {
+                        if(chan != 1 && ci->connectionState != CONNECTION_STATE_CLIENT_AUTH) return;
+
+                        //Verify the challenge result
+                        int challengeResultLength = getint(p);
+                        ucharbuf challengeResult = p.subbuf(challengeResultLength);
+                        bool passed = false;
+
+                        if(challengeResultLength == sizeof(ci->authrandom))
+                        {
+                            passed = true;
+                            for(int i = 0; i < sizeof(ci->authrandom); i++)
+                            {
+                                if(challengeResult.buf[i] != ci->authrandom[i])
+                                {
+                                    passed = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if(!passed)
+                        {
+                            sendservmsgf(sender, "Failed to verify challenge.");
+                            conoutf("%s failed it's challenge. %c (%i = %i) -> %c (%i)\n", colorname(ci), challengeResult.buf[0], challengeResult.maxlen, challengeResultLength, ci->authrandom[0], sizeof(ci->authrandom));
+                            disconnect_client(sender, DISC_KICK);
                         }
                         else
                         {
-                            printf("Client %s(%i) failed to authenticate. (%s, %s)\n", ci->name, ci->clientnum, message, signature);
-                            disconnect_client(sender, DISC_KICK);
+                            sendservmsgf(sender, "successfully authenticated");
+                            conoutf("%s successfully autenticated");
+                            //Finish connecting, client successfully authenticated
+                            finishConnect(ci);
                         }
                     }
                     break;
 
+                    case N_PING:
+                        sendf(sender, 1, "i2", N_PONG, getint(p));
+                        break;
+
+                    case N_CLIENTPING:
+                        ci->ping = getint(p);
+                        break;
+
                     default:
-                        printf("Ignoring client packet awaiting authentication %s(%i): %i.\n", ci->name, ci->clientnum, type);
+                        printf("Ignoring client packet awaiting authentication %s(%i): %i (%i).\n", ci->name, ci->clientnum, type, ci->connectionState);
                         //disconnect_client(sender, DISC_TAGT);
                     break;
                 }
@@ -3162,24 +3222,6 @@ namespace server
                 break;
             }
 
-            case N_AUTHTRY: //TODO remove
-            {
-                string desc, name;
-                getstring(desc, p, sizeof(desc)); // unused for now
-                getstring(name, p, sizeof(name));
-                break;
-            }
-
-            case N_AUTHANS: //TODO remove
-            {
-                string desc, ans;
-                getstring(desc, p, sizeof(desc)); // unused for now
-                uint id = (uint)getint(p);
-                getstring(ans, p, sizeof(ans));
-                (void) id;
-                break;
-            }
-
             case N_PAUSEGAME:
             {
                 int val = getint(p);
@@ -3350,7 +3392,7 @@ namespace server
                     if(argc < 10) args.add(newstring(text));
                 }
 
-                conoutf("%s executed %s (argc: %i)\n", colorname(ci), args[0], argc);
+                conoutf("%s executed %s (argc: %i)", colorname(ci), args[0], argc);
 
                 string result = "error \"unkown command\"";
 

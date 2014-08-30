@@ -612,6 +612,37 @@ inline int getPrivilegeColor(int privilege)
 
 enum
 {
+    CONNECTION_STATE_NONE = 0,
+
+    /**
+     * N_AUTH_SERVER_HELLO
+     * The server sends it's certificate
+     */
+    CONNECTION_STATE_SERVER_HELLO,
+
+    /**
+     * N_CLIENT_AUTH
+     * The client sends it's certificate
+     * and some encrypted random data for the server to decrypt with it's private key
+     */
+    CONNECTION_STATE_CLIENT_AUTH,
+
+    /**
+     * N_SERVER_AUTH
+     * The server sends the result of the challenge
+     * aswell as some random data for the client to decrypt with it's private key
+     */
+    CONNECTION_STATE_SERVER_AUTH,
+
+    /**
+     * N_AUTH_FINISH (or when certificates are disabled)
+     * The client sends the result of the challenge
+     */
+    CONNECTION_STATE_CONNECTED
+};
+
+enum
+{
     N_CONNECT = 0, N_SERVINFO, N_WELCOME, N_INITCLIENT, N_POS, N_TEXT, N_SOUND, N_CDIS,
     N_SHOOT, N_EXPLODE, N_SUICIDE,
     N_DIED, N_DAMAGE, N_HITPUSH, N_SHOTFX, N_EXPLODEFX,
@@ -629,7 +660,7 @@ enum
     N_TAKEFLAG, N_RETURNFLAG, N_RESETFLAG, N_INVISFLAG, N_TRYDROPFLAG, N_DROPFLAG, N_SCOREFLAG, N_INITFLAGS,
     N_SAYTEAM,
     N_CLIENT,
-    N_AUTHTRY, N_AUTHCHAL, N_AUTHANS, N_REQAUTH,
+    N_AUTH_SERVER_HELLO, N_CLIENT_AUTH, N_SERVER_AUTH, N_AUTH_FINISH, // 90
     N_PAUSEGAME,
     N_ADDBOT, N_DELBOT, N_INITAI, N_FROMAI, N_BOTLIMIT, N_BOTBALANCE,
     N_MAPCRC, N_CHECKMAPS,
@@ -661,7 +692,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_TAKEFLAG, 3, N_RETURNFLAG, 4, N_RESETFLAG, 6, N_INVISFLAG, 3, N_TRYDROPFLAG, 1, N_DROPFLAG, 7, N_SCOREFLAG, 10, N_INITFLAGS, 0,
     N_SAYTEAM, 0,
     N_CLIENT, 0,
-    N_AUTHTRY, 0, N_AUTHCHAL, 0, N_AUTHANS, 0, N_REQAUTH, 0,
+    N_AUTH_SERVER_HELLO, 0, N_CLIENT_AUTH, 0, N_SERVER_AUTH, 0, N_AUTH_FINISH, 0,
     N_PAUSEGAME, 2,
     N_ADDBOT, 2, N_DELBOT, 1, N_INITAI, 0, N_FROMAI, 2, N_BOTLIMIT, 2, N_BOTBALANCE, 2,
     N_MAPCRC, 0, N_CHECKMAPS, 1,
@@ -680,7 +711,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
 #define RR_MASTER_PORT 16962
 #define RR_MASTER_HOST "rr.master.theintercooler.com"
 
-#define PROTOCOL_VERSION 266            // bump when protocol changes
+#define PROTOCOL_VERSION 267            // bump when protocol changes
 #define DEMO_VERSION 1                  // bump when demo format changes
 #define DEMO_MAGIC "REVREV_DEMO"
 

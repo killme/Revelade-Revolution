@@ -113,8 +113,10 @@ static inline T clamp(T a, T b, T c)
 
 #define MAXSTRLEN 260
 #define BIGSTRLEN 1000
-typedef char string[MAXSTRLEN];
-typedef char bigstring[BIGSTRLEN];
+typedef char    string[MAXSTRLEN];
+typedef uchar   ustring[MAXSTRLEN];
+typedef char    bigstring[BIGSTRLEN];
+typedef uchar   ubigstring[BIGSTRLEN];
 #define mkstring(d) string d; d[0] = 0;
 
 inline void vformatstring(char *d, const char *fmt, va_list v, int len = MAXSTRLEN) { _vsnprintf(d, len, fmt, v); d[len-1] = 0; }

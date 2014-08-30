@@ -33,13 +33,13 @@ namespace game
     };
     vector<ServerCommand> commands;
     static int reqid = 0;
-    
+
     bool senditemstoserver = false, sendcrc = false; // after a map change, since server doesn't have map data
     int lastping = 0;
 
     bool connected = false, remote = false, demoplayback = false, gamepaused = false;
-    int sessionid = 0, mastermode = MM_OPEN;
-    string servinfo = "", connectpass = "";
+    int sessionid = 0, mastermode = MM_OPEN, connectionState = CONNECTION_STATE_NONE;
+    string servinfo = "", connectpass = ""; ustring randomData = "";
 
     VARP(deadpush, 1, 2, 20);
 
@@ -692,6 +692,13 @@ namespace game
                     break;
                 }
                 case 's': sendstring(va_arg(args, const char *), p); nums++; break;
+                case 'm':
+                {
+                    int n = va_arg(args, int);
+                    if(*fmt == '+') putint(p, n);
+                    p.put(va_arg(args, uchar *), n);
+                    break;
+                }
             }
             va_end(args);
         }
@@ -725,6 +732,7 @@ namespace game
         connected = true;
         remote = _remote;
         if(editmode) toggleedit();
+        auth::init();
     }
 
     void gamedisconnect(bool cleanup)
@@ -1087,7 +1095,14 @@ namespace game
                 }
                 sessionid = getint(p);
                 player1->clientnum = mycn;      // we are now connected
-                if(getint(p) > 0) conoutf("this server is password protected");
+                int authMode = getint(p);
+                if(authMode & (1 << 0)) conoutf("this server is password protected");
+                if(authMode & (1 << 1))
+                {
+                    //We'll be waiting for the server's certificate
+                    conoutf("this server uses certificate based authentication");
+                    connectionState = CONNECTION_STATE_SERVER_HELLO;
+                }
                 getstring(text, p);
                 copystring(servinfo, text);
                 sendintro();
@@ -1099,6 +1114,7 @@ namespace game
                 int hasmap = getint(p);
                 if(!hasmap) initmap = true; // we are the first client on this server, set map
                 allowedweaps = getint(p);
+                connectionState = CONNECTION_STATE_CONNECTED;
                 break;
             }
 
@@ -1771,23 +1787,6 @@ namespace game
                 break;
             }
 
-            case N_REQAUTH: //TODO: remove
-            {
-                getstring(text, p);
-                break;
-            }
-
-            case N_AUTHCHAL:
-            {
-                conoutf(CON_INFO, "Server requests our signature.");
-
-                getstring(text, p);
-                const char *signature = (const char *)auth::signMessage((const uchar *)text);
-                addmsg(N_AUTHTRY, "rss", text, signature);
-                delete[] signature;
-                break;
-            }
-
             case N_INITAI:
             {
                 int bn = getint(p), on = getint(p), at = getint(p), sk = clamp(getint(p), 1, 101), pm = getint(p), pc = getint(p);
@@ -1846,12 +1845,16 @@ namespace game
     {
         ucharbuf p(data, len);
         int type = getint(p);
-        data += p.length();
-        len -= p.length();
+
+        //Finishes the actual data part of the package and continues to the file part
+        #define FINISH_PACKAGE  \
+            data += p.length(); \
+            len -= p.length();
         switch(type)
         {
             case N_SENDDEMO:
             {
+                FINISH_PACKAGE
                 string mname;
                 getstring(mname, p, MAXSTRLEN);
                 int slen = strlen(mname)+1;
@@ -1880,6 +1883,7 @@ namespace game
             case N_SENDMAP:
             {
                 if(!m_edit) return;
+                FINISH_PACKAGE
                 string oldname;
                 copystring(oldname, getclientmap());
                 defformatstring(mname)("getmap_%d", lastmillis);
@@ -1894,7 +1898,114 @@ namespace game
                 entities::spawnitems(true);
                 break;
             }
+
+            case N_AUTH_SERVER_HELLO:
+            {
+                if(connectionState != CONNECTION_STATE_SERVER_HELLO) return neterr("Unexpected N_AUTH_SERVER_HELLO");
+                FINISH_PACKAGE
+                defformatstring(fname)("data/auth/current-server-%d.cert", lastmillis);
+                stream *serverCertificate = openrawfile(fname, "w+b");
+                if(serverCertificate)
+                {
+                    conoutf("received server certificate");
+                    serverCertificate->write(data, len);
+
+                    if(!auth::verifyCertificateWithCA(serverCertificate))
+                    {
+                        conoutf("\frserver is not correctly signed by CA");
+                        return disconnect();
+                    }
+
+                    if(!auth::verifyNotInCRL(serverCertificate))
+                    {
+                        conoutf("\frserver's certificate is in the CRL");
+                        return disconnect();
+                    }
+                }
+
+                if(serverCertificate && auth::clientCertificate != NULL)
+                {
+                    auth::getRandom(&randomData);
+
+                    uchar *out = NULL; int outSize = 0;
+                    if(auth::encryptWithPublicCert(serverCertificate, randomData, sizeof(string), &out, &outSize))
+                    {
+                        conoutf("creating crypto challenge for the server. (%i %s)", outSize, out);
+                        sendfile(-1, 2, auth::clientCertificate, "im+", N_CLIENT_AUTH, outSize, out);
+                        delete [] out;
+                    }
+                    else
+                    {
+                        neterr("cannot encrypt data with server's public certificate");
+                    }
+                }
+                else
+                {
+                    // We don't have a cert ourselves, ask the server for forgiveness
+                    conoutf("Trying to connect without authentication");
+                    addmsg(N_CLIENT_AUTH, "r");
+                }
+
+                connectionState = CONNECTION_STATE_CLIENT_AUTH;
+                DELETEP(serverCertificate);
+                remove(findfile(fname, "rb"));
+            }
+            break;
+
+            case N_SERVER_AUTH:
+            {
+                if(connectionState != CONNECTION_STATE_CLIENT_AUTH) return neterr("Unexpected N_SERVER_AUTH");
+
+                //Verify the challenge result
+                {
+                    int challengeResultLength = getint(p);
+                    ucharbuf challengeResult = p.subbuf(challengeResultLength);
+                    bool passed = false;
+
+                    conoutf("Verifying server's result to our challenge (%i %lu)", challengeResultLength, sizeof(randomData));
+
+                    if(challengeResultLength == sizeof(randomData))
+                    {
+                        passed = true;
+                        for(int i = 0; i < sizeof(string); i++)
+                        {
+                            if(challengeResult.buf[i] != randomData[i])
+                            {
+                                passed = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if(!passed)
+                    {
+                        defformatstring(errString)("Server did not pass our challenge (%lu %lu).", challengeResultLength, sizeof(string));
+                        return neterr(errString);
+                    }
+                }
+
+                int encryptedRandomnessLength = getint(p);
+                ucharbuf encryptedRandomness = p.subbuf(encryptedRandomnessLength);
+
+                conoutf("Decrypting server's challenge (%i)", encryptedRandomnessLength);
+
+                uchar *out = NULL; int outSize = 0;
+                if(!auth::decryptWithPrivateCert(auth::clientCertificatePrivate, encryptedRandomness.buf, encryptedRandomness.maxlen, &out, &outSize))
+                {
+                    return neterr("Failed to decrypt the random data.");
+                }
+                else
+                {
+                    conoutf("Sending challenge result (%i)", outSize);
+                    addmsg(N_AUTH_FINISH, "rm+", outSize, out);
+                    delete[] out;
+                }
+
+                connectionState = CONNECTION_STATE_SERVER_AUTH;
+            }
+            break;
         }
+        #undef FINISH_PACKAGE
     }
 
     void parsepacketclient(int chan, packetbuf &p)   // processes any updates from the server

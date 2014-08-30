@@ -20,7 +20,7 @@ void fatal(const char *s, ...)
     void cleanupserver();
     cleanupserver(); 
     defvformatstring(msg,s,s);
-    conoutf("servererror: %s\n", msg); 
+    conoutf("servererror: %s", msg); 
     exit(EXIT_FAILURE); 
 }
 
@@ -43,8 +43,8 @@ void conoutfv(int type, const char *fmt, va_list args)
     timeinfo = localtime (&timeValue);
 
     strftime(date, sizeof(date) - 1, "%Y-%m-%dT%H:%M:%S", timeinfo);
-    
-    printf("[%s] %s", date, sp);
+
+    printf("[%s] %s\n", date, sp);
 }
 
 void conoutf(const char *fmt, ...)
@@ -286,6 +286,7 @@ void sendf(int cn, int chan, const char *format, ...)
         case 'm':
         {
             int n = va_arg(args, int);
+            if(*format == '+') putint(p, n);
             p.put(va_arg(args, uchar *), n);
             break;
         }
@@ -320,6 +321,13 @@ void sendfile(int cn, int chan, stream *file, const char *format, ...)
         }
         case 's': sendstring(va_arg(args, const char *), p); break;
         case 'l': putint(p, len); break;
+        case 'm':
+        {
+            int n = va_arg(args, int);
+            if(*format == '+') putint(p, n);
+            p.put(va_arg(args, uchar *), n);
+            break;
+        }
     }
     va_end(args);
 
@@ -496,7 +504,7 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
     if(totalmillis-laststatus>60*1000)   // display bandwidth stats, useful for server ops
     {
         laststatus = totalmillis;     
-        if(nonlocalclients || serverhost->totalSentData || serverhost->totalReceivedData) conoutf("status: %d remote clients, %.1f send, %.1f rec (K/sec)\n", nonlocalclients, serverhost->totalSentData/60.0f/1024, serverhost->totalReceivedData/60.0f/1024);
+        if(nonlocalclients || serverhost->totalSentData || serverhost->totalReceivedData) conoutf("status: %d remote clients, %.1f send, %.1f rec (K/sec)", nonlocalclients, serverhost->totalSentData/60.0f/1024, serverhost->totalReceivedData/60.0f/1024);
         serverhost->totalSentData = serverhost->totalReceivedData = 0;
     }
 
@@ -530,7 +538,7 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
                 c.peer->data = &c;
                 char hn[1024];
                 copystring(c.hostname, (enet_address_get_host_ip(&c.peer->address, hn, sizeof(hn))==0) ? hn : "unknown");
-                conoutf("client connected (%s)\n", c.hostname);
+                conoutf("client connected (%s)", c.hostname);
                 int reason = server::clientconnect(c.num, c.peer->address.host);
                 if(!reason) nonlocalclients++;
                 else disconnect_client(c.num, reason);
@@ -547,7 +555,7 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
             {
                 client *c = (client *)event.peer->data;
                 if(!c) break;
-                conoutf("disconnected client (%s)\n", c->hostname);
+                conoutf("disconnected client (%s)", c->hostname);
                 server::clientdisconnect(c->num);
                 nonlocalclients--;
                 c->type = ST_EMPTY;
@@ -704,8 +712,8 @@ bool serveroption(char *opt)
         case 'c': setvar("maxclients", atoi(opt+2)); return true;
         case 'i': setsvar("serverip", opt+2); return true;
         case 'j': setvar("serverport", atoi(opt+2)); return true; 
-        case 'q': conoutf("Using home directory: %s\n", opt+2); sethomedir(opt+2); return true;
-        case 'k': conoutf("Adding package directory: %s\n", opt+2); addpackagedir(opt+2); return true;
+        case 'q': conoutf("Using home directory: %s", opt+2); sethomedir(opt+2); return true;
+        case 'k': conoutf("Adding package directory: %s", opt+2); addpackagedir(opt+2); return true;
         default: return false;
     }
 }
@@ -719,7 +727,7 @@ static bool rundedicated = false;
 
 void quit()
 {
-    conoutf("Stopping server\n");
+    conoutf("Stopping server");
 
     if(lua::pushEvent("server.stop"))
     {
@@ -730,9 +738,9 @@ void quit()
 void server_sigint(int signal)
 {
 #ifndef WIN32
-    conoutf("\nCaught signal %i (%s)\n", signal, strsignal(signal));
+    conoutf("\nCaught signal %i (%s)", signal, strsignal(signal));
 #else
-    conoutf("\nCaught signal %i (<Name function not implemented by OS>)\n", signal);
+    conoutf("\nCaught signal %i (<Name function not implemented by OS>)", signal);
 #endif
     quit();
 }
@@ -790,7 +798,7 @@ int main(int argc, const char **argv)
         status = register_prng(&sprng_desc);
         if(status != CRYPT_OK)
         {
-            fatal("Error registering sprng: %s\n", error_to_string(status));
+            fatal("Error registering sprng: %s", error_to_string(status));
             return 1;
         }
         
