@@ -267,6 +267,7 @@ namespace server
         ENetPacket *clipboard;
         int lastclipboard, needclipboard;
         stream *clientCertificate;
+        int maploaded;
 
         clientinfo() : clipboard(NULL), clientCertificate(NULL) { reset(); }
         ~clientinfo() { events.deletecontents(); cleanclipboard(); DELETEP(clientCertificate); }
@@ -331,6 +332,7 @@ namespace server
             mapcrc = 0;
             warned = false;
             gameclip = false;
+            maploaded = 0;
         }
 
         void reassign()
@@ -425,6 +427,7 @@ namespace server
     vector<clientinfo *> connects, clients, bots;
     vector<worldstate *> worldstates;
     bool reliablemessages = false;
+    bool waitingForMapLoad = false;
 
     struct demofile
     {
@@ -1599,7 +1602,9 @@ namespace server
     void changemap(const char *s, int mode)
     {
         stopdemo();
-        pausegame(false);
+        sendservmsg("Waiting for map to load on all clients");
+        pausegame(true);
+        waitingForMapLoad = true;
         if(smode) smode->reset(false);
         aiman::resetai();
 
@@ -2030,6 +2035,27 @@ namespace server
         if(!gamepaused) gamemillis += curtime;
 
         if(m_demo) readdemo();
+        else if(waitingForMapLoad)
+        {
+            int totalMapLoadTime = 0;
+            int numLoadedMap = 0;
+            loopv(clients)
+            {
+                if(clients[i]->maploaded)
+                {
+                    totalMapLoadTime += clients[i]->maploaded;
+                    numLoadedMap++;
+                }
+            }
+
+            // everyone is done loading or we reached the threshold (avg + 5 sec)
+            if(numLoadedMap == clients.length() || (numLoadedMap > 1 && totalmillis >= totalMapLoadTime/numLoadedMap + 5000))
+            {
+                sendservmsg(numLoadedMap == clients.length() ? "All clients loaded the map" : "Some clients were too slow, starting the match anyway.");
+                pausegame(false);
+                waitingForMapLoad = false;
+            }
+        }
         else if(!gamepaused && (!m_timed || gamemillis < gamelimit))
         {
             processevents();
@@ -2623,6 +2649,11 @@ namespace server
                     if(smode && cp->state.state==CS_ALIVE) smode->moved(cp, cp->state.o, cp->gameclip, pos, (flags&0x80)!=0);
                     cp->state.o = pos;
                     cp->gameclip = (flags&0x80)!=0;
+
+                    if(!cp->maploaded && cp->state.aitype == AI_NONE)
+                    {
+                        cp->maploaded = totalmillis;
+                    }
                 }
                 break;
             }
@@ -2993,6 +3024,10 @@ namespace server
             }
 
             case N_PING:
+                if(ci && !ci->maploaded && ci->state.aitype == AI_NONE)
+                {
+                    ci->maploaded = totalmillis;
+                }
                 sendf(sender, 1, "i2", N_PONG, getint(p));
                 break;
 
