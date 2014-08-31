@@ -102,7 +102,7 @@ module "rr.geoip" {
 --------------------------------------------------------------------------------
 
 module "rr.muteControl" {
-    defaultMute = { "EDIT" }
+    defaultMute = {}
 }
 
 module "rr.sendto" {

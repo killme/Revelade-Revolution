@@ -39,7 +39,7 @@ function Module:load(config)
     self.serverHandle:on("client.isMuted", self.isMutedHandler)
     self.serverHandle:on("client.disconnect", self.disconnectHandler)
 
-    self:registerCommand("mute", "PRIV_MODERATOR", function(cn, mute, value)
+    self:registerCommand("mute", "PRIV_MASTER", function(cn, mute, value)
         cn = tonumber(cn)
         if type(cn) ~= "number" then error("Invalid client number") end
         mute = tostring(mute)
