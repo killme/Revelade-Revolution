@@ -1123,6 +1123,8 @@ namespace game
                 int val = getint(p);
                 gamepaused = val > 0;
                 conoutf("game is %s", gamepaused ? "paused" : "resumed");
+                if(identexists("map_paused_cutscene")) execute("map_paused_cutscene");
+                else if(identexists("paused_cutscene")) execute("paused_cutscene");
                 break;
             }
 

@@ -50,7 +50,7 @@ enum                            // static entity types
     PLATFORM,                   // attr1 = angle, attr2 = idx, attr3 = tag, attr4 = speed
     ELEVATOR,                   // attr1 = angle, attr2 = idx, attr3 = tag, attr4 = speed
     FLAG,                       // attr1 = angle, attr2 = team
-    CAMERA,
+    CAMERA,                     // attr1 = cutscene id, attr2 = nth point
     MAXENTTYPES
 };
 

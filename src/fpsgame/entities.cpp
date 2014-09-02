@@ -573,25 +573,12 @@ namespace entities
         }
     }
 
-    int lastcamera = -1;
-    int findcamera(int id)
+    int findcamera(int cutscene, int id)
     {
         const vector<extentity*> &eents = entities::getents();
-        loopv(eents) if (eents[i]->type == CAMERA) if (eents[i]->attr1 == id) return i;
+        loopv(eents) if (eents[i]->type == CAMERA && eents[i]->attr1 == cutscene && eents[i]->attr2 == id) return i;
         return -1;
     }
-    //COMMAND(findcamera, "i");
-
-    ICOMMAND(dropcamera, "", (), {
-        int cameran = max((lastmillis%9999), 10);
-        const vector<extentity*> &eents = entities::getents();
-        newentity(CAMERA, cameran, player1->yaw, player1->pitch, -1, 0);
-        if (lastcamera>=0 && eents.inrange(lastcamera) && eents[lastcamera]->type == CAMERA)
-        {
-                eents[lastcamera]->attr4 = cameran;
-        }
-        lastcamera = eents.length()-1;
-    });
 
     void entradius(extentity &e, bool color)
     {
@@ -628,11 +615,7 @@ namespace entities
                 break;
             case CAMERA:
             {
-                vec dir;
-                vecfromyawpitch(e.attr2, e.attr3, 1, 0, dir);
-                renderentarrow(e, dir, 4);
-
-                int iv = findcamera(e.attr4);
+                int iv = findcamera(e.attr1, e.attr2+1);
                 if (iv<0) break;
 
                 vec eto(entities::getents()[iv]->o);

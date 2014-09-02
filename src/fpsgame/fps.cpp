@@ -79,73 +79,231 @@ namespace game
     }
     ICOMMAND(nextfollow, "i", (int *dir), nextfollow(*dir < 0 ? -1 : 1));
 
-    bool inputenabled = true;
-    extentity *camnext;
-    float camstep, camyaws, campitchs, cammillis;
-    string camtrig;
-    vec camdir;
-
-    ICOMMAND(cutscene, "i", (int *i), {
-        inputenabled = !(*i);
-        cameracap = (bool)*i;
-        if (!cscamera) cscamera = new physent();
-        cscamera->o = player->o;
-        cscamera->yaw = player->yaw;
-        cscamera->pitch = player->pitch;
-        camnext = NULL;
-    });
-
-    void setnextcam(int *id, float *cps, const char *trigger, int *teleport = NULL)
+    uint binomialCoef(uint n, uint const k)
     {
-        const vector<extentity*> &eents = entities::getents();
-        int cm = entities::findcamera(*id);
-        if (cm<0 || !eents.inrange(cm))
+        uint r = 1;
+        if(k > n) return 0;
+        for(uint d = 1; d <= k; d++)
         {
-            conoutf(CON_ERROR, "\frCould not find camera \fs\fo%i\fS (\fs\fo%i\fS)", *id, cm);
+            r *= n--;
+            r /= d;
+        }
+
+        return r;
+    }
+
+    bool inputenabled = true;
+
+    struct CutsceneCamera
+    {
+        int id;
+        vec o;
+        float weight;
+    };
+
+    struct Cutscene
+    {
+        int id;
+        const char *name;
+        bool computed;
+        int startTime;
+        float timePerPoint;
+        vector<CutsceneCamera *> cameras;
+        vector<vec> computedPoints;
+
+        Cutscene() : id(-1), name(NULL), computed(false), startTime(-1), timePerPoint(3000), cameras(), computedPoints() {}
+
+        ~Cutscene()
+        {
+            DELETEA(name);
+        }
+    };
+
+    int sortCutsceneCamerasFunction(CutsceneCamera **c1, CutsceneCamera **c2)
+    {
+        return (*c1)->id > (*c2)->id ? 1 : -1;
+    }
+
+    vec getComputedPointIndexed(Cutscene *cs, uint index)
+    {
+        return cs->computedPoints[index % cs->computedPoints.length()];
+    }
+
+    FVAR(cutscenePrecision, 0.f, 100.f, 100.f);
+
+    float bernsteinposition(float value, int currentelement, float position, int elementcount, float weight)
+    {
+        if(position >= 1.0f) position= 0.999f;
+
+        // bonomial coefficient
+        uint coef = binomialCoef(elementcount, currentelement);
+
+        return coef
+                * pow(position, currentelement)
+                * pow((1-position), (elementcount-currentelement)) // interpolation value1
+                * value // actual value
+                * weight; // weight
+    }
+
+    vec calculatePosition(Cutscene *cs, float position)
+    {
+        // computed point
+        vec finished_point;
+
+        int elementCount = cs->cameras.length()-1;
+
+        // the number of camera points given
+        loopi(elementCount+1)
+        {
+            // compute bezier coordinates using bernstein polynoms
+            finished_point.x += bernsteinposition(cs->cameras[i]->o.x, i, position, elementCount, cs->cameras[i]->weight);
+            finished_point.y += bernsteinposition(cs->cameras[i]->o.y, i, position, elementCount, cs->cameras[i]->weight);
+            finished_point.z += bernsteinposition(cs->cameras[i]->o.z, i, position, elementCount, cs->cameras[i]->weight);
+        }
+
+        return finished_point;
+    }
+    
+    void calculateCurveBernsteinPolynom(Cutscene *cs)
+    {
+        // Calculate precision
+        float fStep = 1.0f / cutscenePrecision;
+
+        cs->computedPoints.shrink(0);
+
+        // go along our curve in fPos steps
+        for (float fPos = 0.0f; fPos <= 1.0f; fPos += fStep)
+        {
+            // add computed point
+            vec point = calculatePosition(cs, fPos);
+            cs->computedPoints.add(point);
+        }
+
+        cs->computed = true;
+    }
+
+    vector <Cutscene> cutscenes;
+
+    void resetCutscenes()
+    {
+        cutscenes.shrink(0);
+    }
+    COMMAND(resetCutscenes, "");
+
+    void defineCutscene(int *id, const char *name)
+    {
+        Cutscene &cs = cutscenes.add();
+        cs.id = *id;
+        cs.name = newstring(name);
+    }
+    COMMAND(defineCutscene, "is");
+
+    void recomputeCutscenes()
+    {
+        vector<extentity *> &ents = entities::getents();
+
+        loopv(cutscenes)
+        {
+            cutscenes[i].cameras.shrink(0);
+            cutscenes[i].computed = false;
+        }
+
+        loopv(ents)
+        {
+            if(ents[i]->type == CAMERA)
+            {
+                loopvj(cutscenes)
+                {
+                    if(cutscenes[j].id == ents[i]->attr1)
+                    {
+                        CutsceneCamera *c = new CutsceneCamera;
+                        c->id = ents[i]->attr2;
+                        c->o = ents[i]->o;
+                        c->weight = 1.0f;
+                        cutscenes[j].cameras.add(c);
+                        break;
+                    }
+                }
+            }
+        }
+
+        loopv(cutscenes)
+        {
+            cutscenes[i].cameras.sort(sortCutsceneCamerasFunction);
+            calculateCurveBernsteinPolynom(&cutscenes[i]);
+        }
+    }
+    COMMAND(recomputeCutscenes, "");
+
+    VAR(currentCutscene, -1, -1, __INT_MAX__);
+    VAR(dbgcutscenes, 0, 0, 1);
+
+    void drawCutscenePaths()
+    {
+        loopv(cutscenes)
+        {
+            Cutscene &cs = cutscenes[i];
+
+            if(!cs.computed) recomputeCutscenes();
+
+            vec lastPos; bool haveLastPos = false;
+            loopvj(cs.computedPoints)
+            {
+                if(!haveLastPos)
+                {
+                    haveLastPos = true;
+                }
+                else
+                {
+                    particle_flare(lastPos, cs.computedPoints[j], 0, PART_DEBUG_LINE, j % 2 == 0 ? 0x00AA00 : 0xAA0000, 1.f);
+                }
+                lastPos = cs.computedPoints[j];
+            }
+        }
+    }
+
+    void updateCutsceneCamera()
+    {
+        if(dbgcutscenes) drawCutscenePaths();
+        if(!cutscenes.inrange(currentCutscene)) return;
+
+        Cutscene &cs = cutscenes[currentCutscene];
+
+        if(!cs.computed) recomputeCutscenes();
+
+        if(cs.startTime < 0) cs.startTime = totalmillis;
+        int elapsedTime = totalmillis - cs.startTime;
+        float progress = float(elapsedTime)/(float(cs.timePerPoint)/cutscenePrecision);
+        int pointIndex = floor(progress);
+
+        if(pointIndex + 1 >= cs.computedPoints.length())
+        {
+            defformatstring(cutsceneFinishName)("cutscene_finished_%i", currentCutscene);
+            currentCutscene = -1;
+            cs.startTime = -1;
+            if(identexists(cutsceneFinishName)) execute(cutsceneFinishName);
+            if(identexists("cutscene_finished")) execute("cutscene_finished");
             return;
         }
 
-        camnext = eents[cm];
+        float currentPointProgress = progress - float(pointIndex);
 
-        cammillis = lastmillis;
-        if (trigger && trigger[0]) copystring(camtrig, trigger);
+        vec currentPosition = cs.computedPoints[pointIndex];
+        vec nextPosition = cs.computedPoints[pointIndex+1];
 
-        if(teleport == NULL || !*teleport)
-        {
-            float dr = camera1->o.dist(camnext->o)/(*cps);
-            camstep = camera1->o.dist(camnext->o)/dr;
-            camyaws = (camnext->attr2-camera1->yaw);
-            camyaws = min(360-camyaws, camyaws)/dr;
-            campitchs = (camnext->attr3-camera1->pitch)/dr;
+        vec delta (nextPosition);
+        delta.sub(currentPosition);
 
-        }
-        else
-        {
-            const vector<extentity*> &eents = entities::getents();
-            int cm = entities::findcamera(camnext->attr4);
-            if (cm<0 || !eents.inrange(cm))
-            {
-                conoutf(CON_ERROR, "\frCould not find camera \fs\fo%i\fS (\fs\fo%i\fS)",  camnext->attr4, cm);
-                return;
-            }
-            extentity *nextcamnext = eents[cm];
+        float yaw, pitch;
+        vectoyawpitch( delta, yaw, pitch);
 
-            camera1->o = camnext->o;
-            camera1->pitch = camnext->attr3;
-            camera1->yaw = camnext->attr2;
+        delta.mul(currentPointProgress);
 
-            float dr = camera1->o.dist(nextcamnext->o)/(*cps);
-            camstep = camera1->o.dist(nextcamnext->o)/dr;
-            camyaws = (nextcamnext->attr2-camera1->yaw);
-            camyaws = min(360-camyaws, camyaws)/dr;
-            campitchs = (nextcamnext->attr3-camera1->pitch)/dr;
-
-            camnext = nextcamnext;
-        }
+        //TODO: create camera entity if player is in first person
+        camera1->o = currentPosition.add(delta);
+        camera1->yaw = yaw;
+        camera1->pitch = pitch;
     }
-    COMMAND(setnextcam, "ifsi");
-    
-    ICOMMAND(cutscenetest, "", (), conoutf("x=%f,y=%f,z=%f,pitch=%f,yaw=%f", camera1->o.x, camera1->o.y, camera1->o.z, camera1->pitch, camera1->yaw));
 
     ICOMMAND(iszombiegame, "", (), intret(m_sp||m_survival));
 
@@ -544,38 +702,12 @@ namespace game
         }
     }
 
-    void updatecscam(int curtime)
-    {
-        if (!camnext) return;
-        vec tempstep = camnext->o;
-        tempstep.sub(camera1->o).normalize();
-        tempstep.mul((float)curtime*camstep);
-        camera1->o.add(tempstep);
-        camera1->yaw += camyaws*curtime;
-        camera1->pitch += campitchs*curtime;
-
-        if (camera1->o.dist(camnext->o)<=4)
-        {
-            if (camnext->attr4>=0)
-            {
-                int ncam = camnext->attr4;
-                float dcam = camstep;
-                setnextcam(&ncam, &dcam, "");
-            }
-            else
-            {
-                camnext = NULL;
-                if(camtrig[0]) execute(camtrig);
-            }
-        }
-    }
-
     int lastinterm = 0;
     bool shownvotes = false;
     void updateworld()        // main game update loop
     {
         if(!maptime) { maptime = lastmillis; maprealtime = totalmillis; return; }
-        if(!curtime) { gets2c(); if(player1->clientnum>=0) c2sinfo(); return; }
+        if(!curtime) { currentCutscene = 0; updateCutsceneCamera(); gets2c(); if(player1->clientnum>=0) c2sinfo(); return; }
 
         physicsframe();
         ai::navigate();
@@ -588,7 +720,12 @@ namespace game
         updatemovables(curtime);
         updatemonsters(curtime);
         if (cmode) cmode->update(curtime);
-        if(player1->state==CS_DEAD)
+        if(intermission)
+        {
+            currentCutscene = 0;
+            updateCutsceneCamera();
+        }
+        else if(player1->state==CS_DEAD)
         {
             if(player1->ragdoll) moveragdoll(player1);
             else if(lastmillis-player1->lastpain<2000)
@@ -597,16 +734,12 @@ namespace game
                 moveplayer(player1, 10, true);
             }
         }
-        else if(!intermission)
+        else
         {
             if(player1->ragdoll) cleanragdoll(player1);
             if (inputenabled) moveplayer(player1, 10, true);
-            else
-            {
-                disablezoom();
-                //max(maplimit-lastmillis, 0) > 9 * 60000 + 30000)
-                updatecscam(curtime);
-            }
+            else { currentCutscene = 0; updateCutsceneCamera(); }
+
             swayhudgun(curtime);
             entities::checkitems(player1);
             if(m_sp)
