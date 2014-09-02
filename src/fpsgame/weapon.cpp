@@ -7,7 +7,11 @@ VARP(quakemillis, 0, 400, 10000);
 bool canshootwith(fpsstate *d, int gun, int gamemode, bool checkAmmo)
 {
     const playerclassinfo &pci = game::getplayerclassinfo(d);
-    if (m_classes)
+    if(WEAP_IS_OBTAINABLE(gun))
+    {
+        return !checkAmmo || d->ammo[WEAPONI(gun)] > 0;
+    }
+    else if (m_classes)
     {
         loopi(WEAPONS_PER_CLASS)
         {

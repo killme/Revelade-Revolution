@@ -1915,16 +1915,18 @@ namespace server
         if(!gs.isalive(gamemillis) || wait<gs.gunwait || (WEAP(gun,range) && from.dist(to) > WEAP(gun,range) + 1)) return;
         if (!CAN_SHOOT_WITH2(gs,gun))
         {
-            #ifdef _DEBUG
-                conoutf("%s, cannot shoot with %i", colorname(ci), gun);
-            #endif
+            DEBUG_ERROR("%s, cannot shoot with %i", colorname(ci), gun);
             return;
         }
         gs.ammo[WEAPONI(gun)] = max(gs.ammo[WEAPONI(gun)]-WEAP(gun,numshots), 0);
 
         gs.lastshot = millis;
         gs.gunwait = WEAP(gun,attackdelay);
-        if (numrays != WEAP(gun,numrays)) return;
+        if (numrays != WEAP(gun,numrays))
+        {
+            DEBUG_ERROR("%s, cannot shoot with %i numrays mismatch net: %i ours: %i", colorname(ci), gun, numrays, WEAP(gun,numrays));
+            return;
+        }
         sendf(-1, 1, "rii9ivx", N_SHOTFX, ci->clientnum, gun, id,
                 int(from.x*DMF), int(from.y*DMF), int(from.z*DMF),
                 int(to.x*DMF), int(to.y*DMF), int(to.z*DMF),

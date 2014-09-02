@@ -283,6 +283,7 @@ static const struct weapinfo {
 #define WEAP_IS_FLAME(gun)            (WEAP_PROJTYPE(gun)==PJ_FLAME)
 #define WEAP_IS_SPECIAL(gun)        (WEAP_PROJTYPE(gun)==PJ_SPECIAL)
 #define WEAP_IS_INSANITY(gun)        (WEAPONI(gun)==WEAP_INSANITY)
+#define WEAP_IS_OBTAINABLE(gun)         (WEAPONI(gun)==WEAP_MORTAR)
 
 #define WEAP_VALID(gun)                (WEAPONI(gun)>=0&&WEAPONI(gun)<NUMWEAPS)
 #define WEAP_USABLE(gun)            (WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_USABLE_LAST)

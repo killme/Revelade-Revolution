@@ -22,6 +22,12 @@ typedef unsigned int uint;
 #define ASSERT(c) if(c) {}
 #endif
 
+#ifdef _DEBUG
+#define DEBUG_ERROR(...) conoutf(CON_DEBUG, __VA_ARGS__)
+#else
+#define DEBUG_ERROR(...)
+#endif
+
 #if defined(__GNUC__) || (defined(_MSC_VER) && _MSC_VER >= 1400)
 #define RESTRICT __restrict
 #else
