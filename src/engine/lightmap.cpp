@@ -95,7 +95,9 @@ static surfaceinfo brightsurfaces[6] =
 // quality parameters, set by the calclight arg
 VARN(lmshadows, lmshadows_, 0, 2, 2);
 VARN(lmaa, lmaa_, 0, 3, 3);
-static int lmshadows = 2, lmaa = 3;
+VARN(lerptjoints, lerptjoints_, 0, 1, 1);
+VARN(lmao, lmao_, 0, 1, 1);
+static int lmshadows = 2, lmaa = 3, lerptjoints = 1, lmao = 1;
 
 static uint progress = 0, taskprogress = 0;
 static GLuint progresstex = 0;
@@ -393,7 +395,77 @@ static void updatelightmap(const surfaceinfo &surface)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
  
+/**
+ * ambient occlusion (darkening of corners) works as follows:
+ * you check for every point how much light possible comes onto it when the light comes from the whole sky (no lights/spotlights, whatever)
+ * this will darken cracks and sharp edges and hence give a more realistic rendering output.
+ * from every point we send out ray casts into the main directions (see below) and get a hit back if it touched the sky (or a skytextured cube, see RAY_SKIPSKY)
+ * we then darken the lightmap color depending on how much the pixel is occlued.
+ * (rays-hitting-a-wall / total-rays-sent -> value between 0 and 1.0) 1.0 = totally occlued, 0.0 = no occlusion
+ */
+
+VARR(ambientocclusion, 0, 128, 255); //factor how much the corners will be darkened
+FVARR(ambientocclusionradius, 1.0, 2.0, 40.0);
+FVARR(ambientocclusionprecision, 0, 4., 17.);
+
+VAR(dbgao, 0, 0, 1);
+
+static float calcocclusion(const vec &o, const vec &normal, float tolerance)
+{
+    static const vec rays[17] =
+    {
+        vec(0, 0, 1), //the main direction of the rays: upwards
+        vec(cosf(21*RAD)*cosf(50*RAD), sinf(21*RAD)*cosf(50*RAD), sinf(50*RAD)), //21 and 50
+        vec(cosf(111*RAD)*cosf(50*RAD), sinf(111*RAD)*cosf(50*RAD), sinf(50*RAD)), // 90 degrees around x
+        vec(cosf(201*RAD)*cosf(50*RAD), sinf(201*RAD)*cosf(50*RAD), sinf(50*RAD)),
+        vec(cosf(291*RAD)*cosf(50*RAD), sinf(291*RAD)*cosf(50*RAD), sinf(50*RAD)),
+
+        vec(cosf(43*RAD)*cosf(60*RAD), sinf(43*RAD)*cosf(60*RAD), sinf(60*RAD)), // (+22) 43 and 60
+        vec(cosf(133*RAD)*cosf(60*RAD), sinf(133*RAD)*cosf(60*RAD), sinf(60*RAD)),
+        vec(cosf(223*RAD)*cosf(60*RAD), sinf(223*RAD)*cosf(60*RAD), sinf(60*RAD)),
+        vec(cosf(313*RAD)*cosf(60*RAD), sinf(313*RAD)*cosf(60*RAD), sinf(60*RAD)),
+
+        vec(cosf(66*RAD)*cosf(70*RAD), sinf(66*RAD)*cosf(70*RAD), sinf(70*RAD)), // (+45) 66 and 70
+        vec(cosf(156*RAD)*cosf(70*RAD), sinf(156*RAD)*cosf(70*RAD), sinf(70*RAD)),
+        vec(cosf(246*RAD)*cosf(70*RAD), sinf(246*RAD)*cosf(70*RAD), sinf(70*RAD)),
+        vec(cosf(336*RAD)*cosf(70*RAD), sinf(336*RAD)*cosf(70*RAD), sinf(70*RAD)),
         
+        vec(cosf(88*RAD)*cosf(80*RAD), sinf(88*RAD)*cosf(80*RAD), sinf(80*RAD)), // (+67) 88 and 80
+        vec(cosf(178*RAD)*cosf(80*RAD), sinf(178*RAD)*cosf(80*RAD), sinf(80*RAD)),
+        vec(cosf(268*RAD)*cosf(80*RAD), sinf(268*RAD)*cosf(80*RAD), sinf(80*RAD)),
+        vec(cosf(358*RAD)*cosf(80*RAD), sinf(358*RAD)*cosf(80*RAD), sinf(80*RAD)),
+        //degrees around z 21 43 66 88 111 133 156 178 201 223 246 268 291 313 336 358 (building the circle)
+        //degrees around xandy 50 60 70 80 50 60 70 80 50 60 70 80 50 60 70 80 (making it an upwardly open cone)
+    };
+    
+    /**
+     * rotate the rays into the normal direction
+     * (normals have to be normalized!)
+     */
+    matrix3x3 rotationmatrix;
+    bool needsrotation = false;
+    if( normal != rays[0])
+    {
+        vec axis;
+        axis.cross(rays[0], normal); //todo (?) special case null normal (?)
+        if(axis.magnitude() == 0) axis = vec(1, 0, 0);// special case angle == 180 (cross product == 0)
+        float angle = acos(rays[0].dot(normal));
+        rotationmatrix.rotate(angle, axis); //create a matrix
+        needsrotation = true;
+    }
+
+    int occluedrays = 0;
+    loopi(17)
+    {
+        if(occluedrays >= ambientocclusionprecision) break;
+        vec ray(needsrotation ? rotationmatrix.transform(rays[i]) : rays[i]);
+        if(shadowray(vec(ray).mul(tolerance).add(o), ray, ambientocclusionradius, RAY_ALPHAPOLY|RAY_SHADOW, NULL) <= (ambientocclusionradius-1.0f)) occluedrays++;
+        //check whether there's a wall in the field around the sample
+    }
+
+    return min(1.0f, max( 0.0f, float(occluedrays)/ambientocclusionprecision));
+}
+
 static uint generatelumel(lightmapworker *w, const float tolerance, uint lightmask, const vector<const extentity *> &lights, const vec &target, const vec &normal, vec &sample, int x, int y)
 {
     vec avgray(0, 0, 0);
@@ -445,8 +517,12 @@ static uint generatelumel(lightmapworker *w, const float tolerance, uint lightma
         g += intensity * float(light.attr3);
         b += intensity * float(light.attr4);
     }
+    
+    float occlusion = 0;
+    if(ambientocclusion && lmao) occlusion = calcocclusion(target, normal, tolerance);
+    
     switch(w->type&LM_TYPE)
-    {
+    {    
         case LM_BUMPMAP0:
             if(avgray.iszero()) break;
             // transform to tangent space
@@ -459,9 +535,20 @@ static uint generatelumel(lightmapworker *w, const float tolerance, uint lightma
             w->raydata[y*w->w+x].add(vec(S.dot(avgray)/S.magnitude(), T.dot(avgray)/T.magnitude(), normal.dot(avgray)));
             break;
     }
-    sample.x = min(255.0f, max(r, float(ambientcolor[0])));
-    sample.y = min(255.0f, max(g, float(ambientcolor[1])));
-    sample.z = min(255.0f, max(b, float(ambientcolor[2])));
+    
+    if(dbgao)
+    {
+        sample.r = min(255.0f, ambientocclusion * occlusion); //colorize every occlued part red
+        sample.g = 0;
+        sample.b = 0;
+    }
+    else
+    {
+        sample.r = min(255.0f, max(r, float(ambientcolor[0])) - ambientocclusion * occlusion);
+        sample.g = min(255.0f, max(g, float(ambientcolor[1])) - ambientocclusion * occlusion);
+        sample.b = min(255.0f, max(b, float(ambientcolor[2])) - ambientocclusion * occlusion);
+    }
+    
     return lightused;
 }
 
@@ -1947,9 +2034,9 @@ bool setlightmapquality(int quality)
 {
     switch(quality)
     {
-        case  1: lmshadows = 2; lmaa = 3; break;
-        case  0: lmshadows = lmshadows_; lmaa = lmaa_; break;
-        case -1: lmshadows = 1; lmaa = 0; break;
+        case 1: lmshadows = 2; lmaa = 3; lerptjoints = 1; lmao = 1; break;
+        case 0: lmshadows = lmshadows_; lmaa = lmaa_; lerptjoints = lerptjoints_; lmao = lmao_; break;
+        case -1: lmshadows = 1; lmaa = 0; lerptjoints = 0; lmao = 0; break;
         default: return false;
     }
     return true;
