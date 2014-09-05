@@ -1171,7 +1171,7 @@ static void changebatchtmus(renderstate &cur, int pass, geombatch &b)
             else
             {
                 //TODO: actually fix this
-                DEBUG_ERROR("WARNING: lightmap texture out of range %i+1=%i for slot %i", lmid, lmid+1, b.vslot.index);
+                DEBUG_ERROR("WARNING: lightmap texture out of range %i+1=%i for vslot %i, slot %i", lmid, lmid+1, b.vslot.index, b.vslot.slot->index);
             }
         }
         if(b.vslot.slot->shader->type&SHADER_ENVMAP && b.es.envmap!=EMID_CUSTOM)

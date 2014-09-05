@@ -1515,6 +1515,7 @@ void texture(char *type, char *name, int *rot, int *xoffset, int *yoffset, float
 }
 
 COMMAND(texture, "ssiiif");
+ICOMMAND(nextslotindex, "", (), intret(slots.length()));
 
 void autograss(char *name)
 {
