@@ -1158,13 +1158,21 @@ static void changebatchtmus(renderstate &cur, int pass, geombatch &b)
         int tmu = cur.lightmaptmu+1;
         if(b.vslot.slot->shader->type&SHADER_NORMALSLMS)
         {
-            if(cur.textures[tmu]!=lightmaptexs[lmid+1].id)
+            if(lightmaptexs.inrange(lmid+1))
             {
-                glActiveTexture_(GL_TEXTURE0_ARB+tmu);
-                glBindTexture(GL_TEXTURE_2D, cur.textures[tmu] = lightmaptexs[lmid+1].id);
-                changed = true;
+                if(cur.textures[tmu]!=lightmaptexs[lmid+1].id)
+                {
+                    glActiveTexture_(GL_TEXTURE0_ARB+tmu);
+                    glBindTexture(GL_TEXTURE_2D, cur.textures[tmu] = lightmaptexs[lmid+1].id);
+                    changed = true;
+                }
+                tmu++;
             }
-            tmu++;
+            else
+            {
+                //TODO: actually fix this
+                DEBUG_ERROR("WARNING: lightmap texture out of range %i+1=%i for slot %i", lmid, lmid+1, b.vslot.index);
+            }
         }
         if(b.vslot.slot->shader->type&SHADER_ENVMAP && b.es.envmap!=EMID_CUSTOM)
         {
