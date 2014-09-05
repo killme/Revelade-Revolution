@@ -13,13 +13,18 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 
 #ifdef _DEBUG
-#ifdef __GNUC__
-#define ASSERT(c) if(!(c)) { asm("int $3"); }
+    #if !defined(SET_DEBUG_BREAKPOINT) && defined(__GNUC__)
+        #define SET_DEBUG_BREAKPOINT do { asm("int $3"); } while(0)
+    #elif !defined(SET_DEBUG_BREAKPOINT)
+        #define SET_DEBUG_BREAKPOINT do { __asm int 3; } while(0)
+    #endif
+
+    #define ASSERT(c) if(!(c)) { printf("Assetion failed in %s on line %i: %s\n", __FILE__, __LINE__, #c); SET_DEBUG_BREAKPOINT; }
 #else
-#define ASSERT(c) if(!(c)) { __asm int 3 }
-#endif
-#else
-#define ASSERT(c) if(c) {}
+    #ifndef SET_DEBUG_BREAKPOINT
+        #define SET_DEBUG_BREAKPOINT
+    #endif
+    #define ASSERT(c) if(!(c)) { SET_DEBUG_BREAKPOINT; }
 #endif
 
 #ifdef _DEBUG
