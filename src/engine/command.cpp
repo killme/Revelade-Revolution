@@ -1147,7 +1147,8 @@ ICOMMAND(findfile, "s", (char *name),
     string fname;
     copystring(fname, name);
     path(fname);
-    intret(fileexists(fname, "e") || findfile(fname, "e") ? 1 : 0);
+    const char *path = findfile(fname, "rb");
+    intret(fileexists(path, "rb") ? 1 : 0);
 });
 
 ICOMMAND(+, "ii", (int *a, int *b), intret(*a + *b));

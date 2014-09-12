@@ -147,6 +147,13 @@ if(SPHINX_FOUND)
     add_subdirectory(docs)
 endif()
 
+if (${BUILD_SERVER})
+    add_custom_target(cfgcheck
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+        DEPENDS ${LUAPP_BINARY_NAME}
+        COMMAND ${LUAPP_BINARY_NAME} -v cfgfix --check-only)
+        
+endif()
 
 IF(${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_custom_target(src_validate ${CMAKE_COMMAND} -DSRC_DIR=${CMAKE_CURRENT_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/ValidateSource.cmake ALL)
