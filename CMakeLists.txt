@@ -114,6 +114,46 @@ file(READ ${DATE_FILE} DATE)
 
 message(STATUS "Build version: ${RR_VERSION} ${DATE} (${CMAKE_BUILD_TYPE})${RR_VERSION_ADDITIONAL_INFO}")
 
+# Cpack
+
+if(${RELEASE_BUILD})
+    include(InstallRequiredSystemLibraries)
+
+    # Make sure this is NOT an absolute path
+    set(BUILD_INSTALL_DIR "release")
+    
+    set(CPACK_GENERATOR
+        TBZ2
+        ZIP
+        DEB
+        NSIS
+    )
+    
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Revelade Revolution")
+    set(CPACK_PACKAGE_VENDOR "Revelade Revolution team")
+    set(CPACK_PACKAGE_CONTACT "contact.theintercooler.com")
+    set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/readme.txt")
+    SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/license.txt")
+    SET(CPACK_PACKAGE_VERSION_MAJOR "${RR_VERSION_MAJOR}")
+    SET(CPACK_PACKAGE_VERSION_MINOR "${RR_VERSION_MINOR}")
+    SET(CPACK_PACKAGE_VERSION_PATCH "${RR_VERSION_PATCH}")
+    SET(CPACK_PACKAGE_INSTALL_DIRECTORY "Revelade Revolution ${RR_VERSION}")
+
+    SET(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/src/vcpp/rr.ico")
+#     SET(CPACK_NSIS_INSTALLED_ICON_NAME "")
+    SET(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_INSTALL_DIRECTORY}")
+    SET(CPACK_NSIS_HELP_LINK "http:\\\\\\\\contact.theintercooler.com")
+    SET(CPACK_NSIS_URL_INFO_ABOUT "http:\\\\\\\\rr.theintercooler.com")
+#     SET(CPACK_NSIS_CONTACT "")
+    SET(CPACK_NSIS_MODIFY_PATH ON)
+
+#         SET(CPACK_STRIP_FILES "bin/MyExecutable")
+#         SET(CPACK_SOURCE_STRIP_FILES "")
+    
+#     SET(CPACK_PACKAGE_EXECUTABLES "MyExecutable" "My Executable")
+    include(CPack)
+endif()
+
 # Install paths
 
 if(NOT BUILD_INSTALL_DIR)
