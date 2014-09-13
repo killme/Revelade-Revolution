@@ -2040,20 +2040,24 @@ namespace server
         else if(waitingForMapLoad)
         {
             int totalMapLoadTime = 0;
-            int numLoadedMap = 0;
+            int numLoadedMap = 0, numTotalClients = 0;
             loopv(clients)
             {
-                if(clients[i]->maploaded)
+                if(clients[i]->state.aitype == AI_NONE)
                 {
-                    totalMapLoadTime += clients[i]->maploaded;
-                    numLoadedMap++;
+                    if(clients[i]->maploaded)
+                    {
+                        totalMapLoadTime += clients[i]->maploaded;
+                        numLoadedMap++;
+                    }
+                    numTotalClients ++;
                 }
             }
 
             // everyone is done loading or we reached the threshold (avg + 5 sec)
-            if(numLoadedMap == clients.length() || (numLoadedMap > 1 && totalmillis >= totalMapLoadTime/numLoadedMap + 5000))
+            if(numLoadedMap == numTotalClients || (numLoadedMap > 1 && totalmillis >= totalMapLoadTime/numLoadedMap + 5000))
             {
-                sendservmsg(numLoadedMap == clients.length() ? "All clients loaded the map" : "Some clients were too slow, starting the match anyway.");
+                sendservmsg(numLoadedMap == numTotalClients ? "All clients loaded the map" : "Some clients were too slow, starting the match anyway.");
                 pausegame(false);
                 waitingForMapLoad = false;
             }
