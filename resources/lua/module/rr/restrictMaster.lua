@@ -12,7 +12,7 @@ function Module:load(config)
     self.overridePriv = self.serverHandle.priv[config.overridePriv]
 
     self.handler = function(event)
-        if event.allow == 1 or event.allow == -1 then
+        if event.mastermode > 0 and (event.allow == 1 or event.allow == -1) then
             if self.allow[event.mastermode] or self.serverHandle:havePrivilege(event.cn, self.overridePriv) then
                 event.allow = 1
             else
