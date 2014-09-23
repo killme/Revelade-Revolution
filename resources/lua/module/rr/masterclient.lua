@@ -115,6 +115,7 @@ function Module:makeRequest()
         self._uuid = nil
         self._password = nil
         self.serverHandle:printError(("[masterclient] Could not update to the master: %s"):format(tostring(err)))
+        req:destroy()
     end)
 
     local versionString = self.serverHandle:getVersionString()
