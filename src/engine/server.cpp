@@ -26,6 +26,7 @@ void fatal(const char *s, ...)
 
 void conoutfv(int type, const char *fmt, va_list args)
 {
+    while(*fmt == '\n' && fmt++) printf("\n");
     string sf, sp;
     vformatstring(sf, fmt, args);
     filtertext(sp, sf);
@@ -735,14 +736,25 @@ void quit()
     }
 }
 
+volatile int shouldTerminate = 0;
+
+void checkTerminate()
+{
+    if(shouldTerminate)
+    {
+    #ifndef WIN32
+        conoutf("\nCaught signal %i (%s)", signal, strsignal(shouldTerminate));
+    #else
+        conoutf("\nCaught signal %i (<Name function not implemented by OS>)", shouldTerminate);
+    #endif
+        shouldTerminate = 0;
+        quit();
+    }
+}
+
 void server_sigint(int signal)
 {
-#ifndef WIN32
-    conoutf("\nCaught signal %i (%s)", signal, strsignal(signal));
-#else
-    conoutf("\nCaught signal %i (<Name function not implemented by OS>)", signal);
-#endif
-    quit();
+    shouldTerminate = signal;
 }
 
 extern "C"
@@ -821,16 +833,17 @@ int main(int argc, const char **argv)
         }
     }
 
+    lua::init(argc, argv); //Lua will start the server
+
     signal(SIGINT, server_sigint);
     signal(SIGTERM, server_sigint);
     signal(SIGHUP, server_sigint);
-
-    lua::init(argc, argv); //Lua will start the server
 
     do
     {
         for(;rundedicated;)
         {
+            checkTerminate();
             serverslice(true, 4);
         }
     }

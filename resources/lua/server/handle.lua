@@ -212,7 +212,7 @@ function Handle:addHandlerType(name)
             for k, v in ipairs(events[name][1]) do
                 event[v] = args[k]
             end
-            self:emit(name, event)
+            eventSource(name, self.emit, self, name, event)
             local ret = {}
             for k, v in pairs(events[name][2]) do
                 ret[#ret+1] = event[k]

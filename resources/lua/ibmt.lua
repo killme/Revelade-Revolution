@@ -6,7 +6,14 @@ local Task = Emitter:extend()
 
 function Task:initialize()
     self.references = 0
+
+    -- Delay errors so we can return failed tasks
+    self._keepError = function(...)
+        self._error = {...}
+    end
+    self:on("error", self._keepError)
 end
+
 
 function Task:push(task)
     self.references = self.references + 1
@@ -14,6 +21,10 @@ function Task:push(task)
     -- p("+", tostring(self), self.references, task)
 
     if instanceof(task, Task) then
+        if task._error then
+            self:cancel(unpack(task._error))
+            return
+        end
         if task.references == nil then --Already finished
             return self:pop()
         end

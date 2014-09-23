@@ -17,7 +17,7 @@ end
 
 function BaseModule:unload()
     if self.commandHandler ~= nil then
-        self.serverHandle:removeListner("client.command", self.commandHandler)
+        self.serverHandle:removeListener("client.command", self.commandHandler)
         self.commandHandler = nil
     end
     self:emit("unload")
@@ -92,7 +92,10 @@ function ModuleManager:unload(module)
                 module = nil
             end
         end)
-        module:unload()
+        local suc, err = pcall(eventSource, 'module:on("unload")', module.unload, module)
+        if not suc then
+            moduleUnloadingTask:cancel(err)
+        end
     end)
 
     return moduleUnloadingTask
@@ -101,9 +104,11 @@ end
 function ModuleManager:unloadAll()
     local moduleUnloadingTask = ibmt.create()
 
+    moduleUnloadingTask:push()
     for k, module in pairs(self.modules) do
         moduleUnloadingTask:push(self:unload(module))
     end
+    moduleUnloadingTask:pop()
 
     return moduleUnloadingTask
 end

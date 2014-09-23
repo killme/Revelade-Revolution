@@ -36,7 +36,7 @@ end
 
 function Module:unload()
     if self.handler then
-        self.serverHandle:removeListner("client.setmaster", self.handler)
+        self.serverHandle:removeListener("client.setmaster", self.handler)
         self.handler = nil
     end
     BaseModule.unload(self)

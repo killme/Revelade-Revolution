@@ -55,12 +55,12 @@ end
 
 function Module:unload()
     if self.isMutedHandler then
-        self.serverHandle:removeListner("client.isMuted", self.isMutedHandler)
+        self.serverHandle:removeListener("client.isMuted", self.isMutedHandler)
         self.isMutedHandler = nil
     end
-    
+
     if self.disconnectHandler then
-        self.serverHandle:removeListner("client.disconnect", self.disconnectHandler)
+        self.serverHandle:removeListener("client.disconnect", self.disconnectHandler)
         self.disconnectHandler = nil
     end
 
