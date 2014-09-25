@@ -2140,7 +2140,7 @@ void gl_drawzombieframe(float &a, float &b)
     a += (0.5f+zombiescale*0.5f)*sinf(lastmillis/2000.0);
     b += (0.5f+zombiescale*0.5f)*sinf(lastmillis/2000.0+PI)*0.05f;
 }
-void gl_drawframe(int w, int h)
+static void gl_drawframe_real(int w, int h)
 {
     defaultshader->set();
 
@@ -2277,6 +2277,81 @@ void gl_drawframe(int w, int h)
 
     renderedgame = false;
 }
+
+static int panw = 0, panh = 0;
+static GLuint pantex[4];
+
+VAR(pan, 1, 1, 4);
+void gl_drawframe(int w, int h)
+{
+    if(pan == 1) return gl_drawframe_real(w, h);
+
+    if(panw!=screen->w || panh!=screen->h)
+    {
+        loopk(4) if(pantex[k]) { glDeleteTextures(1, &pantex[k]); pantex[k] = 0; }
+        panw = screen->w;
+        panh = screen->h;
+    }
+
+    //TODO: math
+    camera1->pitch = 0;
+    float oldyaw = camera1->yaw;
+    camera1->yaw -= 45 + (pan == 4 ? 90 : (pan == 3 ? 45 : 0));
+    loopk(pan)
+    {
+        findorientation();
+        //if(frames>2) 
+        {
+            gl_drawframe_real(screen->w, screen->h);
+            if(!pantex[k]) 
+            {
+                glGenTextures(1, &pantex[k]);
+                createtexture(pantex[k], screen->w, screen->h, NULL, 3, false);
+            }
+            glBindTexture(GL_TEXTURE_2D, pantex[k]);
+            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, screen->w, screen->h);
+        }
+        camera1->yaw += 90;
+    }
+    camera1->yaw = oldyaw;
+
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glEnable(GL_TEXTURE_2D);
+    defaultshader->set();
+    glColor3f(1, 1, 1);
+
+    loopk(pan)
+    {
+        glBindTexture(GL_TEXTURE_2D, pantex[k]);
+        glBegin(GL_QUAD_STRIP);
+        loopi(screen->w/pan+1)
+        {
+            float offset = float(i)/(screen->w/pan), 
+                    u = 0.5f + 0.5f*tanf(-M_PI/4 + offset*M_PI/2),
+                    y = sqrtf((-1 + u*2)*(-1 + u*2) + 1), 
+                    x = -1 + 2 * (offset + k)/pan;
+
+            glTexCoord2f(u, 0.5f - 0.5f*y/sqrtf(2));
+            glVertex2f(x, -1);
+            glTexCoord2f(u, 0.5f + 0.5f*y/sqrtf(2));
+            glVertex2f(x, 1);
+        }
+        glEnd();
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+}
+
 
 void gl_drawmainmenu(int w, int h)
 {
