@@ -33,8 +33,8 @@ namespace joystick
     int axis_count = 0;
     int hat_count = 0;
     int button_count;
-    int* last_hat_move = NULL;
-    joyaxis* jmove = NULL;
+    int *last_hat_move = NULL;
+    joyaxis *jmove = NULL;
 
     int jxaxis = 0;
     int jyaxis = 0;
@@ -61,17 +61,20 @@ namespace joystick
     VARP(joymousealt, 0, 4, 0xFFFFFFF);
     VARP(joymousescrollup, 0, 5, 0xFFFFFFF);
     VARP(joymousescrolldown, 0, 7, 0xFFFFFFF);
+    VARFP(joyenable, 0, 1, 1, extern void init(); init());
 
     void resetjoystick()
     {
         // clean up
-        if(jmove != NULL) free(jmove);
-        if(last_hat_move != NULL) free(last_hat_move);
+        DELETEP(jmove);
+        DELETEP(last_hat_move);
+        enabled = false;
     }
 
     void init()
     {
         if(axis_count||button_count||hat_count) resetjoystick();
+        if(!joyenable) return;
         // initialize joystick support
         if(SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0)
         {
@@ -106,15 +109,15 @@ namespace joystick
 
         // initialize the array of joyaxis structures used to maintain
         // axis position information
-        if(jmove != NULL) free(jmove);
-        jmove = (joyaxis*)malloc(sizeof(joyaxis)*axis_count);
+        DELETEP(jmove);
+        jmove = new joyaxis[axis_count];
 
         // initialize any hat controls
         hat_count = SDL_JoystickNumHats(stick);
         if(hat_count > 0)
         {
-            if(last_hat_move != NULL) free(last_hat_move);
-            last_hat_move = (int*)malloc(sizeof(int)*hat_count);
+            DELETEP(last_hat_move);
+            last_hat_move = new int[hat_count];
             for(int i=0; i < hat_count; i++) last_hat_move[i] = 0;
         }
 
@@ -123,9 +126,6 @@ namespace joystick
 
         // if we made it this far, everything must be ok
         enabled = true;
-
-        // initialize the joystick settings from the joystick.cfg file
-        execfile("data/joystick.cfg");
     }
 
     int get_hat_pos(int hat)
@@ -195,7 +195,7 @@ namespace joystick
                 break;
 
             case SDL_JOYAXISMOTION:
-                if(joyshowevents) conoutf("JOYAXIS%d: %d", event->jaxis.axis+1, event->jaxis.value);
+                if(joyshowevents) conoutf("JOYAXIS (axis:%d which:%d): %d", event->jaxis.axis+1, event->jaxis.which, event->jaxis.value);
 
                 if(event->jaxis.axis == joyfovxaxis-1) jxaxis = event->jaxis.value;
                 else if(event->jaxis.axis == joyfovyaxis-1) jyaxis = event->jaxis.value;

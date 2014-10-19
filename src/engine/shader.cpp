@@ -11,13 +11,13 @@ struct GlobalShaderParamState : ShaderParamState
 
 Shader *Shader::lastshader = NULL;
 
-Shader *defaultshader = NULL, *rectshader = NULL, *cubemapshader = NULL, *notextureshader = NULL, *nocolorshader = NULL, *foggedshader = NULL, *foggednotextureshader = NULL, *stdworldshader = NULL, *lineshader = NULL, *foggedlineshader = NULL;
+Shader *defaultshader = NULL, *rectshader = NULL, *cubemapshader = NULL, *notextureshader = NULL, *nocolorshader = NULL, *nocolorglslshader = NULL, *foggedshader = NULL, *foggednotextureshader = NULL, *stdworldshader = NULL, *lineshader = NULL, *foggedlineshader = NULL;
 
 static hashtable<const char *, Shader> shaders;
 static Shader *curshader = NULL;
 static vector<ShaderParam> curparams;
 static GlobalShaderParamState vertexparamstate[RESERVEDSHADERPARAMS + MAXSHADERPARAMS], pixelparamstate[RESERVEDSHADERPARAMS + MAXSHADERPARAMS];
-static bool dirtyenvparams = false, standardshader = false, initshaders = false, forceshaders = true;
+static bool dirtyenvparams = false, standardshader = false, forceshaders = true;
 static uint paramversion = 0;
 
 VAR(reservevpparams, 1, 16, 0);
@@ -36,7 +36,7 @@ void loadshaders()
     standardshader = true;
     execfile(renderpath==R_GLSLANG ? "data/glsl.cfg" : "data/stdshader.cfg");
     standardshader = false;
-    initshaders = false;
+
     defaultshader = lookupshaderbyname("default");
     stdworldshader = lookupshaderbyname("stdworld");
     if(!defaultshader || !stdworldshader) fatal("cannot find shader definitions");
@@ -49,6 +49,7 @@ void loadshaders()
     cubemapshader = lookupshaderbyname("cubemap");
     notextureshader = lookupshaderbyname("notexture");
     nocolorshader = lookupshaderbyname("nocolor");
+    nocolorglslshader = lookupshaderbyname("nocolorglsl");
     foggedshader = lookupshaderbyname("fogged");
     foggednotextureshader = lookupshaderbyname("foggednotexture");
     lineshader = lookupshaderbyname(ati_line_bug && renderpath == R_ASMGLSLANG ? "notextureglsl" : "notexture");
@@ -486,9 +487,9 @@ static inline void flushparam(int type, int index)
     }
 }
 
-static inline int sortparamversions(const GlobalShaderParamState *x, const GlobalShaderParamState *y)
+static inline bool sortparamversions(const GlobalShaderParamState *x, const GlobalShaderParamState *y)
 {
-    return x->version < y->version ? 1 : -1;
+    return x->version < y->version;
 }
 
 static uint resetparamversions()
@@ -1112,11 +1113,11 @@ static bool genwatervariant(Shader &s, const char *sname, vector<char> &vs, vect
     if(*pspragma) pspragma++;
     if(s.type & SHADER_GLSLANG)
     {
-        const char *fadedef = "waterfade = gl_Vertex.z*waterfadeparams.x + waterfadeparams.y;\n";
+        const char *fadedef = "fadedepth = gl_Vertex.z*waterfadeparams.x + waterfadeparams.y;\n";
         vs.insert(vspragma-vs.getbuf(), fadedef, strlen(fadedef));
-        const char *fadeuse = "gl_FragColor.a = waterfade;\n";
+        const char *fadeuse = "gl_FragColor.a = fadedepth;\n";
         ps.insert(pspragma-ps.getbuf(), fadeuse, strlen(fadeuse));
-        const char *fadedecl = "uniform vec4 waterfadeparams; varying float waterfade;\n";
+        const char *fadedecl = "uniform vec4 waterfadeparams; varying float fadedepth;\n";
         const char *vsmain = findglslmain(vs.getbuf()), *psmain = findglslmain(ps.getbuf());
         vs.insert(vsmain ? vsmain - vs.getbuf() : 0, fadedecl, strlen(fadedecl));
         ps.insert(psmain ? psmain - ps.getbuf() : 0, fadedecl, strlen(fadedecl));
@@ -1387,15 +1388,15 @@ static void genshadowmapvariant(Shader &s, const char *sname, const char *vs, co
             smoothshadowmappeel ? 
                 "TEMP smvals, smdiff, smambient;\n"
                 "TEX smvals, fragment.texcoord[%d], texture[7], 2D;\n"
-                "MAD_SAT smdiff.xz, -fragment.texcoord[%d].z, smvals.y, smvals;\n"
+                "MAD_SAT smdiff.xy, -fragment.texcoord[%d].z, smvals.y, smvals.xzzz;\n"
                 "CMP smvals.w, -smdiff.x, smvals.w, 0;\n"
-                "MAD_SAT smvals.w, -8, smdiff.z, smvals.w;\n" :
+                "MAD_SAT smvals.w, -8, smdiff.y, smvals.w;\n" :
 
                 "TEMP smvals, smtest, smambient;\n"
                 "TEX smvals, fragment.texcoord[%d], texture[7], 2D;\n"
-                "MUL smtest.z, fragment.texcoord[%d].z, smvals.y;\n"
-                "SLT smtest.xz, smtest.z, smvals;\n"
-                "MAD_SAT smvals.w, smvals.w, smtest.x, -smtest.z;\n",
+                "MUL smtest.y, fragment.texcoord[%d].z, smvals.y;\n"
+                "SLT smtest.xy, smtest.y, smvals.xzzz;\n"
+                "MAD_SAT smvals.w, smvals.w, smtest.x, -smtest.y;\n",
             smtc, smtc);
         pssm.put(sm, strlen(sm));
         formatstring(sm)(
@@ -1441,7 +1442,7 @@ static void genfogshader(vector<char> &vsbuf, vector<char> &psbuf, const char *v
         if(vspragma)
         {
             vspragma += pragmalen;
-            while(*vspragma && !isspace(*vspragma)) vspragma++;
+            while(*vspragma && !iscubespace(*vspragma)) vspragma++;
             vspragma += strspn(vspragma, " \t\v\f");
             clen = strcspn(vspragma, "\r\n");
         }
@@ -1454,18 +1455,18 @@ static void genfogshader(vector<char> &vsbuf, vector<char> &psbuf, const char *v
     const char *psend = strrchr(ps, '}');
     if(psend)
     {
-        static const int rgbalen = strlen("#pragma CUBE2_fogrgba");
-        bool rgba = pspragma && !strncmp(pspragma, "#pragma CUBE2_fogrgba", rgbalen);
         psbuf.put(ps, psend - ps);
         const char *psdef = "\n#define FOG_COLOR ";
-        const char *psfog = rgba ?
-            "\ngl_FragColor = mix((FOG_COLOR), gl_FragColor, clamp((gl_Fog.end - gl_FogFragCoord) * gl_Fog.scale, 0.0, 1.0));\n" :
-            "\ngl_FragColor.rgb = mix((FOG_COLOR).rgb, gl_FragColor.rgb, clamp((gl_Fog.end - gl_FogFragCoord) * gl_Fog.scale, 0.0, 1.0));\n";
+        const char *psfog = 
+            pspragma && !strncmp(pspragma+pragmalen, "rgba", 4) ? 
+                "\ngl_FragColor = mix((FOG_COLOR), gl_FragColor, clamp((gl_Fog.end - gl_FogFragCoord) * gl_Fog.scale, 0.0, 1.0));\n" :
+                "\ngl_FragColor.rgb = mix((FOG_COLOR).rgb, gl_FragColor.rgb, clamp((gl_Fog.end - gl_FogFragCoord) * gl_Fog.scale, 0.0, 1.0));\n";
         int clen = 0;
         if(pspragma)
         {
-            pspragma += rgba ? rgbalen : pragmalen;
-            while(*pspragma && !isspace(*pspragma)) pspragma++;
+            pspragma += pragmalen;
+            while(iscubealpha(*pspragma)) pspragma++;
+            while(*pspragma && !iscubespace(*pspragma)) pspragma++;
             pspragma += strspn(pspragma, " \t\v\f");
             clen = strcspn(pspragma, "\r\n");
         }
@@ -1522,13 +1523,14 @@ void useshader(Shader *s)
         
     char *defer = s->defer;
     s->defer = NULL;
-    bool wasstandard = standardshader, wasforcing = forceshaders, waspersisting = persistidents;
+    bool wasstandard = standardshader, wasforcing = forceshaders;
+    int oldflags = identflags;
     standardshader = s->standard;
     forceshaders = false;
-    persistidents = false;
+    identflags &= ~IDF_PERSIST;
     curparams.shrink(0);
     execute(defer);
-    persistidents = waspersisting;
+    identflags = oldflags;
     forceshaders = wasforcing;
     standardshader = wasstandard;
     delete[] defer;
@@ -2259,9 +2261,9 @@ void cleanupshaders()
 
 void reloadshaders()
 {
-    persistidents = false;
+    identflags &= ~IDF_PERSIST;
     loadshaders();
-    persistidents = true;
+    identflags |= IDF_PERSIST;
     if(renderpath==R_FIXEDFUNCTION) return;
     linkslotshaders();
     enumerate(shaders, Shader, s, 

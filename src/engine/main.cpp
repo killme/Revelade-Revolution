@@ -4,20 +4,14 @@
 #include "version.h"
 #include "joystick.h"
 
-#ifdef HAVE_CURL
-#include "curl/curl.h"
-#endif
-
-#ifdef WIN32
-#include <direct.h>
-#endif
-
-extern "C" {
+extern "C"
+{
     #ifdef RR_NEED_AUTH
         #include <tomcrypt.h>
     #endif
     #include "uv.h"
 }
+extern void cleargamma();
 
 void cleanup()
 {
@@ -26,7 +20,7 @@ void cleanup()
     cleanupserver();
     SDL_ShowCursor(1);
     SDL_WM_GrabInput(SDL_GRAB_OFF);
-    SDL_SetGamma(1, 1, 1);
+    cleargamma();
     freeocta(worldroot);
     extern void clear_command(); clear_command();
     extern void clear_console(); clear_console();
@@ -34,10 +28,6 @@ void cleanup()
     extern void clear_sound();   clear_sound();
     SDL_Quit();
 }
-
-VAR(unpackatexit, 0, 0, 1);
-VARP(deletepackage, 0, 1, 1);
-BSVAR(dlfilepath, "");
 
 void quit()                     // normal exit
 {
@@ -49,279 +39,8 @@ void quit()                     // normal exit
     localdisconnect();
     writecfg();
     cleanup();
-    if (unpackatexit)
-    {
-        //@todo: write in a portable way
-        defformatstring(pt)("start \"\" %s %s\"-s%s\"", path(newstring("bin/updater")), deletepackage? "-r ": "", dlfilepath);
-        if(system(pt))
-        {
-            printf("Launching failed\n");
-        }
-    }
-    uv_tty_reset_mode();
     exit(EXIT_SUCCESS);
 }
-
-// update
-VAR(dlprogress, 1, -1, 0);
-VAR(dlsize, 1, 0, 0);
-VAR(dlstotal, 1, 0, 0);
-VAR(dlspeed, 1, 0, 0);
-VAR(dlstatus, 1, 0, 0); // 0 = downloading/no download, 1 = successful, 2 = failed, 3 = cancelled
-VAR(dlinstallable, 1, 0, 0);
-
-#ifdef HAVE_CURL
-VAR(HAVE_CURL, 1, 1, 1);
-#else
-VAR(HAVE_CURL, 0, 0, 0);
-#endif
-
-#ifdef HAVE_CURL
-FILE *dlfile = NULL;
-FILE *hdfile = NULL;
-string dlname = "";
-string downloaddirpath = "";
-string hdfilename = "";
-bool dlcancel;
-CURL *dlhandle = NULL;
-ICOMMAND(dlname, "", (), result(dlname));
-
-size_t downloadwritedata(char *ptr, size_t size, size_t nmemb, void *userdata)
-{
-    if (dlcancel) return 0;
-    return fwrite(ptr, size, nmemb, (FILE *)userdata);
-}
-
-float lastdlnow = 0;
-int lastdltime = 0;
-
-int downloadprog(void *a, double dltotal, double dlnow, double ultotal, double ulnow)
-{
-    dlprogress = dlnow/dltotal*100.0;
-    dlsize = dlnow/0x100000; // bytes -> megabytes
-    dlstotal = dltotal/0x100000;
-    int ticks = SDL_GetTicks();
-
-    if (ticks >= lastdltime+1000)
-    {
-        dlspeed = ((dlnow-lastdlnow)/double(ticks-lastdltime)*1.024 + dlspeed)/2.0;
-        lastdlnow = dlnow;
-        lastdltime = SDL_GetTicks();
-    }
-
-    return 0;
-}
-
-char *parsehdname(char *header)
-{
-    char *fnp = strstr(header, "filename");
-    if (!fnp) return NULL;
-    bool found = false, found2 = false;
-    char fchar = '\0', *res = NULL;
-
-    while (*++fnp)
-    {
-        if (*fnp=='\n' || *fnp=='\r')
-        {
-            *fnp = '\0';
-            if (!fchar || fchar=='\n') found2 = true;
-            break;
-        }
-        if (found)
-        {
-            if (fchar && *fnp==fchar)
-            {
-                *fnp = '\0';
-                found2 = true;
-                break;
-            }
-            else if (!fchar && *fnp=='"' || *fnp=='\'')
-            {
-                res = fnp+1;
-                fchar = *fnp;
-            }
-            else if (!fchar && *fnp!=' ')
-            {
-                res = fnp;
-                fchar = '\n';
-            }
-        }
-        else if (*fnp=='=') found = true;
-    }
-    if (found2) return res;
-    return NULL;
-}
-
-int downloadfunc(void * data)
-{
-    CURLcode ret = curl_easy_perform(dlhandle);
-
-    if (ret != 0)   //Connection problems or file doesn't exists
-    {
-        remove(dlfilepath);
-        if (dlcancel)
-        {
-            dlstatus = 3;
-            dlcancel = false;
-            showgui("dl_progress");
-        }
-        else
-        {
-            dlstatus = 2;
-            showgui("dl_progress");
-        }
-    }
-    else
-    {
-        if (hdfile)
-        {
-            fseek(hdfile, 0, SEEK_END);
-            int hdsize = ftell(hdfile);
-            rewind(hdfile);
-            char *header = new char[hdsize];
-            fread(header, 1, hdsize, hdfile);
-            const char *hdfname = parsehdname(header);
-            if (hdfname)
-            {
-                fclose(hdfile);
-                hdfile = NULL;
-                remove(hdfilename);
-
-                defformatstring(newfilename)("%s%s", downloaddirpath, hdfname);
-                if (fileexists(newfilename, "r")) remove(newfilename);
-                rename(dlfilepath, newfilename);
-                strcpy(dlfilepath, newfilename);
-            }
-            delete[] header;
-        }
-        dlstatus = 1;
-        showgui("dl_progress");
-    }
-
-    dlprogress = -1;
-    dlsize = 0;
-    dlstotal = 0;
-    dlspeed = 0;
-    lastdltime = 0;
-
-    curl_easy_cleanup(dlhandle);
-    if (dlfile)
-    {
-        fclose(dlfile);
-        dlfile = NULL;
-    }
-    if (hdfile)
-    {
-        fclose(hdfile);
-        hdfile = NULL;
-        remove(hdfilename);
-    }
-
-    return 0;
-}
-
-void download(const char *url, const char *filename, int *isupdate)
-{
-    if (dlprogress >= 0)
-    {
-        conoutf("\fecan't start new download while an old one is still in progres. "
-                "you must first cancel the active download or wait for it to finish.");
-        return;
-    }
-
-    dlhandle = curl_easy_init();
-    if(!dlhandle) return;
-
-    dlstatus = 0;
-    dlinstallable = *isupdate;
-
-    static const char *downloaddir = "downloads" PATHDIVS;
-    strcpy(downloaddirpath, findfile(downloaddir, "w"));
-    if(!fileexists(downloaddirpath, "w")) createdir(downloaddirpath);
-
-    string murl;
-    strcpy(murl, url);
-    curl_easy_setopt(dlhandle, CURLOPT_URL, murl);
-
-    if (!filename || filename[0]=='\0')
-    {
-        char *eurl[1000];
-        curl_easy_getinfo(dlhandle, CURLINFO_EFFECTIVE_URL, eurl);
-        for (int j = strlen(*eurl), i = j-1; i >= 0; i--)
-        {
-            if ((*eurl)[i] == '/' || (*eurl)[i] == '\\' || i == 0)
-            {
-                strncpy(dlname, (i==0)? (*eurl): (*eurl)+i+1, j-i);
-                dlname[j-i] = '\0';
-                break;
-            }
-            else if ((*eurl)[i] == '?') j = i-1;
-        }
-    }
-    else strcpy(dlname, filename);
-
-    if (dlname[0]) formatstring(dlfilepath)("%s%s", downloaddirpath, dlname);
-    else formatstring(dlfilepath)("%stemp_%d", downloaddirpath, lastmillis);
-
-    dlfile = fopen(dlfilepath, "wb");
-    if (!dlfile)
-    {
-        conoutf("error opening file \"%s\" for saving", dlfilepath);
-        return;
-    }
-
-    if (!filename || filename[0]=='\0')
-    {
-        formatstring(hdfilename)("%s", findfile("header.txt", "w"));
-        hdfile = fopen(hdfilename, "w+");
-        if (hdfile) curl_easy_setopt(dlhandle, CURLOPT_WRITEHEADER, hdfile);
-    }
-
-    curl_easy_setopt(dlhandle, CURLOPT_FOLLOWLOCATION,1);
-    curl_easy_setopt(dlhandle, CURLOPT_WRITEFUNCTION, downloadwritedata);
-    curl_easy_setopt(dlhandle, CURLOPT_WRITEDATA, dlfile);
-    curl_easy_setopt(dlhandle, CURLOPT_NOPROGRESS, 0L);
-    curl_easy_setopt(dlhandle, CURLOPT_PROGRESSFUNCTION, downloadprog);
-    curl_easy_setopt(dlhandle, CURLOPT_PROGRESSDATA, NULL);
-
-    SDL_CreateThread(downloadfunc, dlhandle);
-}
-
-void downloadinstall(const char *url, const char *filename)
-{
-    static const char *downloaddir = "downloads" PATHDIVS;
-    strcpy(downloaddirpath, findfile(downloaddir, "w"));
-    if(!fileexists(downloaddirpath, "w")) createdir(downloaddirpath);
-
-    if (!filename || !filename[0])
-    {
-        char eurl[1000];
-        strcpy(eurl, url);
-        for (int j = strlen(eurl), i = j-1; i >= 0; i--)
-        {
-            if (eurl[i] == '/' || eurl[i] == '\\' || i == 0)
-            {
-                strncpy(dlname, (i==0)? eurl: eurl+i+1, j-i);
-                dlname[j-i] = '\0';
-                break;
-            }
-            else if (eurl[i] == '?') j = i-1;
-        }
-    }
-    else strcpy(dlname, filename);
-
-    if (dlname[0]) formatstring(dlfilepath)("%s%s", downloaddirpath, dlname);
-    else formatstring(dlfilepath)("%stemp_%d", downloaddirpath, lastmillis);
-
-    defformatstring(pt)("start \"\" %s \"-s%s\" \"-u%s\" -r", path(newstring("bin/updater")), dlfilepath, url);
-    system(pt);
-    exit(EXIT_SUCCESS);
-}
-
-COMMAND(download, "ssi");
-COMMAND(downloadinstall, "ss");
-ICOMMAND(stopdownload, "", (), dlcancel = true);
-#endif
 
 void fatal(const char *s, ...)    // failure exit
 {
@@ -339,7 +58,7 @@ void fatal(const char *s, ...)    // failure exit
             {
                 SDL_ShowCursor(1);
                 SDL_WM_GrabInput(SDL_GRAB_OFF);
-                SDL_SetGamma(1, 1, 1);
+                cleargamma();
             }
             #ifdef WIN32
                 MessageBox(NULL, msg, "Revelade Revolution fatal error", MB_OK|MB_SYSTEMMODAL);
@@ -354,7 +73,7 @@ void fatal(const char *s, ...)    // failure exit
 
 SDL_Surface *screen = NULL;
 
-int curtime = 0, totalmillis = 1, lastmillis = 1;
+int curtime = 0, lastmillis = 1, elapsedtime = 0, totalmillis = 1;
 
 dynent *player = NULL;
 
@@ -383,12 +102,12 @@ VARF(colorbits, 0, 0, 32, initwarning("color depth"));
 VARF(depthbits, 0, 0, 32, initwarning("depth-buffer precision"));
 VARF(stencilbits, 0, 0, 32, initwarning("stencil-buffer precision"));
 VARF(fsaa, -1, -1, 16, initwarning("anti-aliasing"));
-VARF(vsync, -1, 0, 1, initwarning("vertical sync"));
+VARF(vsync, -1, -1, 1, initwarning("vertical sync"));
 
 void writeinitcfg()
 {
     if(restoredinits) return;
-    stream *f = openfile("config/init.cfg", "w");
+    stream *f = openutf8file("config/init.cfg", "w");
     if(!f) return;
     f->printf("// automatically written on exit, DO NOT MODIFY\n// modify settings in game\n");
     extern int fullscreen;
@@ -440,9 +159,10 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
 {
     if(!inbetweenframes && !force) return;
 
-    if(!mainmenu) stopsounds(); // stop sounds while loading
-
+    stopsounds(); // stop sounds while loading
+ 
     int w = screen->w, h = screen->h;
+    if(forceaspect) w = int(ceil(h*forceaspect));
     getbackgroundres(w, h);
     gettextres(w, h);
 
@@ -627,30 +347,8 @@ void renderbackground(const char *caption, Texture *mapshot, Texture *bgshot, co
                 settextscale(1.0f);
             }
         }
-
-
-        /*loopi(3)
-        {
-            const char *texttype[3] = { "Map: ", "", "" }, *textcontent[3] = { mapname, mapinfo, caption };
-            defformatstring(text)("%s%s", texttype[i], textcontent[i]);
-            float textpos[3] = { 9.25f, 8.25f, 1.25f }, textsz[3] = { 0.04f, 0.35f, 0.04f }, textmod[3] = { 0, 0, 0 }, textscale[3] = { 1.0f, 0.9f, 1.0f };
-            if(textcontent[i])
-            {
-                if(textscale[i] != 1.0f) settextscale(textscale[i]);
-                int textwidth = i == 1 ? 21*FONTH : -1;
-                int tw = text_width(text);
-                float tsz = (textsz[i]*min(w, h)-textmod[i])/(max(textwidth, 0) + FONTH), tx = 0.5f*(w - max(i%2, tw)*tsz), ty = h - 0.075f*1.5f*min(w, h) - textpos[i]*FONTH*tsz;
-                glPushMatrix();
-                glTranslatef(tx, ty, 0);
-                glScalef(tsz, tsz, 1);
-                //text_bounds(text, mw, mh, infowidth);
-                draw_text(text, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0, -1, textwidth);
-                glPopMatrix();
-                if(textscale[i] != 1.0f) settextscale(1.0f);
-            }
-        }*/
         glDisable(GL_BLEND);
-        if(!restore) swapbuffers();
+        if(!restore) swapbuffers(false);
     }
     glDisable(GL_TEXTURE_2D);
 
@@ -687,6 +385,7 @@ void renderprogress(float bar, const char *text, GLuint tex, bool background)   
     if(background || sdl_backingstore_bug > 0) restorebackground();
 
     int w = screen->w, h = screen->h;
+    if(forceaspect) w = int(ceil(h*forceaspect));
     getbackgroundres(w, h);
     gettextres(w, h);
 
@@ -725,7 +424,6 @@ void renderprogress(float bar, const char *text, GLuint tex, bool background)   
           eu1 = 23/32.0f, eu2 = 30/32.0f, ew = fw*7/511.0f,
           mw = bw - sw - ew,
           ex = bx+sw + max(mw*bar, fw*7/511.0f);
-
     if(bar > 0)
     {
         settexture("data/gui/loading_bar.png", 3);
@@ -790,7 +488,7 @@ void renderprogress(float bar, const char *text, GLuint tex, bool background)   
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
-    swapbuffers();
+    swapbuffers(false);
 }
 
 void keyrepeat(bool on)
@@ -799,7 +497,7 @@ void keyrepeat(bool on)
                              SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
-static bool grabinput = false, minimized = false;
+bool grabinput = false, minimized = false;
 
 void inputgrab(bool on)
 {
@@ -855,22 +553,26 @@ void screenres(int *w, int *h)
 
 COMMAND(screenres, "ii");
 
+static int curgamma = 100;
 VARFP(gamma, 30, 100, 300,
 {
-    float f = gamma/100.0f;
-    if(SDL_SetGamma(f,f,f)==-1)
-    {
-        conoutf(CON_ERROR, "Could not set gamma (card/driver doesn't support it?)");
-        conoutf(CON_ERROR, "sdl: %s", SDL_GetError());
-    }
+    if(gamma == curgamma) return;
+    curgamma = gamma;
+	float f = gamma/100.0f;
+    if(SDL_SetGamma(f,f,f)==-1) conoutf(CON_ERROR, "Could not set gamma: %s", SDL_GetError());
 });
 
-void resetgamma()
+void restoregamma()
 {
-    float f = gamma/100.0f;
-    if(f==1) return;
+    if(curgamma == 100) return;
+    float f = curgamma/100.0f;
     SDL_SetGamma(1, 1, 1);
     SDL_SetGamma(f, f, f);
+}
+
+void cleargamma()
+{
+    if(curgamma != 100) SDL_SetGamma(1, 1, 1);
 }
 
 VAR(dbgmodes, 0, 0, 1);
@@ -1052,7 +754,7 @@ void resetgl()
     reloadfonts();
     inbetweenframes = true;
     renderbackground("initializing...");
-    resetgamma();
+	restoregamma();
     reloadshaders();
     reloadtextures();
     initlights();
@@ -1061,13 +763,41 @@ void resetgl()
 
 COMMAND(resetgl, "");
 
-static int ignoremouse = 5;
-
 vector<SDL_Event> events;
 
 void pushevent(const SDL_Event &e)
 {
-    events.add(e);
+    events.add(e); 
+}
+
+static bool filterevent(const SDL_Event &event)
+{
+    switch(event.type)
+    {
+        case SDL_MOUSEMOTION:
+            #ifndef WIN32
+            if(grabinput && !(screen->flags&SDL_FULLSCREEN))
+            {
+                if(event.motion.x == screen->w / 2 && event.motion.y == screen->h / 2) 
+                    return false;  // ignore any motion events generated by SDL_WarpMouse
+                #ifdef __APPLE__
+                if(event.motion.y == 0) 
+                    return false;  // let mac users drag windows via the title bar
+                #endif
+            }
+            #endif
+            break;
+    }
+    return true;
+}
+
+static inline bool pollevent(SDL_Event &event)
+{
+    while(SDL_PollEvent(&event))
+    {
+        if(filterevent(event)) return true;
+    }
+    return false;
 }
 
 bool interceptkey(int sym)
@@ -1075,10 +805,13 @@ bool interceptkey(int sym)
     static int lastintercept = SDLK_UNKNOWN;
     int len = lastintercept == sym ? events.length() : 0;
     SDL_Event event;
-    while(SDL_PollEvent(&event)) switch(event.type)
+    while(pollevent(event))
     {
-        case SDL_MOUSEMOTION: break;
-        default: pushevent(event); break;
+        switch(event.type)
+        {
+            case SDL_MOUSEMOTION: break;
+            default: pushevent(event); break;
+        }
     }
     lastintercept = sym;
     if(sym != SDLK_UNKNOWN) for(int i = len; i < events.length(); i++)
@@ -1088,29 +821,21 @@ bool interceptkey(int sym)
     return false;
 }
 
+static void ignoremousemotion()
+{
+    SDL_Event e;
+    SDL_PumpEvents();
+    while(SDL_PeepEvents(&e, 1, SDL_GETEVENT, SDL_EVENTMASK(SDL_MOUSEMOTION)));
+}
+
 static void resetmousemotion()
 {
 #ifndef WIN32
-    if(!(screen->flags&SDL_FULLSCREEN))
+    if(grabinput && !(screen->flags&SDL_FULLSCREEN))
     {
         SDL_WarpMouse(screen->w / 2, screen->h / 2);
     }
 #endif
-}
-
-static inline bool skipmousemotion(SDL_Event &event)
-{
-    if(event.type != SDL_MOUSEMOTION) return true;
-#ifndef WIN32
-    if(!(screen->flags&SDL_FULLSCREEN))
-    {
-        #ifdef __APPLE__
-        if(event.motion.y == 0) return true;  // let mac users drag windows via the title bar
-        #endif
-        if(event.motion.x == screen->w / 2 && event.motion.y == screen->h / 2) return true;  // ignore any motion events generated SDL_WarpMouse
-    }
-#endif
-    return false;
 }
 
 static void checkmousemotion(int &dx, int &dy)
@@ -1118,19 +843,19 @@ static void checkmousemotion(int &dx, int &dy)
     loopv(events)
     {
         SDL_Event &event = events[i];
-        if(skipmousemotion(event))
-        {
-            if(i > 0) events.remove(0, i);
-            return;
+        if(event.type != SDL_MOUSEMOTION)
+        { 
+            if(i > 0) events.remove(0, i); 
+            return; 
         }
         dx += event.motion.xrel;
         dy += event.motion.yrel;
     }
     events.setsize(0);
     SDL_Event event;
-    while(SDL_PollEvent(&event))
+    while(pollevent(event))
     {
-        if(skipmousemotion(event))
+        if(event.type != SDL_MOUSEMOTION)
         {
             events.add(event);
             return;
@@ -1144,7 +869,8 @@ void checkinput()
 {
     SDL_Event event;
     int lasttype = 0, lastbut = 0;
-    while(events.length() || SDL_PollEvent(&event))
+    bool mousemoved = false; 
+    while(events.length() || pollevent(event))
     {
         if(events.length()) event = events.remove(0);
 
@@ -1152,7 +878,7 @@ void checkinput()
         {
             case SDL_QUIT:
                 quit();
-                break;
+                return;
 
             #if !defined(WIN32) && !defined(__APPLE__)
             case SDL_VIDEORESIZE:
@@ -1162,7 +888,7 @@ void checkinput()
 
             case SDL_KEYDOWN:
             case SDL_KEYUP:
-                keypress(event.key.keysym.sym, event.key.state==SDL_PRESSED, event.key.keysym.unicode);
+                keypress(event.key.keysym.sym, event.key.state==SDL_PRESSED, uni2cube(event.key.keysym.unicode));
                 break;
 
             case SDL_ACTIVEEVENT:
@@ -1173,13 +899,12 @@ void checkinput()
                 break;
 
             case SDL_MOUSEMOTION:
-                if(ignoremouse) { ignoremouse--; break; }
-                if(grabinput && !skipmousemotion(event))
+                if(grabinput)
                 {
                     int dx = event.motion.xrel, dy = event.motion.yrel;
                     checkmousemotion(dx, dy);
-                    resetmousemotion();
                     if(!g3d_movecursor(dx, dy)) mousemove(dx, dy);
+                    mousemoved = true;
                 }
                 break;
 
@@ -1193,25 +918,22 @@ void checkinput()
         }
         joystick::process_event(&event);
     }
+    if(mousemoved) resetmousemotion();
     joystick::move();
 }
 
-void swapbuffers()
+void swapbuffers(bool overlay)
 {
-    recorder::capture();
+    recorder::capture(overlay);
     SDL_GL_SwapBuffers();
 }
-
-VARF(gamespeed, 10, 100, 1000, if(multiplayer()) gamespeed = 100);
-
-VARF(paused, 0, 0, 1, if(multiplayer()) paused = 0);
-
-VAR(mainmenufps, 0, 60, 1000);
+ 
+VAR(menufps, 0, 60, 1000);
 VARP(maxfps, 0, 200, 1000);
 
 void limitfps(int &millis, int curmillis)
 {
-    int limit = mainmenu && mainmenufps ? (maxfps ? min(maxfps, mainmenufps) : mainmenufps) : maxfps;
+    int limit = (mainmenu || minimized) && menufps ? (maxfps ? min(maxfps, menufps) : menufps) : maxfps;
     if(!limit) return;
     static int fpserror = 0;
     int delay = 1000/limit - (millis-curmillis);
@@ -1240,18 +962,34 @@ void stackdumper(unsigned int type, EXCEPTION_POINTERS *ep)
     CONTEXT *context = ep->ContextRecord;
     string out, t;
     formatstring(out)("Revelade Revolution Win32 Exception: 0x%x [0x%x]\n\n", er->ExceptionCode, er->ExceptionCode==EXCEPTION_ACCESS_VIOLATION ? er->ExceptionInformation[1] : -1);
-    STACKFRAME sf = {{context->Eip, 0, AddrModeFlat}, {}, {context->Ebp, 0, AddrModeFlat}, {context->Esp, 0, AddrModeFlat}, 0};
     SymInitialize(GetCurrentProcess(), NULL, TRUE);
-
+#ifdef _AMD64_
+    STACKFRAME64 sf = {{context->Rip, 0, AddrModeFlat}, {}, {context->Rbp, 0, AddrModeFlat}, {context->Rsp, 0, AddrModeFlat}, 0};
+    while(::StackWalk64(IMAGE_FILE_MACHINE_AMD64, GetCurrentProcess(), GetCurrentThread(), &sf, context, NULL, ::SymFunctionTableAccess, ::SymGetModuleBase, NULL))
+    {
+        union { IMAGEHLP_SYMBOL64 sym; char symext[sizeof(IMAGEHLP_SYMBOL64) + sizeof(string)]; };
+        sym.SizeOfStruct = sizeof(sym);
+        sym.MaxNameLength = sizeof(symext) - sizeof(sym);
+        IMAGEHLP_LINE64 line;
+        line.SizeOfStruct = sizeof(line);
+        DWORD64 symoff;
+        DWORD lineoff;
+        if(SymGetSymFromAddr64(GetCurrentProcess(), sf.AddrPC.Offset, &symoff, &sym) && SymGetLineFromAddr64(GetCurrentProcess(), sf.AddrPC.Offset, &lineoff, &line))
+#else
+    STACKFRAME sf = {{context->Eip, 0, AddrModeFlat}, {}, {context->Ebp, 0, AddrModeFlat}, {context->Esp, 0, AddrModeFlat}, 0};
     while(::StackWalk(IMAGE_FILE_MACHINE_I386, GetCurrentProcess(), GetCurrentThread(), &sf, context, NULL, ::SymFunctionTableAccess, ::SymGetModuleBase, NULL))
     {
-        struct { IMAGEHLP_SYMBOL sym; string n; } si = { { sizeof( IMAGEHLP_SYMBOL ), 0, 0, 0, sizeof(string) } };
-        IMAGEHLP_LINE li = { sizeof( IMAGEHLP_LINE ) };
-        DWORD off;
-        if(SymGetSymFromAddr(GetCurrentProcess(), (DWORD)sf.AddrPC.Offset, &off, &si.sym) && SymGetLineFromAddr(GetCurrentProcess(), (DWORD)sf.AddrPC.Offset, &off, &li))
+        union { IMAGEHLP_SYMBOL sym; char symext[sizeof(IMAGEHLP_SYMBOL) + sizeof(string)]; };
+        sym.SizeOfStruct = sizeof(sym);
+        sym.MaxNameLength = sizeof(symext) - sizeof(sym);
+        IMAGEHLP_LINE line;
+        line.SizeOfStruct = sizeof(line);
+        DWORD symoff, lineoff;
+        if(SymGetSymFromAddr(GetCurrentProcess(), sf.AddrPC.Offset, &symoff, &sym) && SymGetLineFromAddr(GetCurrentProcess(), sf.AddrPC.Offset, &lineoff, &line))
+#endif
         {
-            char *del = strrchr(li.FileName, '\\');
-            formatstring(t)("%s - %s [%d]\n", si.sym.Name, del ? del + 1 : li.FileName, li.LineNumber);
+            char *del = strrchr(line.FileName, '\\');
+            formatstring(t)("%s - %s [%d]\n", sym.Name, del ? del + 1 : line.FileName, line.LineNumber);
             concatstring(out, t);
         }
     }
@@ -1320,6 +1058,14 @@ static int clockrealbase = 0, clockvirtbase = 0;
 static void clockreset() { clockrealbase = SDL_GetTicks(); clockvirtbase = totalmillis; }
 VARFP(clockerror, 990000, 1000000, 1010000, clockreset());
 VARFP(clockfix, 0, 0, 1, clockreset());
+
+int getclockmillis()
+{
+    int millis = SDL_GetTicks() - clockrealbase;
+    if(clockfix) millis = int(millis*(double(clockerror)/1000000));
+    millis += clockvirtbase;
+    return max(millis, totalmillis);
+}
 
 namespace console
 {
@@ -1445,10 +1191,17 @@ int main(int argc, char **argv)
             case 'f':
             {
                 extern int useshaders, shaderprecision, forceglsl;
-                int n = atoi(&argv[i][2]);
-                useshaders = n > 0 ? 1 : 0;
-                shaderprecision = clamp(n >= 4 ? n - 4 : n - 1, 0, 2);
-                forceglsl = n >= 4 ? 1 : 0;
+                int sh = -1, prec = shaderprecision;
+                for(int j = 2; argv[i][j]; j++) switch(argv[i][j])
+                {
+                    case 'a': case 'A': forceglsl = 0; sh = 1; break;
+                    case 'g': case 'G': forceglsl = 1; sh = 1; break;
+                    case 'f': case 'F': case '0': sh = 0; break;
+                    case '1': case '2': case '3': if(sh < 0) sh = 1; prec = argv[i][j] - '1'; break;
+                    default: break;
+                }
+                useshaders = sh > 0 ? 1 : 0;
+                shaderprecision = prec;
                 break;
             }
             case 'l':
@@ -1466,6 +1219,7 @@ int main(int argc, char **argv)
     }
     initing = NOT_INITING;
 
+    numcpus = clamp(guessnumcpus(), 1, 16);
     INIT_LOG("sdl");
 
     int par = 0;
@@ -1518,12 +1272,9 @@ int main(int argc, char **argv)
     if(!notexture) fatal("could not find core textures");
 
     INIT_LOG("console");
-    persistidents = false;
     if(!execfile("data/stdlib.cfg", false)) fatal("cannot find data files (data/stdlib.cfg)");   // this is the first file we load.
     if(!execfile("data/font.cfg", false)) fatal("cannot find font definitions");
     if(!setfont("default")) fatal("no default font specified");
-
-    //tig::rootLogger.addLogWriter(new tig::Logger::LogWriter(engine::conoutfLogWriter));
 
     inbetweenframes = true;
     renderbackground("initializing...");
@@ -1548,7 +1299,7 @@ int main(int argc, char **argv)
     execfile("data/brush.cfg");
     execfile("mybrushes.cfg", false);
 
-    persistidents = true;
+    identflags |= IDF_PERSIST;
 
     initing = INIT_LOAD;
     if(!execfile(game::savedconfig(), false))
@@ -1559,7 +1310,7 @@ int main(int argc, char **argv)
     execfile(game::autoexec(), false);
     initing = NOT_INITING;
 
-    persistidents = false;
+    identflags &= ~IDF_PERSIST;
 
     string gamecfgname;
     copystring(gamecfgname, "data/game_");
@@ -1569,7 +1320,7 @@ int main(int argc, char **argv)
 
     game::loadconfigs();
 
-    persistidents = true;
+    identflags |= IDF_PERSIST;
 
     if(execfile("config/once.cfg", false)) remove(findfile("config/once.cfg", "rb"));
 
@@ -1588,29 +1339,24 @@ int main(int argc, char **argv)
     resetfpshistory();
 
     inputgrab(grabinput = true);
+    ignoremousemotion();
 
     for(;;)
     {
         static int frames = 0;
-        int millis = SDL_GetTicks() - clockrealbase;
-        if(clockfix) millis = int(millis*(double(clockerror)/1000000));
-        millis += clockvirtbase;
-        if(millis<totalmillis) millis = totalmillis;
+        int millis = getclockmillis();
         limitfps(millis, totalmillis);
-        int elapsed = millis-totalmillis;
-        if(multiplayer(false)) curtime = game::ispaused() ? 0 : elapsed;
-        else
-        {
-            static int timeerr = 0;
-            int scaledtime = elapsed*gamespeed + timeerr;
-            curtime = scaledtime/100;
-            timeerr = scaledtime%100;
-            if(curtime>200) curtime = 200;
-            if(paused || game::ispaused()) curtime = 0;
-        }
+        elapsedtime = millis - totalmillis;
+        static int timeerr = 0;
+        int scaledtime = game::scaletime(elapsedtime) + timeerr;
+        curtime = scaledtime/100;
+        timeerr = scaledtime%100;
+        if(!multiplayer(false) && curtime>200) curtime = 200;
+        if(game::ispaused()) curtime = 0;
         lastmillis += curtime;
         totalmillis = millis;
-
+        updatetime();
+ 
         checkinput();
         menuprocess();
         tryedit();
@@ -1621,11 +1367,8 @@ int main(int argc, char **argv)
         checksleep(lastmillis);
 
         serverslice(false, 0);
-#ifdef IRC
-        ircslice();
-#endif
 
-        if(frames) updatefpshistory(elapsed);
+        if(frames) updatefpshistory(elapsedtime);
         frames++;
 
         // miscellaneous general game effects

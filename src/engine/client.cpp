@@ -21,10 +21,10 @@ bool multiplayer(bool msg)
 void setrate(int rate)
 {
    if(!curpeer) return;
-   enet_host_bandwidth_limit(clienthost, rate, rate);
+   enet_host_bandwidth_limit(clienthost, rate*1024, rate*1024);
 }
 
-VARF(rate, 0, 0, 25000, setrate(rate));
+VARF(rate, 0, 0, 1024, setrate(rate));
 
 void throttle();
 
@@ -39,12 +39,12 @@ void throttle()
     enet_peer_throttle_configure(curpeer, throttle_interval*1000, throttle_accel, throttle_decel);
 }
 
-bool isconnected(bool attempt)
+bool isconnected(bool attempt, bool local)
 {
-    return curpeer || (attempt && connpeer);
+    return curpeer || (attempt && connpeer) || (local && haslocalclients());
 }
 
-ICOMMAND(isconnected, "i", (int *attempt), intret(isconnected(*attempt > 0) ? 1 : 0));
+ICOMMAND(isconnected, "bb", (int *attempt, int *local), intret(isconnected(*attempt > 0, *local != 0) ? 1 : 0));
 
 const ENetAddress *connectedpeer()
 {
@@ -233,7 +233,7 @@ void disconnect(bool async, bool cleanup)
     }
 }
 
-void trydisconnect()
+void trydisconnect(bool local)
 {
     if(connpeer)
     {
@@ -245,14 +245,15 @@ void trydisconnect()
         conoutf("attempting to disconnect...");
         disconnect(!discmillis);
     }
+    else if(local && haslocalclients()) localdisconnect();
     else conoutf("not connected");
 }
 
 ICOMMAND(connect, "sis", (char *name, int *port, char *pw), connectserv(name, *port, pw));
 ICOMMAND(lanconnect, "is", (int *port, char *pw), connectserv(NULL, *port, pw));
 COMMAND(reconnect, "s");
-COMMANDN(disconnect, trydisconnect, "");
-ICOMMAND(localconnect, "", (), { if(!isconnected() && !haslocalclients()) localconnect(); });
+ICOMMAND(disconnect, "b", (int *local), trydisconnect(*local != 0));
+ICOMMAND(localconnect, "", (), { if(!isconnected()) localconnect(); });
 ICOMMAND(localdisconnect, "", (), { if(haslocalclients()) localdisconnect(); });
 
 void sendclientpacket(ENetPacket *packet, int chan)
@@ -319,7 +320,6 @@ void gets2c()           // get updates from the server
             break;
 
         case ENET_EVENT_TYPE_DISCONNECT:
-            extern const char *disc_reasons[];
             if(event.data>=DISC_NUM) event.data = DISC_NONE;
             if(event.peer==connpeer)
             {
@@ -328,7 +328,12 @@ void gets2c()           // get updates from the server
             }
             else
             {
-                if(!discmillis || event.data) conoutf("\f3server network error, disconnecting (%s) ...", disc_reasons[event.data]);
+                if(!discmillis || event.data)
+                {
+                    const char *msg = disconnectreason(event.data);
+                    if(msg) conoutf("\f3server network error, disconnecting (%s) ...", msg);
+                    else conoutf("\f3server network error, disconnecting...");
+                }
                 disconnect();
             }
             return;

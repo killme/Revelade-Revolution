@@ -31,6 +31,7 @@ namespace game
     {
         //  weap[0]         weap[1]         weap[2]         weap[3]                 maxhealth       armourtype      armour maxspeed name
         {   {WEAP_SNIPER,   WEAP_MG,        WEAP_GRENADIER, WEAP_FIST},             90,             A_GREEN,        50,    80,      "Offense",      0},
+//         {   {WEAP_SLIME,   WEAP_MG,        WEAP_GRENADIER, WEAP_FIST},             90,             A_GREEN,        50,    80,      "Offense",      0},
         {   {WEAP_ROCKETL,  WEAP_SLUGSHOT,  WEAP_PISTOL,    WEAP_FIST},             80,             A_YELLOW,       60,    75,      "Defense",      0},
         //  { {WEAP_MG,     WEAP_ROCKETL},                          110,            A_YELLOW,       70,    65,      "Heavy"},
         {   {WEAP_FLAMEJET, WEAP_CROSSBOW,  WEAP_PISTOL,    WEAP_FIST},             70,             A_BLUE,         25,    115,     "Stealth",      0},
@@ -331,7 +332,7 @@ namespace game
     {
         if(d->type != ENT_BOUNCE) return;
         bouncer *b = (bouncer *)d;
-        if (b->bouncetype == BNC_GIBS && b->bounces < 3) playsound(S_SPLOSH+(rand()%3), &b->o, NULL, 0, b->bounces*300);
+        if (b->bouncetype == BNC_GIBS && b->bounces < 3) playsound(S_SPLOSH+(rand()%3), &b->o, NULL, 0, b->bounces);
         if(b->bouncetype != BNC_GIBS || b->bounces++ >= 2) return;
         adddecal(DECAL_BLOOD, vec(b->o).sub(vec(surface).mul(b->radius)), surface, 2.96f/b->bounces, bvec(0x60, 0xFF, 0xFF), rnd(4));
     }
@@ -378,7 +379,7 @@ namespace game
             if (bnc.bouncetype==BNC_GRENADE)
             {
                 stopped = ((bnc.lifetime -= time)<0 && WEAP(bnc.gun,projtype)&PJT_TIMED)
-                          || (bounce(&bnc, WEAP(bnc.gun,projtype)&PJT_STICKY? 0.2f: 0.6f, 0.5f)
+                          || (bounce(&bnc, WEAP(bnc.gun,projtype)&PJT_STICKY? 0.2f: 0.6f, 0.5f, 1.f)
                                 && bnc.lifetime <= WEAP(bnc.gun,projlife) - WEAP(bnc.gun,projfree));
             }
             else
@@ -388,7 +389,7 @@ namespace game
                 {
                     int qtime = min(30, rtime);
                     rtime -= qtime;
-                    if((bnc.lifetime -= qtime)<0 || bounce(&bnc, qtime/1000.0f, 0.6f, 0.5f)) { stopped = true; break; }
+                    if((bnc.lifetime -= qtime)<0 || bounce(&bnc, qtime/1000.0f, 0.6f, 0.5f, 1.f)) { stopped = true; break; }
                 }
             }
             if(stopped)
@@ -888,7 +889,7 @@ namespace game
                 {
                     adddecal(WEAP(p.gun,decal), v, vec(p.dir).neg(), WEAP(p.gun,decalsize));
                     adddynlight(v, WEAP(p.gun,projradius), WEAP(p.gun,color), 3000);
-                    p.to.set(0.f, 0.f, 0.f);
+                    p.to = vec(0.f, 0.f, 0.f);
                 }
                 else if (!p.to.iszero())
                 {
@@ -1013,12 +1014,12 @@ namespace game
         if(d->isInfected())
         {
             d->attacksound = S_ZOMBIE_ATTACK;
-            d->attackchan = playsound(S_ZOMBIE_ATTACK, d==hudplayer() ? NULL : &d->o, NULL, -1, 100, d->attackchan);
+            d->attackchan = playsound(S_ZOMBIE_ATTACK, d==hudplayer() ? NULL : &d->o, NULL, 0, 0, 0, d->attackchan);
         }
         else if (WEAP(gun,looping))
         {
             d->attacksound = WEAP(gun,sound);
-            d->attackchan = playsound(WEAP(gun,sound), d==hudplayer() ? NULL : &d->o, NULL, -1, 100, d->attackchan);
+            d->attackchan = playsound(WEAP(gun,sound), d==hudplayer() ? NULL : &d->o, NULL, 0, 0, 0, d->attackchan);
         }
         else playsound(WEAP(gun,sound), d==hudplayer() ? NULL : &d->o);
         if (d->quadmillis && lastmillis-prevaction>200 && !WEAP(gun,looping)) playsound(S_ITEMPUP, d==hudplayer() ? NULL : &d->o);
@@ -1040,12 +1041,13 @@ namespace game
         }
     }
 
-    void dynlighttrack(physent *owner, vec &o)
+    void dynlighttrack(physent *owner, vec &o, vec &hud)
     {
         if(owner->type!=ENT_PLAYER && owner->type!=ENT_AI) return;
         fpsent *pl = (fpsent *)owner;
         if(pl->muzzle.x < 0 || pl->lastattackgun != pl->gunselect) return;
         o = pl->muzzle;
+        hud = owner == hudplayer() ? vec(pl->o).add(vec(0, 0, 2)) : pl->muzzle;
     }
 
     float intersectdist = 1e16f;
@@ -1175,21 +1177,12 @@ namespace game
         float shorten = 0;
         if(WEAP(gun,range) && dist > WEAP(gun,range)) shorten = WEAP(gun,range);
         float barrier = raycube(d->o, unitv, dist, RAY_CLIPMAT|RAY_ALPHAPOLY);
-        if(barrier > 0 && barrier < dist && (!shorten || barrier < shorten)) shorten = barrier;
-        if(shorten)
-        {
-            to = unitv;
-            to.mul(shorten);
-            to.add(from);
-        }
+        if(barrier > 0 && barrier < dist && (!shorten || barrier < shorten))
+            shorten = barrier;
+        if(shorten) to = vec(unitv).mul(shorten).add(from);
 
         int numrays = WEAP(gun,numrays);
 
-        //if ((d==player1 || d->ai || d->type == ENT_AI) && (WEAP(gun,numrays)<0 || WEAP(gun,numrays)>1))
-        //{
-        //    if (WEAP(gun,numrays) == -1) offsetray(from, to, GUN_MIN_SPREAD, WEAP(gun,range), to);
-        //    else createrays(from, to, numrays, WEAP(gun,numrays)<0? GUN_MAX_SPREAD: GUN_MIN_SPREAD);
-        //}
         if (WEAP(gun,offset))
         {
             if (numrays == 1) offsetray(from, to, WEAP(gun,offset), WEAP(gun,range), to);
@@ -1227,7 +1220,7 @@ namespace game
             projectile &p = projs[i];
             vec pos(p.o);
             pos.add(vec(p.offset).mul(p.offsetmillis/float(OFFSETMILLIS)));
-            adddynlight(pos, WEAP(p.gun,projradius)/2, WEAP(p.gun,color)); // vec(1, 0.75f, 0.5f) // 0.15f, 0.5f, 1.f
+            adddynlight(pos, WEAP(p.gun,projradius)/2, WEAP(p.gun,color));
         }
         loopv(bouncers)
         {
@@ -1335,7 +1328,7 @@ namespace game
         if(WEAP_VALID(gun) && d->clientnum >= 0 && d->state == CS_ALIVE &&
            d->lastattackgun == gun && lastmillis - d->lastaction < WEAP(gun,attackdelay) + 50)
         {
-            d->attackchan = playsound(d->attacksound, local ? NULL : &d->o, NULL, -1, -1, d->attackchan);
+            d->attackchan = playsound(d->attacksound, local ? NULL : &d->o, NULL, 0, -1, -1, d->attackchan);
             if(d->attackchan < 0) d->attacksound = -1;
         }
         else d->stopattacksound();
@@ -1356,13 +1349,13 @@ namespace game
             if(d->idlesound >= 0) d->stopidlesound();
             if(sound >= 0)
             {
-                d->idlechan = playsound(sound, local ? NULL : &d->o, NULL, -1, 100, d->idlechan, radius);
+                d->idlechan = playsound(sound, local ? NULL : &d->o, NULL, 0, -1, 100, d->idlechan, radius);
                 if(d->idlechan >= 0) d->idlesound = sound;
             }
         }
         else if(sound >= 0)
         {
-            d->idlechan = playsound(sound, local ? NULL : &d->o, NULL, -1, -1, d->idlechan, radius);
+            d->idlechan = playsound(sound, local ? NULL : &d->o, NULL, 0, -1, -1, d->idlechan, radius); // TODO: -1 in fade?
             if(d->idlechan < 0) d->idlesound = -1;
         }
     }
@@ -1463,23 +1456,3 @@ namespace game
 
 };
 
-//@todo: remove the following 2 commands before release
-
-/*
-ICOMMAND(weapattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int *a6, int *a7), {
-    WEAP(*a1,attackdelay) = *a2;
-    WEAP(*a1,kickamount) = *a3;
-    WEAP(*a1,range) = *a4;
-    WEAP(*a1,power) = *a5;
-    WEAP(*a1,damage) = *a6;
-    WEAP(*a1,numshots) = *a7;
-});
-ICOMMAND(projattr, "iiiiiii", (int *a1, int *a2, int *a3, int *a4, int *a5, int *a6, int *a7), {
-    WEAP(*a1,projtype) = *a2;
-    WEAP(*a1,projmdl) = *a3;
-    WEAP(*a1,projspeed) = *a4;
-    WEAP(*a1,projradius) = *a5;
-    WEAP(*a1,projgravity) = *a6;
-    WEAP(*a1,projlife) = *a7;
-});
-*/

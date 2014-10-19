@@ -65,123 +65,7 @@ void conoutf(int type, const char *fmt, ...)
 }
 #endif
 
-// all network traffic is in 32bit ints, which are then compressed using the following simple scheme (assumes that most values are small).
-
-template<class T>
-static inline void putint_(T &p, int n)
-{
-    if(n<128 && n>-127) p.put(n);
-    else if(n<0x8000 && n>=-0x8000) { p.put(0x80); p.put(n); p.put(n>>8); }
-    else { p.put(0x81); p.put(n); p.put(n>>8); p.put(n>>16); p.put(n>>24); }
-}
-void putint(ucharbuf &p, int n) { putint_(p, n); }
-void putint(packetbuf &p, int n) { putint_(p, n); }
-void putint(vector<uchar> &p, int n) { putint_(p, n); }
-
-int getint(ucharbuf &p)
-{
-    int c = (char)p.get();
-    if(c==-128) { int n = p.get(); n |= char(p.get())<<8; return n; }
-    else if(c==-127) { int n = p.get(); n |= p.get()<<8; n |= p.get()<<16; return n|(p.get()<<24); } 
-    else return c;
-}
-
-// much smaller encoding for unsigned integers up to 28 bits, but can handle signed
-template<class T>
-static inline void putuint_(T &p, int n)
-{
-    if(n < 0 || n >= (1<<21))
-    {
-        p.put(0x80 | (n & 0x7F));
-        p.put(0x80 | ((n >> 7) & 0x7F));
-        p.put(0x80 | ((n >> 14) & 0x7F));
-        p.put(n >> 21);
-    }
-    else if(n < (1<<7)) p.put(n);
-    else if(n < (1<<14))
-    {
-        p.put(0x80 | (n & 0x7F));
-        p.put(n >> 7);
-    }
-    else 
-    { 
-        p.put(0x80 | (n & 0x7F)); 
-        p.put(0x80 | ((n >> 7) & 0x7F));
-        p.put(n >> 14); 
-    }
-}
-void putuint(ucharbuf &p, int n) { putuint_(p, n); }
-void putuint(packetbuf &p, int n) { putuint_(p, n); }
-void putuint(vector<uchar> &p, int n) { putuint_(p, n); }
-
-int getuint(ucharbuf &p)
-{
-    int n = p.get();
-    if(n & 0x80)
-    {
-        n += (p.get() << 7) - 0x80;
-        if(n & (1<<14)) n += (p.get() << 14) - (1<<14);
-        if(n & (1<<21)) n += (p.get() << 21) - (1<<21);
-        if(n & (1<<28)) n |= -1<<28;
-    }
-    return n;
-}
-
-template<class T>
-static inline void putfloat_(T &p, float f)
-{
-    lilswap(&f, 1);
-    p.put((uchar *)&f, sizeof(float));
-}
-void putfloat(ucharbuf &p, float f) { putfloat_(p, f); }
-void putfloat(packetbuf &p, float f) { putfloat_(p, f); }
-void putfloat(vector<uchar> &p, float f) { putfloat_(p, f); }
-
-float getfloat(ucharbuf &p)
-{
-    float f;
-    p.get((uchar *)&f, sizeof(float));
-    return lilswap(f);
-}
-
-template<class T>
-static inline void sendstring_(const char *t, T &p)
-{
-    while(*t) putint(p, *t++);
-    putint(p, 0);
-}
-void sendstring(const char *t, ucharbuf &p) { sendstring_(t, p); }
-void sendstring(const char *t, packetbuf &p) { sendstring_(t, p); }
-void sendstring(const char *t, vector<uchar> &p) { sendstring_(t, p); }
-
-void getstring(char *text, ucharbuf &p, int len)
-{
-    char *t = text;
-    do
-    {
-        if(t>=&text[len]) { text[len-1] = 0; return; }
-        if(!p.remaining()) { *t = 0; return; } 
-        *t = getint(p);
-    }
-    while(*t++);
-}
-
-void filtertext(char *dst, const char *src, bool whitespace, int len)
-{
-    for(int c = *src; c; c = *++src)
-    {
-        switch(c)
-        {
-        case '\f': ++src; continue;
-        }
-        if(isspace(c) ? whitespace : isprint(c))
-        {
-            *dst++ = c;
-            if(!--len) break;
-        }
-    }
-    *dst = '\0';
-}
+#define DEFAULTCLIENTS 8
 
 enum { ST_EMPTY, ST_LOCAL, ST_TCPIP };
 
@@ -200,6 +84,53 @@ ENetHost *serverhost = NULL;
 int laststatus = 0; 
 ENetSocket pongsock = ENET_SOCKET_NULL, lansock = ENET_SOCKET_NULL;
 
+int localclients = 0, nonlocalclients = 0;
+
+bool hasnonlocalclients() { return nonlocalclients!=0; }
+bool haslocalclients() { return localclients!=0; }
+
+client &addclient(int type)
+{
+    client *c = NULL;
+    loopv(clients) if(clients[i]->type==ST_EMPTY)
+    {
+        c = clients[i];
+        break;
+    }
+    if(!c)
+    {
+        c = new client;
+        c->num = clients.length();
+        clients.add(c);
+    }
+    c->info = server::newclientinfo();
+    c->type = type;
+    switch(type)
+    {
+        case ST_TCPIP: nonlocalclients++; break;
+        case ST_LOCAL: localclients++; break;
+    }
+    return *c;
+}
+
+void delclient(client *c)
+{
+    if(!c) return;
+    switch(c->type)
+    {
+        case ST_TCPIP: nonlocalclients--; if(c->peer) c->peer->data = NULL; break;
+        case ST_LOCAL: localclients--; break;
+        case ST_EMPTY: return;
+    }
+    c->type = ST_EMPTY;
+    c->peer = NULL;
+    if(c->info)
+    {
+        server::deleteclientinfo(c->info);
+        c->info = NULL;
+    }
+}
+
 void cleanupserver()
 {
     if(serverhost) enet_host_destroy(serverhost);
@@ -208,19 +139,16 @@ void cleanupserver()
     if(pongsock != ENET_SOCKET_NULL) enet_socket_destroy(pongsock);
     if(lansock != ENET_SOCKET_NULL) enet_socket_destroy(lansock);
     pongsock = lansock = ENET_SOCKET_NULL;
-
-#ifdef IRC
-    irccleanup();
-#endif
 }
+
+VARF(maxclients, 0, DEFAULTCLIENTS, MAXCLIENTS, { if(!maxclients) maxclients = DEFAULTCLIENTS; });
+VARF(maxdupclients, 0, 0, MAXCLIENTS, { if(serverhost) serverhost->duplicatePeers = maxdupclients ? maxdupclients : MAXCLIENTS; });
 
 void process(ENetPacket *packet, int sender, int chan);
 //void disconnect_client(int n, int reason);
 
-void *getclientinfo(int i)
-{
-    return !clients.inrange(i) || clients[i]->type==ST_EMPTY ? NULL : clients[i]->info;
-}
+int getservermtu() { return serverhost ? serverhost->mtu : -1; }
+void *getclientinfo(int i) { return !clients.inrange(i) || clients[i]->type==ST_EMPTY ? NULL : clients[i]->info; }
 ENetPeer *getclientpeer(int i) { return clients.inrange(i) && clients[i]->type==ST_TCPIP ? clients[i]->peer : NULL; }
 int getnumclients()        { return clients.length(); }
 uint getclientip(int n)    { return clients.inrange(n) && clients[n]->type==ST_TCPIP ? clients[n]->peer->address.host : 0; }
@@ -249,7 +177,7 @@ void sendpacket(int n, int chan, ENetPacket *packet, int exclude)
     }
 }
 
-void sendf(int cn, int chan, const char *format, ...)
+ENetPacket *sendf(int cn, int chan, const char *format, ...)
 {
     int exclude = -1;
     bool reliable = false;
@@ -293,21 +221,23 @@ void sendf(int cn, int chan, const char *format, ...)
         }
     }
     va_end(args);
-    sendpacket(cn, chan, p.finalize(), exclude);
+    ENetPacket *packet = p.finalize();
+    sendpacket(cn, chan, packet, exclude);
+    return packet->referenceCount > 0 ? packet : NULL;
 }
 
-void sendfile(int cn, int chan, stream *file, const char *format, ...)
+ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
 {
     if(cn < 0)
     {
 #ifdef STANDALONE
-        return;
+        return NULL;
 #endif
     }
-    else if(!clients.inrange(cn)) return;
+    else if(!clients.inrange(cn)) return NULL;
 
-    int len = file->size();
-    if(len <= 0) return;
+    int len = (int)min(file->size(), stream::offset(INT_MAX));
+    if(len <= 0 || len > 16<<20) return NULL;
 
     packetbuf p(MAXTRANS+len, ENET_PACKET_FLAG_RELIABLE);
     va_list args;
@@ -340,22 +270,38 @@ void sendfile(int cn, int chan, stream *file, const char *format, ...)
 #ifndef STANDALONE
     else sendclientpacket(packet, chan);
 #endif
+    return packet->referenceCount > 0 ? packet : NULL;
 }
 
-const char *disc_reasons[] = { "normal", "end of packet", "client num", "kicked/banned", "tag type", "ip is banned", "server is in private mode", "server FULL", "connection timed out", "overflow" };
+const char *disconnectreason(int reason)
+{
+    switch(reason)
+    {
+        case DISC_EOP: return "end of packet";
+        case DISC_LOCAL: return "server is in local mode";
+        case DISC_KICK: return "kicked/banned";
+        case DISC_MSGERR: return "message error";
+        case DISC_IPBAN: return "ip is banned";
+        case DISC_PRIVATE: return "server is in private mode";
+        case DISC_MAXCLIENTS: return "server FULL";
+        case DISC_TIMEOUT: return "connection timed out";
+        case DISC_OVERFLOW: return "overflow";
+        case DISC_PASSWORD: return "invalid password";
+        default: return NULL;
+    }
+}
 
 void disconnect_client(int n, int reason)
 {
     if(!clients.inrange(n) || clients[n]->type!=ST_TCPIP) return;
     enet_peer_disconnect(clients[n]->peer, reason);
     server::clientdisconnect(n);
-    clients[n]->type = ST_EMPTY;
-    clients[n]->peer->data = NULL;
-    server::deleteclientinfo(clients[n]->info);
-    clients[n]->info = NULL;
-    defformatstring(s)("client (%s) disconnected because: %s", clients[n]->hostname, disc_reasons[reason]);
-    puts(s);
-    //logouts(s);
+    delclient(clients[n]);
+    const char *msg = disconnectreason(reason);
+    string s;
+    if(msg) formatstring(s)("client (%s) disconnected because: %s", clients[n]->hostname, msg);
+    else formatstring(s)("client (%s) disconnected", clients[n]->hostname);
+    conoutf("%s", s);
     server::sendservmsg(s);
 }
 
@@ -393,6 +339,8 @@ void localclienttoserver(int chan, ENetPacket *packet)
     if(c) process(packet, c->num, chan);
 }
 
+ENetAddress serveraddress = { ENET_HOST_ANY, ENET_PORT_ANY };
+
 client &addclient()
 {
     loopv(clients) if(clients[i]->type==ST_EMPTY)
@@ -407,12 +355,6 @@ client &addclient()
     return *c;
 }
 
-int localclients = 0, nonlocalclients = 0;
-
-bool hasnonlocalclients() { return nonlocalclients!=0; }
-bool haslocalclients() { return localclients!=0; }
-
-ENetAddress serveraddress = { ENET_HOST_ANY, ENET_PORT_ANY };
 static ENetAddress pongaddr;
 
 void sendserverinforeply(ucharbuf &p)
@@ -422,6 +364,8 @@ void sendserverinforeply(ucharbuf &p)
     buf.dataLength = p.length();
     enet_socket_send(pongsock, &pongaddr, &buf, 1);
 }
+
+#define MAXPINGDATA 32
 
 void checkserversockets()        // reply all server info requests
 {
@@ -446,33 +390,36 @@ void checkserversockets()        // reply all server info requests
         buf.data = pong;
         buf.dataLength = sizeof(pong);
         int len = enet_socket_receive(sock, &pongaddr, &buf, 1);
-        if(len < 0) return;
+        if(len < 0 || len > MAXPINGDATA) continue;
         ucharbuf req(pong, len), p(pong, sizeof(pong));
         p.len += len;
         server::serverinforeply(req, p);
     }
 }
 
-#define DEFAULTCLIENTS 8
-
-VARF(maxclients, 0, DEFAULTCLIENTS, MAXCLIENTS, { if(!maxclients) maxclients = DEFAULTCLIENTS; });
 VAR(serveruprate, 0, 0, INT_MAX);
 SVAR(serverip, "");
-VARF(serverport, 0, server::serverport(), 0xFFFF, { if(!serverport) serverport = server::serverport(); });
+VARF(serverport, 0, server::serverport(), 0xFFFF-1, { if(!serverport) serverport = server::serverport(); });
 
 #ifdef STANDALONE
-int curtime = 0, lastmillis = 0, totalmillis = 0;
+int curtime = 0, lastmillis = 0, elapsedtime = 0, totalmillis = 0;
 #endif
+
+uint totalsecs = 0;
+
+void updatetime()
+{
+    static int lastsec = 0;
+    if(totalmillis - lastsec >= 1000) 
+    {
+        int cursecs = (totalmillis - lastsec) / 1000;
+        totalsecs += cursecs;
+        lastsec += cursecs * 1000;
+    }
+}
 
 void serverslice(bool dedicated, uint timeout)   // main server update, called from main loop in sp, or from below in dedicated server
 {
-    localclients = nonlocalclients = 0;
-    loopv(clients) switch(clients[i]->type)
-    {
-        case ST_LOCAL: localclients++; break;
-        case ST_TCPIP: nonlocalclients++; break;
-    }
-
     if(!serverhost) 
     {
         server::serverupdate();
@@ -487,9 +434,15 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
     {
 #endif
         int millis = (int)enet_time_get();
-        curtime = server::ispaused() ? 0 : millis - totalmillis;
-        totalmillis = millis;
+        elapsedtime = millis - totalmillis;
+        static int timeerr = 0;
+        int scaledtime = server::scaletime(elapsedtime) + timeerr;
+        curtime = scaledtime/100;
+        timeerr = scaledtime%100;
+        if(server::ispaused()) curtime = 0;
         lastmillis += curtime;
+        totalmillis = millis;
+        updatetime();
 #ifndef SERVER
     }
 #endif
@@ -533,16 +486,14 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
         {
             case ENET_EVENT_TYPE_CONNECT:
             {
-                client &c = addclient();
-                c.type = ST_TCPIP;
+                client &c = addclient(ST_TCPIP);
                 c.peer = event.peer;
                 c.peer->data = &c;
-                char hn[1024];
+                string hn;
                 copystring(c.hostname, (enet_address_get_host_ip(&c.peer->address, hn, sizeof(hn))==0) ? hn : "unknown");
                 conoutf("client connected (%s)", c.hostname);
                 int reason = server::clientconnect(c.num, c.peer->address.host);
-                if(!reason) nonlocalclients++;
-                else disconnect_client(c.num, reason);
+                if(reason) disconnect_client(c.num, reason);
                 break;
             }
             case ENET_EVENT_TYPE_RECEIVE:
@@ -558,11 +509,7 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
                 if(!c) break;
                 conoutf("disconnected client (%s)", c->hostname);
                 server::clientdisconnect(c->num);
-                nonlocalclients--;
-                c->type = ST_EMPTY;
-                event.peer->data = NULL;
-                server::deleteclientinfo(c->info);
-                c->info = NULL;
+                delclient(c);
                 break;
             }
             default:
@@ -584,10 +531,7 @@ void localdisconnect(bool cleanup)
     loopv(clients) if(clients[i]->type==ST_LOCAL) 
     {
         server::localdisconnect(i);
-        localclients--;
-        clients[i]->type = ST_EMPTY;
-        server::deleteclientinfo(clients[i]->info);
-        clients[i]->info = NULL;
+        delclient(clients[i]);
         disconnected = true;
     }
     if(!disconnected) return;
@@ -597,10 +541,8 @@ void localdisconnect(bool cleanup)
 
 void localconnect()
 {
-    client &c = addclient();
-    c.type = ST_LOCAL;
+    client &c = addclient(ST_LOCAL);
     copystring(c.hostname, "local");
-    localclients++;
     game::gameconnect(false);
     server::localconnect(c.num);
 }
@@ -611,18 +553,18 @@ bool servererror(bool dedicated, const char *desc)
 #ifndef STANDALONE
     if(!dedicated)
     {
-        conoutf(CON_ERROR, desc);
+        conoutf(CON_ERROR, "%s", desc);
         cleanupserver();
     }
     else
 #endif
-        fatal(desc);
+        fatal("%s", desc);
     return false;
 }
   
 bool setuplistenserver(bool dedicated)
 {
-    ENetAddress address = { ENET_HOST_ANY, (enet_uint16)(serverport <= 0 ? server::serverport() : serverport) };
+    ENetAddress address = { ENET_HOST_ANY, enet_uint16(serverport <= 0 ? server::serverport() : serverport) };
     if(*serverip)
     {
         if(enet_address_set_host(&address, serverip)<0) conoutf(CON_WARN, "WARNING: server ip not resolved");
@@ -630,9 +572,8 @@ bool setuplistenserver(bool dedicated)
     }
     serverhost = enet_host_create(&address, min(maxclients + server::reserveclients(), MAXCLIENTS), server::numchannels(), 0, serveruprate);
     if(!serverhost) return servererror(dedicated, "could not create server host");
-    loopi(maxclients) serverhost->peers[i].data = NULL;
+    serverhost->duplicatePeers = maxdupclients ? maxdupclients : MAXCLIENTS;
     address.port = server::serverinfoport(serverport > 0 ? serverport : -1);
-    
     pongsock = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
     if(pongsock != ENET_SOCKET_NULL && enet_socket_bind(pongsock, &address) < 0)
     {
@@ -641,7 +582,6 @@ bool setuplistenserver(bool dedicated)
     }
     if(pongsock == ENET_SOCKET_NULL) return servererror(dedicated, "could not create server info socket");
     else enet_socket_set_option(pongsock, ENET_SOCKOPT_NONBLOCK, 1);
-    
     address.port = server::laninfoport();
     lansock = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
     if(lansock != ENET_SOCKET_NULL && (enet_socket_set_option(lansock, ENET_SOCKOPT_REUSEADDR, 1) < 0 || enet_socket_bind(lansock, &address) < 0))
@@ -743,7 +683,7 @@ void checkTerminate()
     if(shouldTerminate)
     {
     #ifndef WIN32
-        conoutf("\nCaught signal %i (%s)", signal, strsignal(shouldTerminate));
+        conoutf("\nCaught signal %i (%s)", shouldTerminate, strsignal(shouldTerminate));
     #else
         conoutf("\nCaught signal %i (<Name function not implemented by OS>)", shouldTerminate);
     #endif

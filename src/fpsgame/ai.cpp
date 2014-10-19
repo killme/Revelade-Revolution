@@ -173,13 +173,8 @@ namespace ai
         d->skill = sk;
         d->playermodel = (pm < 0) ? chooserandomplayermodel(rand()) : pm;
         d->playerclass = (pc < 0) ? rand()%NUMPCS : pc;
-
-        if(o == player1 && d->playermodel != pm)
-        {
-            //Sync playermodel and playerclass
-            addmsg(N_SWITCHCLASS, "rci", d, d->playerclass);
-            addmsg(N_SWITCHMODEL, "rci", d, d->playermodel);
-        }
+        
+        if(aidebug && (pm < 0 || pc < 0)) conoutf("server let us pick bot name/class for: %s (pm:%i pc:%i -> pm:%i pc:%i)", colorname(d, name), pm, pc, d->playermodel, d->playerclass);
 
         if(resetthisguy) removeweapons(d);
         if(d->ownernum >= 0 && player1->clientnum == d->ownernum)
@@ -1238,7 +1233,7 @@ namespace ai
             }
             if(d->state == CS_DEAD && d->respawned!=d->lifesequence && (!cmode || cmode->respawnwait(d) <= 0) && lastmillis - d->lastpain >= 500)
             {
-                addmsg(N_TRYSPAWN, "rc", d);
+                addmsg(N_TRYSPAWN, "rcii", d, d->playerclass, d->playermodel);
                 d->respawned = d->lifesequence;
             }
             else if(d->state == CS_ALIVE && parse)

@@ -15,7 +15,6 @@ namespace game
     fpsent *player1 = NULL;         // our client
     vector<fpsent *> players;       // other clients
     int savedammo[NUMWEAPS];
-    int tauntmillis = 0;            //taunt delay timer
 
     bool clientoption(const char *arg) { return false; }
 
@@ -26,13 +25,9 @@ namespace game
     void taunt()
     {
         if(player1->state!=CS_ALIVE || player1->physstate<PHYS_SLOPE) return;
-        if(lastmillis-player1->lasttaunt<1500) return;
-        tauntmillis = 250 + lastmillis;
+        if(lastmillis-player1->lasttaunt<1000) return;
+        player1->lasttaunt = lastmillis;
         addmsg(N_TAUNT, "rc", player1);
-
-        //@todo: either fix or remove
-        //thirdperson = 2;
-        //player1->lasttaunt = lastmillis;
     }
     COMMAND(taunt, "");
 
@@ -119,9 +114,9 @@ namespace game
         }
     };
 
-    int sortCutsceneCamerasFunction(CutsceneCamera **c1, CutsceneCamera **c2)
+    static inline bool sortCutsceneCamerasFunction(CutsceneCamera *&c1, CutsceneCamera *&c2)
     {
-        return (*c1)->id > (*c2)->id ? 1 : -1;
+        return c1->id > c2->id;
     }
 
     vec getComputedPointIndexed(Cutscene *cs, uint index)
@@ -543,26 +538,15 @@ namespace game
         return d;
     }
 
-    void sendClassInfo()
-    {
-        if(playerclass != player1->playerclass) addmsg(N_SWITCHCLASS, "ri", player1->playerclass = playerclass);
-        if(playermodel != player1->playermodel)
-        {
-            addmsg(N_SWITCHMODEL, "ri", player1->playermodel = playermodel);
-            changedplayermodel(); // TODO: is this still needed?
-        }
-    }
-
     void respawnself()
     {
-        if(paused || ispaused()) return;
+        if(ispaused()) return;
         resetdamagescreen();
         if(m_mp(gamemode))
         {
             if(player1->respawned!=player1->lifesequence)
             {
-                sendClassInfo();
-                addmsg(N_TRYSPAWN, "rc", player1);
+                addmsg(N_TRYSPAWN, "rcii", player1, playerclass, playermodel);
                 player1->respawned = player1->lifesequence;
             }
         }
@@ -640,6 +624,7 @@ namespace game
         d->o = d->newpos;
         d->yaw = d->newyaw;
         d->pitch = d->newpitch;
+        d->roll = d->newroll;
         if(move)
         {
             moveplayer(d, 1, false);
@@ -653,6 +638,7 @@ namespace game
             if(d->yaw<0) d->yaw += 360;
             else if(d->yaw>=360) d->yaw -= 360;
             d->pitch += d->deltapitch*k;
+            d->roll += d->deltaroll*k;
         }
     }
 
@@ -663,14 +649,14 @@ namespace game
             fpsent *d = players[i];
             if(d == player1 || d->ai) continue;
 
-            if(d->state==CS_ALIVE)
+            if(d->state==CS_DEAD && d->ragdoll) moveragdoll(d);
+            else if(!intermission)
             {
                 if(lastmillis - d->lastaction >= d->gunwait) d->gunwait = 0;
                 if(d->quadmillis) entities::checkquad(curtime, d);
             }
-            else if(d->state==CS_DEAD && d->ragdoll) moveragdoll(d);
 
-            const int lagtime = lastmillis-d->lastupdate;
+            const int lagtime = totalmillis-d->lastupdate;
             if(!lagtime || intermission) continue;
             else if(lagtime>1000 && d->state==CS_ALIVE)
             {
@@ -686,15 +672,12 @@ namespace game
         }
     }
 
-    VARFP(slowmosp, 0, 0, 1,
-    {
-        if(m_sp && !slowmosp) setvar("gamespeed", 100);
-    });
+    VARFP(slowmosp, 0, 0, 1, { if(m_sp && !slowmosp) server::forcegamespeed(100); }); 
 
     void checkslowmo()
     {
         static int lastslowmohealth = 0;
-        setvar("gamespeed", intermission ? 100 : clamp(player1->health, 25, 200), true, false);
+        server::forcegamespeed(intermission ? 100 : clamp(player1->health, 25, 200));
         if(player1->health<player1->maxhealth && lastmillis-max(maptime, lastslowmohealth)>player1->health*player1->health/2)
         {
             lastslowmohealth = lastmillis;
@@ -711,7 +694,10 @@ namespace game
 
         physicsframe();
         ai::navigate();
-        entities::checkquad(curtime, player1);
+        if(player1->state != CS_DEAD && !intermission)
+        {
+            entities::checkquad(curtime, player1);
+        }
         updateweapons(curtime);
         otherplayers(curtime);
         ai::update();
@@ -725,7 +711,7 @@ namespace game
             currentCutscene = 0;
             updateCutsceneCamera();
         }
-        else if(player1->state==CS_DEAD)
+        else if(player1->state == CS_DEAD)
         {
             if(player1->ragdoll) moveragdoll(player1);
             else if(lastmillis-player1->lastpain<2000)
@@ -811,7 +797,7 @@ namespace game
     void doattack(bool on, bool altfire)
     {
         if(intermission) return;
-        player1->altfire = altfire;
+        player1->altfire = on && altfire;
         if((player1->attacking = on) && !respawn() && killcamera)
         {
             static int cpo = 0;
@@ -902,6 +888,8 @@ namespace game
         }
     }
 
+    VARP(teamcolorfrags, 0, 1, 1);
+
     void killed(fpsent *d, fpsent *actor, int gun, int special)
     {
         if(d->state==CS_EDITING)
@@ -911,7 +899,7 @@ namespace game
             else d->resetinterp();
             return;
         }
-        else if(d->state!=CS_ALIVE || intermission) return;
+        else if((d->state!=CS_ALIVE && d->state != CS_LAGGED && d->state != CS_SPAWNING) || intermission) return;
 
         if(actor == player1 && d != player1)
         {
@@ -923,12 +911,19 @@ namespace game
         if(special != -1)
         {
             int contype = d==h || actor==h ? CON_FRAG_SELF : CON_FRAG_OTHER;
-            string dname, aname;
-            copystring(dname, d==player1 ? "you" : colorname(d));
-            copystring(aname, actor==player1 ? "you" : colorname(actor));
-
+            const char *dname = "", *aname = "";
+            if(m_teammode && teamcolorfrags)
+            {
+                dname = teamcolorname(d, "you");
+                aname = teamcolorname(actor, "you");
+            }
+            else
+            {
+                dname = colorname(d, NULL, "", "", "you");
+                aname = colorname(actor, NULL, "", "", "you");
+            }
             if(actor->type==ENT_AI)
-                conoutf(contype, "\f2%s were killed by %s!", dname, aname);
+                conoutf(contype, "\f2%s got killed by %s!", dname, aname);
             else if(d==actor || actor->type==ENT_INANIMATE)
             {
                 if (gun < -1) conoutf(contype, "\f2%s %s", dname, GUN_SUICIDE_MESSAGE(gun));
@@ -1044,7 +1039,7 @@ namespace game
         }
         fpsent *d = clients[cn];
         if(!d) return;
-        if(notify && d->name[0]) conoutf("player %s disconnected", colorname(d));
+        if(notify && d->name[0]) conoutf("\f4leave:\f7 %s", colorname(d));
         removeweapons(d);
         removetrackedparticles(d);
         removetrackeddynlights(d);
@@ -1131,8 +1126,6 @@ namespace game
         ai::savewaypoints();
         ai::clearwaypoints(true);
 
-        sendClassInfo();
-
         respawnent = -1; // so we don't respawn at an old spot
         if(!m_mp(gamemode)) spawnplayer(player1);
         else findplayerspawn(player1, -1);
@@ -1165,8 +1158,8 @@ namespace game
         const ENetAddress *address = connectedpeer();
         if(address)
         {
-            if(servinfo[0]) formatstring(sinfo)("\fs\feServer: \f6%s\fr\n\n", servinfo);
-            else if(connectname && connectname[0]) formatstring(sinfo)("\fs\feServer: \f6%s:%d\fr\n\n", connectname, address->port);
+            if(servinfo[0]) formatstring(sinfo)("\fs\feServer: \f6%s\fS\n\n", servinfo);
+            else if(connectname && connectname[0]) formatstring(sinfo)("\fs\feServer: \f6%s:%d\fS\n\n", connectname, address->port);
         }
 
         const GameMode *mode = getGameMode(gamemode);
@@ -1187,7 +1180,7 @@ namespace game
         if (!sptips.empty())
         {
                 if (sinfo[0]) strcat(sinfo, "\n");
-                strcat(sinfo, "\fs\feTip: \fr");
+                strcat(sinfo, "\fs\feTip: \fS");
                 strcat(sinfo,  sptips[rnd(sptips.length())]);
         }
 
@@ -1258,27 +1251,49 @@ namespace game
         return NULL;
     }
 
-    bool duplicatename(fpsent *d, const char *name = NULL)
+    bool duplicatename(fpsent *d, const char *name = NULL, const char *alt = NULL)
     {
         if(!name) name = d->name;
+        if(alt && d != player1 && !strcmp(name, alt)) return true;
         loopv(players) if(d!=players[i] && !strcmp(name, players[i]->name)) return true;
         return false;
     }
 
-    const char *colorname(fpsent *d, const char *name, const char *prefix)
+    static string cname[3];
+    static int cidx = 0;
+
+    const char *colorname(fpsent *d, const char *name, const char *prefix, const char *suffix, const char *alt)
     {
-        if(!name) name = d->name;
-        if(name[0] && !duplicatename(d, name) && d->aitype != AI_ZOMBIE && d->aitype != AI_BOT) return name;
-        static string cname[3];
-        static int cidx = 0;
-        cidx = (cidx+1)%3;
-        if (d->aitype==AI_NONE) formatstring(cname[cidx])("%s%s \fs\f5(%d)\fS", prefix, name, d->clientnum);
-        else formatstring(cname[cidx])("%s%s \fs\f5[%s]\fS", prefix, name, d->aitype==AI_ZOMBIE? "zombie": "bot");
-        return cname[cidx];
+        if(!name) name = alt && d == player1 ? alt : d->name; 
+        bool dup = !name[0] || duplicatename(d, name, alt) || d->aitype != AI_NONE;
+        if(dup || prefix[0] || suffix[0])
+        {
+            cidx = (cidx+1)%3;
+            if(dup) formatstring(cname[cidx])(d->aitype == AI_NONE ? "%s%s \fs\f5(%d)\fS%s" : "%s%s \fs\f5[%d]\fS%s", prefix, name, d->clientnum, suffix);
+            else formatstring(cname[cidx])("%s%s%s", prefix, name, suffix);
+            return cname[cidx];
+        }
+        return name;
     }
 
     int dteamnum(fpsent *d) { return !m_teammode ? 3 : (d->isInfected() ? 2 : (!strcmp(d->team, TEAM_0) ? 0 : 1)); }
     float colorteam[4][3] = { { 0.47f, 0.63f, 1.f }, { 1.f, 0.47f, 0.47f }, { 0.47f, 1.f, 0.47f }, { 1.f, 1.f, 1.f } };
+
+    VARP(teamcolortext, 0, 1, 1);
+
+    const char *teamcolorname(fpsent *d, const char *alt)
+    {
+        if(!teamcolortext || !m_teammode) return colorname(d, NULL, "", "", alt);
+        return colorname(d, NULL, TEAM_COLOR_TEXT2(d->team, "\fs", ), "\fS", alt); 
+    }
+
+    const char *teamcolor(const char *name, const char *team, const char *alt)
+    {
+        if(!teamcolortext || !m_teammode) return isteam(player1->team, team) || !alt ? name : alt;
+        cidx = (cidx+1)%3;
+        formatstring(cname[cidx])(TEAM_COLOR_TEXT2(team, "\fs", "%s\fS"), isteam(player1->team, team) || !alt ? name : alt);
+        return cname[cidx];
+    }    
 
     void suicide(physent *d, int type)
     {
@@ -1296,7 +1311,7 @@ namespace game
         else if(d->type==ENT_AI) suicidemonster((monster *)d);
         else if(d->type==ENT_INANIMATE) suicidemovable((movable *)d);
     }
-    ICOMMAND(kill, "", (), suicide(player1));
+    ICOMMAND(suicide, "", (), suicide(player1));
 
     VARP(showradar, 0, 1, 1);
     bool needminimap(bool cond) { return showradar && cond && ((cmode)? cmode->needsminimap(): m_teammode) /*m_ctf || m_protect || m_hold || m_capture*/; }
@@ -1703,17 +1718,27 @@ namespace game
         loopi(numgroups) if (!strcmp(groups[i]->team, d->team)) sg = groups[i];
         if (!sg) return;
 
-        float textscale = 0.5f, textpad = 0.5f;
-        settextscale(textscale);
+        pushfont();
+        settextscale(0.6);
 
         int numplayers = min(sg->players.length(), 9);
-        int x = 1800*w/h - 500, y = 540, step = FONTH*textscale*(1.f+textpad);
-        int iy = y + step*numplayers - FONTH*textscale*textpad;
+        int x = 1800*w/h - 500, y = 540;
+        
+        string bufs[numplayers];
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        defaultshader->set();
-
+        int stepw, steph;
+        text_bounds("", stepw, steph);
+        int endh = steph * numplayers;
+        
+        loopi(numplayers)
+        {
+            fpsent *o = sg->players[i];
+            formatstring(bufs[i])("%s: %s%s", colorname(o), TEAM_COLOR_TEXT(o->team), game::getplayerclassinfo(o).name);
+            int boundw, boundh;
+            text_bounds(bufs[i], boundw, boundh);
+            stepw = max(stepw, boundh);
+        }
+        
         static Texture *teamhudbg = NULL;
         if (!teamhudbg) teamhudbg = textureload("data/hud/teamhudbg.png", 0, true, false);
         glBindTexture(GL_TEXTURE_2D, teamhudbg->id);
@@ -1724,8 +1749,8 @@ namespace game
 
         glTexCoord2f(0.f, 0.f); glVertex2f(x-10,  y-10);
         glTexCoord2f(1.f, 0.f); glVertex2f(x+460, y-10);
-        glTexCoord2f(0.f, 1.f); glVertex2f(x-10,  iy);
-        glTexCoord2f(1.f, 1.f); glVertex2f(x+460, iy);
+        glTexCoord2f(0.f, 1.f); glVertex2f(x-10,  y+endh);
+        glTexCoord2f(1.f, 1.f); glVertex2f(x+460, y+endh);
 
         glEnd();
 
@@ -1733,11 +1758,11 @@ namespace game
         {
             fpsent *o = sg->players[i];
             draw_textx("%d", x, y, 255, 255, 255, 244, TEXT_LEFT_JUSTIFY, -1, -1, o->frags);
-            draw_textx("%s: %s%s", x+450, y, 255, 255, 255, 244, TEXT_RIGHT_JUSTIFY, -1, -1, colorname(o), !strcmp(o->team, TEAM_0) ? "\fb" : "\fr", game::getplayerclassinfo(o).name);
-            y += step;
+            draw_text(bufs[i], x+stepw, y, 255, 255, 255, 244, -1, -1);
+            y += steph;
         }
 
-        settextscale(1.f);
+        popfont();
     }
 
     int lastguts=0, lastgutschangemillis=0, lastgutschange=0;
@@ -2007,15 +2032,20 @@ namespace game
             pushfont();
             setfont(teamwon ? "default" : "digit_white");
             settextscale((teamwon ? 0.7 : scorescale)*textscale);
-            defformatstring(teamonescore)("%d", int(winning->score));
-            draw_textx(teamwon ? "WIN" : teamonescore, lscorex, scorey, colorteam[tone][0]*255.f, colorteam[tone][1]*255.f, colorteam[tone][2]*255.f, 255.f*blend, TEXT_RIGHT_UP);
+            if(teamwon)
+            {
+                draw_textx("WIN", lscorex, scorey, colorteam[tone][0]*255.f, colorteam[tone][1]*255.f, colorteam[tone][2]*255.f, 255.f*blend, TEXT_RIGHT_UP);
+            }
+            else
+            {
+                draw_textx("%d", lscorex, scorey, colorteam[tone][0]*255.f, colorteam[tone][1]*255.f, colorteam[tone][2]*255.f, 255.f*blend, TEXT_RIGHT_UP, -1, -1, winning->score);
+            }
             settextscale(1.f);
             popfont();
             pushfont();
             setfont("digit_white");
             settextscale(scorescale*textscale);
-            defformatstring(teamtwoscore)("%d", int(runnerup->score));
-            draw_textx(teamtwoscore, rscorex, scorey, colorteam[ttwo][0]*255.f, colorteam[ttwo][1]*255.f, colorteam[ttwo][2]*255.f, 255.f*blend, TEXT_LEFT_UP);
+            draw_textx("%d", rscorex, scorey, colorteam[ttwo][0]*255.f, colorteam[ttwo][1]*255.f, colorteam[ttwo][2]*255.f, 255.f*blend, TEXT_LEFT_UP, -1, -1, runnerup->score);
             settextscale(1.f);
             popfont();
 
@@ -2079,8 +2109,7 @@ namespace game
             pushfont();
             setfont("digit_white");
             settextscale(textscale*0.9f);
-            defformatstring(timeleft)("%d:%02d", mins, secs);
-            draw_textx(timeleft, screenhalf, bary+barh/2.f, 255, 255, 255, 255.f*centerscale*blend, TEXT_CENTERED);
+            draw_textx("%d:%02d", screenhalf, bary+barh/2.f, 255, 255, 255, 255.f*centerscale*blend, TEXT_CENTERED, -1, -1, mins, secs);
             settextscale(1.f);
             popfont();
 
@@ -2194,7 +2223,7 @@ namespace game
             if(textscale) settextscale(textscale);
             int tx = int(cx*(1.f/skew)), ty = int((cy-FONTH/2*skew)*(1.f/skew)), ti = int(255.f*fade);
             defvformatstring(str, text, text);
-            draw_textx(str, tx, ty+FONTH/8.f, 255, 255, 255, ti, TEXT_CENTERED);
+            draw_textx("%s", tx, ty+FONTH/8.f, 255, 255, 255, ti, TEXT_CENTERED, -1, -1, str);
             if(textscale) settextscale(1);
             glPopMatrix();
         }
@@ -2230,7 +2259,7 @@ namespace game
                 drawprogress(cx, cy, 0, 1, cs, false, false, false, colour, blend, 1.f, 0.7f, "\frEND"); // intermission
             }
         }
-        else if(paused) drawprogress(cx, cy, 0, 1, cs, false, paused, true, colour, blend*0.75f, 1.f, 0.5f, "PAUSED"); // paused
+        else if(ispaused()) drawprogress(cx, cy, 0, 1, cs, false, true, true, colour, blend*0.75f, 1.f, 0.5f, "PAUSED"); // paused
     }
 
     void gameplayhud(int w, int h)
@@ -2383,7 +2412,6 @@ namespace game
     void writegamedata(vector<char> &extras) {}
     void readgamedata(vector<char> &extras) {}
 
-    const char *gameident() { return "fps"; }
     const char *savedconfig() { return "config/config.cfg"; }
     const char *restoreconfig() { return "config/restore.cfg"; }
     const char *defaultconfig() { return "data/defaults.cfg"; }

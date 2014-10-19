@@ -16,6 +16,7 @@ namespace game
     static const int forceplayermodels = 0;
     static const int allplayermodels = 0;
 #endif
+    VARP(hidedead, 0, 0, 1);
 
     vector<fpsent *> ragdolls;
 
@@ -106,8 +107,8 @@ namespace game
         ASSERT(d->gunselect >= 0 && d->gunselect < NUMWEAPS);
         int lastaction = d->lastaction,
             hold = mdl.vwep || d->gunselect==WEAP_PISTOL ? 0
-                                                         : clamp<int>(ANIM_HOLD1+d->gunselect, ANIM_HOLD1, ANIM_HOLD7)|ANIM_LOOP,
-            attack = clamp<int>(ANIM_ATTACK1+d->gunselect, ANIM_ATTACK1, ANIM_ATTACK7),
+                                                         : clamp<int, int>(ANIM_HOLD1+d->gunselect, ANIM_HOLD1, ANIM_HOLD7)|ANIM_LOOP,
+            attack = clamp<int, int>(ANIM_ATTACK1+d->gunselect, ANIM_ATTACK1, ANIM_ATTACK7),
             delay = mdl.vwep ? 300 : weapons[d->gunselect].attackdelay+50;
 
         //Zombies use attack indexes based on the zombie class
@@ -118,8 +119,8 @@ namespace game
             {
                 if(info.weap[i] == d->gunselect)
                 {
-                    hold = clamp<int>(ANIM_HOLD1+d->gunselect, ANIM_HOLD1, ANIM_HOLD7)|ANIM_LOOP;
-                    attack = clamp<int>(ANIM_ATTACK1+d->gunselect, ANIM_ATTACK1, ANIM_ATTACK7);
+                    hold = clamp<int, int>(ANIM_HOLD1+d->gunselect, ANIM_HOLD1, ANIM_HOLD7)|ANIM_LOOP;
+                    attack = clamp<int, int>(ANIM_ATTACK1+d->gunselect, ANIM_ATTACK1, ANIM_ATTACK7);
                     break;
                 }
             }
@@ -130,8 +131,7 @@ namespace game
             lastaction = 0;
             hold = attack = ANIM_LOSE|ANIM_LOOP;
             delay = 0;
-            if(m_teammode) loopv(bestteams) { if(!strcmp(bestteams[i], d->team)) { hold = attack = ANIM_WIN|ANIM_LOOP; break; } }
-            else if(bestplayers.find(d)>=0) hold = attack = ANIM_WIN|ANIM_LOOP;
+            if(m_teammode ? bestteams.htfind(d->team)>=0 : bestplayers.find(d)>=0) hold = attack = ANIM_WIN|ANIM_LOOP;
         }
         else if(d->state==CS_ALIVE && d->lasttaunt && lastmillis-d->lasttaunt<1000 && lastmillis-d->lastaction>delay)
         {
@@ -140,7 +140,7 @@ namespace game
             delay = 1000;
         }
         modelattach a[5];
-        static const char *vweps[] = {"playermodels/vwep/fist", "playermodels/vwep/shotg", "playermodels/vwep/chaing", "playermodels/vwep/rocket", "playermodels/vwep/rifle", "playermodels/vwep/flameg", "playermodels/vwep/cbow", "playermodels/vwep/gl", "playermodels/vwep/healer", "playermodels/vwep/mortar", "playermodels/vwep/pistol", "playermodels/vwep/hand"};
+        static const char * const vweps[] = {"playermodels/vwep/fist", "playermodels/vwep/shotg", "playermodels/vwep/chaing", "playermodels/vwep/rocket", "playermodels/vwep/rifle", "playermodels/vwep/flameg", "playermodels/vwep/cbow", "playermodels/vwep/gl", "playermodels/vwep/healer", "playermodels/vwep/mortar", "playermodels/vwep/pistol", "playermodels/vwep/hand"};
         int ai = 0;
         if((!mdl.vwep || d->gunselect!=WEAP_FIST) && d->gunselect<=WEAP_PISTOL && !d->isInfected())
         {
@@ -220,7 +220,7 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
-            if(d == player1 || d->state==CS_SPECTATOR || d->state==CS_SPAWNING || d->lifesequence < 0 || d == exclude) continue;
+            if(d == player1 || d->state==CS_SPECTATOR || d->state==CS_SPAWNING || d->lifesequence < 0 || d == exclude || (d->state==CS_DEAD && hidedead)) continue;
             int team = 0;
             if((teamskins || m_teammode) && !(m_infection && d->isInfected())) team = !strcmp(d->team, TEAM_0) ? 1 : 2; // player1->team experimental
             renderplayer(d, getplayermodelinfo(d), team, 1, mainpass);
@@ -304,7 +304,7 @@ namespace game
                 fade -= clamp(float(lastmillis - (d->lastupdate + max(ragdollmillis - ragdollfade, 0)))/min(ragdollmillis, ragdollfade), 0.0f, 1.0f);
             renderplayer(d, getplayermodelinfo(d), team, fade, mainpass);
         }
-        if(isthirdperson() && !followingplayer()) renderplayer(player1, getplayermodelinfo(player1), (teamskins || m_teammode) && !player1->isInfected() ? 1 : 0, player1->state==CS_DEAD? 1: 0.3, mainpass);
+        if(isthirdperson() && !followingplayer() && (player1->state!=CS_DEAD || !hidedead)) renderplayer(player1, getplayermodelinfo(player1), (teamskins || m_teammode) && !player1->isInfected() ? 1 : 0, player1->state==CS_DEAD? 1: 0.3, mainpass);
         rendermonsters();
         rendermovables();
         entities::renderentities();
@@ -539,24 +539,25 @@ namespace game
         drawhudgun();
     }
 
-    void renderplayerpreview()
+    void renderplayerpreview(int model, int team, int weap)
     {
         static fpsent *previewent = NULL;
         if(!previewent)
         {
             previewent = new fpsent;
-            previewent->o = vec(0, 0.75f*(previewent->eyeheight + previewent->aboveeye), previewent->eyeheight - (previewent->eyeheight + previewent->aboveeye)/2);
-            previewent->spawnstate(M_LOBBY);
+            previewent->o = vec(0, 0.9f*(previewent->eyeheight + previewent->aboveeye), previewent->eyeheight - (previewent->eyeheight + previewent->aboveeye)/2);
             previewent->light.color = vec(1, 1, 1);
             previewent->light.dir = vec(0, -1, 2).normalize();
-            loopi(WEAP_PISTOL) previewent->ammo[i] = GUN_AMMO_MAX(i);
+            loopi(NUMWEAPS) previewent->ammo[i] = 1;
         }
         previewent->playermodel = playermodel;
         previewent->playerclass = playerclass;
-        previewent->gunselect = WEAP_PISTOL/*int(totalmillis%(5000*WEAP_PISTOL)/5000.0f)*/; // need better models first
+        previewent->gunselect = clamp(weap, int(WEAP_FIST), int(WEAP_USABLE_LAST));
         previewent->yaw = sinf(RAD*((totalmillis%(360*50))/50))*22.5f+157.5f;
         previewent->light.millis = -1;
-        renderplayer(previewent, getplayermodelinfo(previewent), 0, 1, false);
+        const playermodelinfo *mdlinfo = getplayermodelinfo(model);
+        if(!mdlinfo) return;
+        renderplayer(previewent, *mdlinfo, team >= 0 && team <= 2 ? team : 0, 1, false);
     }
 
     vec hudgunorigin(int gun, const vec &from, const vec &to, fpsent *d)
@@ -608,8 +609,14 @@ namespace game
             formatstring(fname)("playermodels/vwep/%s", file);
             preloadmodel(fname);
         }
+    }
 
-        preloadmodel("packages/models/playermodels/zombies/hudguns");
+    void preloadsounds()
+    {
+        for(int i = S_JUMP; i <= S_SPLASH2; i++) preloadsound(i);
+        for(int i = S_JUMPPAD; i <= S_PISTOL; i++) preloadsound(i);
+        for(int i = S_V_BOOST; i <= S_V_QUAD10; i++) preloadsound(i);
+        for(int i = S_BURN; i <= S_HIT; i++) preloadsound(i);
     }
 
     void preload()
@@ -617,6 +624,7 @@ namespace game
         if(hudgun) preloadweapons();
         preloadprojmodels();
         preloadplayermodel();
+        preloadsounds();
         entities::preloadentities();
         if(m_sp) preloadmonsters();
     }

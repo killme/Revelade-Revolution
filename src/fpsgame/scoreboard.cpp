@@ -14,22 +14,22 @@ namespace game
     VARP(highlightscore, 0, 1, 1);
     VARP(showconnecting, 0, 0, 1);
 
-    static int playersort(const fpsent **a, const fpsent **b)
+    static inline bool playersort(fpsent *&a, fpsent *&b)
     {
-        if((*a)->state==CS_SPECTATOR)
+        if(a->state==CS_SPECTATOR)
         {
-            if((*b)->state==CS_SPECTATOR) return strcmp((*a)->name, (*b)->name);
+            if(a->state==CS_SPECTATOR) return strcmp(a->name, a->name);
             else return 1;
         }
-        else if((*b)->state==CS_SPECTATOR) return -1;
+        else if(a->state==CS_SPECTATOR) return -1;
         if(m_ctf)
         {
-            if((*a)->flags > (*b)->flags) return -1;
-            if((*a)->flags < (*b)->flags) return 1;
+            if(a->flags > a->flags) return -1;
+            if(a->flags < a->flags) return 1;
         }
-        if((*a)->frags > (*b)->frags) return -1;
-        if((*a)->frags < (*b)->frags) return 1;
-        return strcmp((*a)->name, (*b)->name);
+        if(a->frags > a->frags) return -1;
+        if(a->frags < a->frags) return 1;
+        return strcmp(a->name, a->name);
     }
 
     void getbestplayers(vector<fpsent *> &best)
@@ -69,18 +69,18 @@ namespace game
     /*static*/ vector<scoregroup *> groups;
     static vector<fpsent *> spectators;
 
-    static int scoregroupcmp(const scoregroup **x, const scoregroup **y)
+    static inline bool scoregroupcmp(scoregroup *&x, scoregroup *&y)
     {
-        if(!(*x)->team)
+        if(!x->team)
         {
-            if((*y)->team) return 1;
+            if(y->team) return 1;
         }
-        else if(!(*y)->team) return -1;
-        if((*x)->score > (*y)->score) return -1;
-        if((*x)->score < (*y)->score) return 1;
-        if((*x)->players.length() > (*y)->players.length()) return -1;
-        if((*x)->players.length() < (*y)->players.length()) return 1;
-        return (*x)->team && (*y)->team ? strcmp((*x)->team, (*y)->team) : 0;
+        else if(!y->team) return -1;
+        if(x->score > y->score) return -1;
+        if(x->score < y->score) return 1;
+        if(x->players.length() > y->players.length()) return -1;
+        if(x->players.length() < y->players.length()) return 1;
+        return x->team && y->team ? strcmp(x->team, y->team) : 0;
     }
 
     int groupplayers()
@@ -120,19 +120,21 @@ namespace game
 
     void renderscoreboard(g3d_gui &g, bool firstpass)
     {
-
         const ENetAddress *address = connectedpeer();
         if(showservinfo && address)
         {
             if(servinfo[0]) g.titlef("%.25s", 0xFFFF80, NULL, servinfo);
             else if(connectname && connectname[0]) g.titlef("%s:%d", 0xFFFF80, NULL, connectname, address->port);
         }
-
-        g.pushlist(0);
+     
+        g.pushlist();
+        g.spring();
         g.text(server::modename(gamemode), 0xFFFF80);
         g.separator();
         const char *mname = getclientmap();
         g.text(mname[0] ? mname : "[new map]", 0xFFFF80);
+        extern int gamespeed;
+        if(gamespeed != 100) { g.separator(); g.textf("%d.%02dx", 0xFFFF80, NULL, gamespeed/100, gamespeed%100); }
         if(m_timed && mname[0] && (maplimit >= 0 || intermission))
         {
             g.separator();
@@ -147,7 +149,8 @@ namespace game
                 g.poplist();
             }
         }
-        if(paused || ispaused()) { g.separator(); g.text("paused", 0xFFFF80); }
+        if(ispaused()) { g.separator(); g.text("paused", 0xFFFF80); }
+        g.spring();
         g.poplist();
 
         extern int spawnwait;
@@ -195,7 +198,7 @@ namespace game
                     if (o==player1)
                     {
                         g.pushlist();
-            g.background(0x808080, numgroups>1 ? 3 : 5);
+                        g.background(0x808080, numgroups>1 ? 3 : 5);
                     }
                 }
                 const playermodelinfo &mdl = getplayermodelinfo(o);
@@ -419,3 +422,4 @@ namespace game
     }
     ICOMMAND(showscores, "D", (int *down), showscores(*down!=0));
 }
+

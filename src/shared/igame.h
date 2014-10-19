@@ -7,7 +7,7 @@ namespace entities
     extern const char *entname(int i);
     extern int extraentinfosize();
     extern void writeent(entity &e, char *buf);
-    extern void readent(entity &e, char *buf);
+    extern void readent(entity &e, char *buf, int ver);
     extern float dropheight(entity &e);
     extern void fixentity(extentity &e);
     extern void entradius(extentity &e, bool color);
@@ -39,6 +39,8 @@ namespace game
     extern void changemap(const char *name);
     extern void forceedit(const char *name);
     extern bool ispaused();
+    extern int scaletime(int t);
+    extern bool allowmouselook();
 
     extern const char *gameident();
     extern const char *savedconfig();
@@ -80,7 +82,7 @@ namespace game
     extern int numdynents();
     extern void rendergame(bool mainpass);
     extern void renderavatar();
-    extern void renderplayerpreview();
+    extern void renderplayerpreview(int model, int team, int weap);
     extern void writegamedata(vector<char> &extras);
     extern void readgamedata(vector<char> &extras);
     extern int clipconsole(int w, int h);
@@ -95,7 +97,7 @@ namespace game
     extern void showdeathscores();
     extern void adddynlights();
     extern void particletrack(physent *owner, vec &o, vec &d);
-    extern void dynlighttrack(physent *owner, vec &o);
+    extern void dynlighttrack(physent *owner, vec &o, vec &hud);
     extern bool needminimap(bool cond = true);
     extern bool isscopedweap(int weap = -1);
     extern const char *weapsquinttex();
@@ -132,5 +134,6 @@ namespace server
     extern void processmasterinput(const char *cmd, int cmdlen, const char *args);
     extern bool ispaused();
     extern int protocolversion();
+    extern int scaletime(int t);
 }
 

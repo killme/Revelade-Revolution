@@ -41,6 +41,8 @@ struct captureclientmode : clientmode
 
         baseinfo() { reset(); }
 
+        bool valid() const { return ammotype>=WEAP_SLUGSHOT && ammotype<=WEAP_PISTOL; }
+
         void noenemy()
         {
             enemy[0] = '\0';
@@ -250,7 +252,6 @@ struct captureclientmode : clientmode
 
     captureclientmode() : captures(0)
     {
-        CCOMMAND(repammo, "", (captureclientmode *self), self->replenishammo());
     }
 
     void respawned(fpsent *d)
@@ -751,6 +752,25 @@ struct captureclientmode : clientmode
         return aidefend(d, b);
     }
 };
+
+extern captureclientmode capturemode;
+ICOMMAND(repammo, "", (), capturemode.replenishammo());
+ICOMMAND(insidebases, "", (),
+{
+    vector<char> buf;
+    if(m_capture && player1->state == CS_ALIVE) loopv(capturemode.bases)
+    {
+        captureclientmode::baseinfo &b = capturemode.bases[i];
+        if(b.valid() && capturemode.insidebase(b, player1->feetpos()))
+        {
+            if(buf.length()) buf.add(' ');
+            defformatstring(basenum)("%d", i+1);
+            buf.put(basenum, strlen(basenum));
+        }
+    }
+    buf.add('\0');
+    result(buf.getbuf());
+}); 
 
 #else
     bool notgotbases;

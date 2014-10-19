@@ -78,7 +78,8 @@ local Database = Object:extend()
 function Database:initialize(name)
     self.handle = geoip.GeoIP_open(name, geoip.GEOIP_STANDARD)
 
-    if not self.handle then
+    if self.handle == nil then
+        self.handle = nil
         error("Could not open geoip database: "..tostring(name))
     end
 end

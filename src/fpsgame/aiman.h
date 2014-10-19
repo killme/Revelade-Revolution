@@ -7,25 +7,20 @@ namespace aiman
 
     void calcteams(vector<teamscore> &teams)
     {
-        const char *defaults[2] = { TEAM_0, TEAM_1 };
+        static const char * const defaults[2] = { TEAM_0, TEAM_1 };
         loopv(clients)
         {
             clientinfo *ci = clients[i];
             if(ci->state.state==CS_SPECTATOR || !ci->team[0]) continue;
             teamscore *t = NULL;
-            loopvj(teams) if(!strcmp(teams[j].team, ci->team)) { t = &teams[j]; break; }
+            loopvj(teams) if(isteam(teams[j].team, ci->team)) { t = &teams[j]; break; }
             if(t) t->score++;
             else teams.add(teamscore(ci->team, 1));
         }
         teams.sort(teamscore::compare);
         if(teams.length() < int(sizeof(defaults)/sizeof(defaults[0])))
         {
-            loopi(sizeof(defaults)/sizeof(defaults[0]))
-            {
-                loopvj(teams) if(!strcmp(teams[j].team, defaults[i])) goto nextteam;
-                teams.add(teamscore(defaults[i], 0));
-            nextteam:;
-            }
+            loopi(sizeof(defaults)/sizeof(defaults[0])) if(teams.htfind(defaults[i]) < 0) teams.add(teamscore(defaults[i], 0));
         }
     }
 
@@ -70,7 +65,7 @@ namespace aiman
 
     static inline bool validaiclient(clientinfo *ci)
     {
-        return ci->clientnum >= 0 && ci->state.aitype == AI_NONE && (ci->state.state!=CS_SPECTATOR || ci->local || ci->privilege >= PRIV_MASTER);
+        return ci->clientnum >= 0 && ci->state.aitype == AI_NONE && (ci->state.state!=CS_SPECTATOR || ci->local || (ci->privilege >= PRIV_MASTER && !ci->warned));
     }
 
     clientinfo *findaiclient(clientinfo *exclude = NULL)
@@ -150,11 +145,9 @@ namespace aiman
 
                 clientinfo *owner = findaiclient();
                 ci->ownernum = owner ? owner->clientnum : -1;
+                if(owner) owner->bots.add(ci);
                 ci->aireinit = 2;
                 dorefresh = true;
-#ifdef XRRS
-                SbPy::triggerEventInt("game_bot_added", ci->clientnum);
-#endif
                 return true;
             }
         }
@@ -179,9 +172,6 @@ namespace aiman
         ci->connectionState = CONNECTION_STATE_CONNECTED;
         dorefresh = true;
         if(smode) smode->entergame(ci);
-#ifdef XRRS
-        SbPy::triggerEventInt("game_bot_added", ci->clientnum);
-#endif
         return true;
     }
 
@@ -232,7 +222,7 @@ namespace aiman
         clientinfo *prevowner = (clientinfo *)getclientinfo(ci->ownernum);
         if(prevowner) prevowner->bots.removeobj(ci);
         if(!owner) { ci->aireinit = 0; ci->ownernum = -1; }
-        else { ci->aireinit = 2; ci->ownernum = owner->clientnum; owner->bots.add(ci); }
+		else if(ci->clientnum != owner->clientnum) { ci->aireinit = 2; ci->ownernum = owner->clientnum; owner->bots.add(ci); }
         dorefresh = true;
     }
 

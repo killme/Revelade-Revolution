@@ -2,46 +2,33 @@
 
 #include "engine.h"
 
+#define MAXCONLINES 1000
 struct cline { char *line; int type, outtime; };
-vector<cline> conlines;
+reversequeue<cline, MAXCONLINES> conlines;
 
 int commandmillis = -1;
 string commandbuf;
 char *commandaction = NULL, *commandprompt = NULL;
-int commandpos = -1;
+enum { CF_COMPLETE = 1<<0, CF_EXECUTE = 1<<1 };
+int commandflags = 0, commandpos = -1;
 
-VARFP(maxcon, 10, 200, 1000, { while(conlines.length() > maxcon) delete[] conlines.pop().line; });
+VARFP(maxcon, 10, 200, MAXCONLINES, { while(conlines.length() > maxcon) delete[] conlines.pop().line; });
 
 #define CONSTRLEN 512
 
 void conline(int type, const char *sf)        // add a line to the console buffer
 {
-    cline cl;
-    cl.line = conlines.length()>maxcon ? conlines.pop().line : newstring("", CONSTRLEN-1);   // constrain the buffer size
+    char *buf = conlines.length() >= maxcon ? conlines.remove().line : newstring("", CONSTRLEN-1);
+    cline &cl = conlines.add();
+    cl.line = buf;
     cl.type = type;
-    cl.outtime = totalmillis;                       // for how long to keep line on screen
-    conlines.insert(0, cl);
+    cl.outtime = totalmillis;                // for how long to keep line on screen
     copystring(cl.line, sf, CONSTRLEN);
-#ifdef IRC
-    ircoutf(5, "%s", sf);
-#endif
 }
 
 namespace console
 {
-    // Private copied from game.h
-    enum
-    {
-        CON_CHAT       = 1<<8,
-        CON_TEAMCHAT   = 1<<9,
-        CON_GAMEINFO   = 1<<10,
-        CON_FRAG_SELF  = 1<<11,
-        CON_FRAG_OTHER = 1<<12,
-        CON_TEAMKILL   = 1<<13
-    };
-    // End private copied from game.h
-
-    VARP(verbosity, 0, CON_ERROR | CON_WARN | CON_INIT | CON_CHAT | CON_TEAMCHAT, INT_MAX);
+    VARP(verbosity, ~0, ~0, ~0*-1);
 }
 
 void conoutfv(int type, const char *fmt, va_list args)
@@ -99,7 +86,7 @@ int rendercommand(int x, int y, int w)
     int width, height;
     text_bounds(s, width, height, w);
     y -= height;
-    draw_text(s, x, y, 0xFF, 0xFF, 0xFF, 0xFF, 0, (commandpos>=0) ? (commandpos+1+(commandprompt?strlen(commandprompt):1)) : strlen(s), w);
+    draw_text(s, x, y, 0xFF, 0xFF, 0xFF, 0xFF, (commandpos>=0) ? (commandpos+1+(commandprompt?strlen(commandprompt):1)) : strlen(s), w);
     return height;
 }
 
@@ -170,8 +157,8 @@ int drawconlines(int conskip, int confade, int conwidth, int conheight, int cono
         char *line = conlines[idx].line;
         int width, height;
         text_bounds(line, width, height, conwidth);
-        if(dir <= 0) y -= height;
-        draw_text(line, conoff, y, 0xFF, 0xFF, 0xFF, 0xFF, 0, -1, conwidth);
+        if(dir <= 0) y -= height; 
+        draw_text(line, conoff, y, 0xFF, 0xFF, 0xFF, 0xFF, -1, conwidth);
         if(dir > 0) y += height;
     }
     return y+conoff;
@@ -218,7 +205,7 @@ hashtable<int, keym> keyms(512);
 
 void keymap(int *code, char *key)
 {
-    if(overrideidents) { conoutf(CON_ERROR, "cannot override keymap %s", code); return; }
+    if(identflags&IDF_OVERRIDDEN) { conoutf(CON_ERROR, "cannot override keymap %d", *code); return; }
     keym &km = keyms[*code];
     km.code = *code;
     DELETEA(km.name);
@@ -270,15 +257,15 @@ void getbind(char *key, int type)
 
 void bindkey(char *key, char *action, int state, const char *cmd)
 {
-    if(overrideidents) { conoutf(CON_ERROR, "cannot override %s \"%s\"", cmd, key); return; }
+    if(identflags&IDF_OVERRIDDEN) { conoutf(CON_ERROR, "cannot override %s \"%s\"", cmd, key); return; }
     keym *km = findbind(key);
     if(!km) { conoutf(CON_ERROR, "unknown key \"%s\"", key); return; }
     char *&binding = km->actions[state];
     if(!keypressed || keyaction!=binding) delete[] binding;
     // trim white-space to make searchbinds more reliable
-    while(isspace(*action)) action++;
+    while(iscubespace(*action)) action++;
     int len = strlen(action);
-    while(len>0 && isspace(action[len-1])) len--;
+    while(len>0 && iscubespace(action[len-1])) len--;
     binding = newstring(action, len);
 }
 
@@ -292,7 +279,7 @@ ICOMMAND(searchbinds,     "ss", (char *action, char *cap), searchbinds(action, k
 ICOMMAND(searchspecbinds, "ss", (char *action, char *cap), searchbinds(action, keym::ACTION_SPECTATOR, cap));
 ICOMMAND(searcheditbinds, "ss", (char *action, char *cap), searchbinds(action, keym::ACTION_EDITING, cap));
 
-void inputcommand(char *init, char *action = NULL, char *prompt = NULL) // turns input to the command line on or off
+void inputcommand(char *init, char *action = NULL, char *prompt = NULL, char *flags = NULL) // turns input to the command line on or off
 {
     commandmillis = init ? totalmillis : -1;
     SDL_EnableUNICODE(commandmillis >= 0 ? 1 : 0);
@@ -303,10 +290,18 @@ void inputcommand(char *init, char *action = NULL, char *prompt = NULL) // turns
     commandpos = -1;
     if(action && action[0]) commandaction = newstring(action);
     if(prompt && prompt[0]) commandprompt = newstring(prompt);
+    commandflags = 0;
+    if(flags) while(*flags) switch(*flags++)
+    {
+        case 'c': commandflags |= CF_COMPLETE; break;
+        case 'x': commandflags |= CF_EXECUTE; break;
+        case 's': commandflags |= CF_COMPLETE|CF_EXECUTE; break;
+    }
+    else if(init) commandflags |= CF_COMPLETE|CF_EXECUTE;
 }
 
 ICOMMAND(saycommand, "C", (char *init), inputcommand(init));
-COMMAND(inputcommand, "sss");
+COMMAND(inputcommand, "ssss");
 
 #if !defined(WIN32) && !defined(__APPLE__)
 #include <X11/Xlib.h>
@@ -315,51 +310,76 @@ COMMAND(inputcommand, "sss");
 
 void pasteconsole()
 {
-    #ifdef WIN32
-    if(!IsClipboardFormatAvailable(CF_TEXT)) return;
+#ifdef WIN32
+    UINT fmt = CF_UNICODETEXT;
+    if(!IsClipboardFormatAvailable(fmt)) 
+    {
+        fmt = CF_TEXT;
+        if(!IsClipboardFormatAvailable(fmt)) return; 
+    }
     if(!OpenClipboard(NULL)) return;
-    char *cb = (char *)GlobalLock(GetClipboardData(CF_TEXT));
-    concatstring(commandbuf, cb);
+    HANDLE h = GetClipboardData(fmt);
+    size_t commandlen = strlen(commandbuf), cblen = GlobalSize(h), decoded = 0;
+    ushort *cb = (ushort *)GlobalLock(h);
+    switch(fmt)
+    {
+        case CF_UNICODETEXT:
+            decoded = min(sizeof(commandbuf)-1-commandlen, cblen/2);
+            loopi(decoded) commandbuf[commandlen++] = uni2cube(cb[i]);
+            break;
+        case CF_TEXT:
+            decoded = min(sizeof(commandbuf)-1-commandlen, cblen);
+            memcpy(&commandbuf[commandlen], cb, decoded);
+            break;
+    }    
+    commandbuf[commandlen + decoded] = '\0';
     GlobalUnlock(cb);
     CloseClipboard();
 #elif defined(__APPLE__)
-	extern char *mac_pasteconsole(int *cblen);
-    int cblen = 0;
+	extern char *mac_pasteconsole(size_t *cblen);
+    size_t cblen = 0;
 	uchar *cb = (uchar *)mac_pasteconsole(&cblen);
     if(!cb) return;
-    size_t commandlen = strlen(commandbuf);
-    int decoded = decodeutf8((uchar *)&commandbuf[commandlen], int(sizeof(commandbuf)-1-commandlen), cb, cblen);
+    size_t commandlen = strlen(commandbuf),
+           decoded = decodeutf8((uchar *)&commandbuf[commandlen], sizeof(commandbuf)-1-commandlen, cb, cblen);
     commandbuf[commandlen + decoded] = '\0';
     free(cb);
-	#else
+#else
     SDL_SysWMinfo wminfo;
-    SDL_VERSION(&wminfo.version);
+    SDL_VERSION(&wminfo.version); 
     wminfo.subsystem = SDL_SYSWM_X11;
     if(!SDL_GetWMInfo(&wminfo)) return;
     int cbsize;
-    char *cb = XFetchBytes(wminfo.info.x11.display, &cbsize);
-    if(!cb || !cbsize) return;
+    uchar *cb = (uchar *)XFetchBytes(wminfo.info.x11.display, &cbsize);
+    if(!cb || cbsize <= 0) return;
     size_t commandlen = strlen(commandbuf);
-    for(char *cbline = cb, *cbend; commandlen + 1 < sizeof(commandbuf) && cbline < &cb[cbsize]; cbline = cbend + 1)
+    for(uchar *cbline = cb, *cbend; commandlen + 1 < sizeof(commandbuf) && cbline < &cb[cbsize]; cbline = cbend + 1)
     {
-        cbend = (char *)memchr(cbline, '\0', &cb[cbsize] - cbline);
+        cbend = (uchar *)memchr(cbline, '\0', &cb[cbsize] - cbline);
         if(!cbend) cbend = &cb[cbsize];
-        if(size_t(commandlen + cbend - cbline + 1) > sizeof(commandbuf)) cbend = cbline + sizeof(commandbuf) - commandlen - 1;
-        memcpy(&commandbuf[commandlen], cbline, cbend - cbline);
-        commandlen += cbend - cbline;
+        size_t cblen = cbend-cbline, commandmax = sizeof(commandbuf)-1-commandlen; 
+        loopi(cblen) if((cbline[i]&0xC0) == 0x80) 
+        { 
+            commandlen += decodeutf8((uchar *)&commandbuf[commandlen], commandmax, cbline, cblen);
+            goto nextline;
+        }
+        cblen = min(cblen, commandmax);
+        loopi(cblen) commandbuf[commandlen++] = uni2cube(*cbline++);
+    nextline:
         commandbuf[commandlen] = '\n';
         if(commandlen + 1 < sizeof(commandbuf) && cbend < &cb[cbsize]) ++commandlen;
         commandbuf[commandlen] = '\0';
     }
     XFree(cb);
-    #endif
+#endif
 }
 
 struct hline
 {
     char *buf, *action, *prompt;
+    int flags;
 
-    hline() : buf(NULL), action(NULL), prompt(NULL) {}
+    hline() : buf(NULL), action(NULL), prompt(NULL), flags(0) {}
     ~hline()
     {
         DELETEA(buf);
@@ -375,13 +395,15 @@ struct hline
         DELETEA(commandprompt);
         if(action) commandaction = newstring(action);
         if(prompt) commandprompt = newstring(prompt);
+        commandflags = flags;
     }
 
     bool shouldsave()
     {
         return strcmp(commandbuf, buf) ||
                (commandaction ? !action || strcmp(commandaction, action) : action!=NULL) ||
-               (commandprompt ? !prompt || strcmp(commandprompt, prompt) : prompt!=NULL);
+               (commandprompt ? !prompt || strcmp(commandprompt, prompt) : prompt!=NULL) ||
+               commandflags != flags;
     }
 
     void save()
@@ -389,16 +411,17 @@ struct hline
         buf = newstring(commandbuf);
         if(commandaction) action = newstring(commandaction);
         if(commandprompt) prompt = newstring(commandprompt);
+        flags = commandflags;
     }
 
     void run()
     {
-        if(action)
+        if(flags&CF_EXECUTE && buf[0]=='/') execute(buf+1);
+        else if(action)
         {
             alias("commandbuf", buf);
             execute(action);
         }
-        else if(buf[0]=='/') execute(buf+1);
         else game::toserver(buf);
     }
 };
@@ -427,18 +450,18 @@ struct releaseaction
 };
 vector<releaseaction> releaseactions;
 
-const char *addreleaseaction(const char *s)
+const char *addreleaseaction(char *s)
 {
-    if(!keypressed) return NULL;
+    if(!keypressed) { delete[] s; return NULL; }
     releaseaction &ra = releaseactions.add();
     ra.key = keypressed;
-    ra.action = newstring(s);
+    ra.action = s;
     return keypressed->name;
 }
 
-void onrelease(char *s)
+void onrelease(const char *s)
 {
-    addreleaseaction(s);
+    addreleaseaction(newstring(s));
 }
 
 COMMAND(onrelease, "s");
@@ -537,9 +560,9 @@ void consolekey(int code, bool isdown, int cooked)
                 break;
 
             case SDLK_TAB:
-                if(!commandaction)
+                if(commandflags&CF_COMPLETE)
                 {
-                    complete(commandbuf);
+                    complete(commandbuf, commandflags&CF_EXECUTE ? "/" : NULL);
                     if(commandpos>=0 && commandpos>=(int)strlen(commandbuf)) commandpos = -1;
                 }
                 break;
@@ -615,14 +638,14 @@ void clear_console()
     keyms.clear();
 }
 
-static int sortbinds(keym **x, keym **y)
+static inline bool sortbinds(keym *x, keym *y)
 {
-    return strcmp((*x)->name, (*y)->name);
+    return strcmp(x->name, y->name) < 0;
 }
 
 void writebinds(stream *f)
 {
-    static const char *cmds[3] = { "bind", "specbind", "editbind" };
+    static const char * const cmds[3] = { "bind", "specbind", "editbind" };
     vector<keym *> binds;
     enumerate(keyms, keym, km, binds.add(&km));
     binds.sort(sortbinds);
@@ -631,7 +654,11 @@ void writebinds(stream *f)
         loopv(binds)
         {
             keym &km = *binds[i];
-            if(*km.actions[j]) f->printf("%s \"%s\" [%s]\n", cmds[j], km.name, km.actions[j]);
+            if(*km.actions[j]) 
+            {
+                if(validateblock(km.actions[j])) f->printf("%s %s [%s]\n", cmds[j], escapestring(km.name), km.actions[j]);
+                else f->printf("%s %s %s\n", cmds[j], escapestring(km.name), escapestring(km.actions[j]));
+            }
         }
     }
 }
@@ -659,7 +686,7 @@ struct filesval
     filesval(int type, const char *dir, const char *ext) : type(type), dir(newstring(dir)), ext(ext && ext[0] ? newstring(ext) : NULL), millis(-1) {}
     ~filesval() { DELETEA(dir); DELETEA(ext); files.deletearrays(); }
 
-    static int comparefiles(char **x, char **y) { return strcmp(*x, *y); }
+    static bool comparefiles(const char *x, const char *y) { return strcmp(x, y) < 0; }
 
     void update()
     {
@@ -692,7 +719,7 @@ void resetcomplete() { completesize = 0; }
 
 void addcomplete(char *command, int type, char *dir, char *ext)
 {
-    if(overrideidents)
+    if(identflags&IDF_OVERRIDDEN)
     {
         conoutf(CON_ERROR, "cannot override complete %s", command);
         return;
@@ -741,26 +768,29 @@ void addlistcomplete(char *command, char *list)
 COMMANDN(complete, addfilecomplete, "sss");
 COMMANDN(listcomplete, addlistcomplete, "ss");
 
-void complete(char *s)
+void complete(char *s, const char *cmdprefix)
 {
-    if(*s!='/')
+    int cmdlen = 0;
+    if(cmdprefix)
     {
-        string t;
-        copystring(t, s);
-        copystring(s, "/");
-        concatstring(s, t);
+        cmdlen = strlen(cmdprefix);
+        if(strncmp(s, cmdprefix, cmdlen))
+        {
+            defformatstring(cmd)("%s%s", cmdprefix, s);
+            copystring(s, cmd);
+        }
     }
-    if(!s[1]) return;
-    if(!completesize) { completesize = (int)strlen(s)-1; lastcomplete[0] = '\0'; }
+    if(!s[cmdlen]) return;
+    if(!completesize) { completesize = (int)strlen(&s[cmdlen]); lastcomplete[0] = '\0'; }
 
     filesval *f = NULL;
     if(completesize)
     {
-        char *end = strchr(s, ' ');
+        char *end = strchr(&s[cmdlen], ' ');
         if(end)
         {
             string command;
-            copystring(command, s+1, min(size_t(end-s), sizeof(command)));
+            copystring(command, &s[cmdlen], min(size_t(end-&s[cmdlen]+1), sizeof(command)));
             filesval **hasfiles = completions.access(command);
             if(hasfiles) f = *hasfiles;
         }
@@ -768,39 +798,38 @@ void complete(char *s)
 
     const char *nextcomplete = NULL;
     string prefix;
-    copystring(prefix, "/");
     if(f) // complete using filenames
     {
-        int commandsize = strchr(s, ' ')+1-s;
+        int commandsize = strchr(&s[cmdlen], ' ')+1-s;
         copystring(prefix, s, min(size_t(commandsize+1), sizeof(prefix)));
         f->update();
         loopv(f->files)
         {
-            if(strncmp(f->files[i], s+commandsize, completesize+1-commandsize)==0 &&
+            if(strncmp(f->files[i], &s[commandsize], completesize+cmdlen-commandsize)==0 &&
                strcmp(f->files[i], lastcomplete) > 0 && (!nextcomplete || strcmp(f->files[i], nextcomplete) < 0))
                 nextcomplete = f->files[i];
         }
     }
     else // complete using command names
     {
-        enumerate(*idents, ident, id,
-            if(strncmp(id.name, s+1, completesize)==0 &&
+        if(cmdprefix) copystring(prefix, cmdprefix); else prefix[0] = '\0';
+        enumerate(idents, ident, id,
+            if(strncmp(id.name, &s[cmdlen], completesize)==0 &&
                strcmp(id.name, lastcomplete) > 0 && (!nextcomplete || strcmp(id.name, nextcomplete) < 0))
                 nextcomplete = id.name;
         );
     }
     if(nextcomplete)
     {
-        copystring(s, prefix);
-        concatstring(s, nextcomplete);
+        formatstring(s)("%s%s", prefix, nextcomplete);
         copystring(lastcomplete, nextcomplete);
     }
     else lastcomplete[0] = '\0';
 }
 
-static int sortcompletions(char **x, char **y)
+static inline bool sortcompletions(const char *x, const char *y)
 {
-    return strcmp(*x, *y);
+    return strcmp(x, y) < 0;
 }
 
 void writecompletions(stream *f)
@@ -812,8 +841,12 @@ void writecompletions(stream *f)
     {
         char *k = cmds[i];
         filesval *v = completions[k];
-        if(v->type==FILES_LIST) f->printf("listcomplete \"%s\" [%s]\n", k, v->dir);
-        else f->printf("complete \"%s\" \"%s\" \"%s\"\n", k, v->dir, v->ext ? v->ext : "*");
+        if(v->type==FILES_LIST) 
+        {
+            if(validateblock(v->dir)) f->printf("listcomplete %s [%s]\n", escapeid(k), v->dir);
+            else f->printf("listcomplete %s %s\n", escapeid(k), escapestring(v->dir));
+        }
+        else f->printf("complete %s %s %s\n", escapeid(k), escapestring(v->dir), escapestring(v->ext ? v->ext : "*"));
     }
 }
 

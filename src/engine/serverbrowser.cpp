@@ -489,18 +489,11 @@ namespace serverbrowser
     COMMANDN(updatefrommaster, update, "");
 }
 
-    extern void aliasa(const char *name, char *action);
-    extern void pushident(ident &id, char *val);
-    extern void popident(ident &id);
-
 namespace serverbrowser
 {
     #define find_key(server, keyV) loopv(server->info) if(strcmp(server->info[i].key, keyV) == 0)
-    int sortServers(ServerInfo **a_, ServerInfo **b_)
+    bool sortServers(ServerInfo *&a, ServerInfo *&b)
     {
-        ServerInfo *a = *a_;
-        ServerInfo *b = *b_;
-
         int pCountA = -1;
         int pCountB = -1;
 
@@ -518,7 +511,7 @@ namespace serverbrowser
 
         if(pCountA != pCountB)
         {
-            return pCountB > pCountA  ? 1 : -1;
+            return pCountB > pCountA;
         }
 
         enum 
@@ -557,81 +550,43 @@ namespace serverbrowser
             break;
         }
         
-        if(verifiedLevelA != verifiedLevelB)
-        {
-            return verifiedLevelB > verifiedLevelA ? 1 : -1;
-        }
-
-        return 0;
+        return verifiedLevelB > verifiedLevelA;
     }
     #undef find_key
     
-    void loopServers (char *var, char *body)
+    void loopServers (ident *id, uint *body)
     {
-        hashtable<const char *, ident *> keys;
-        
         vector<ServerInfo *> sortedServers;
-        
+
         enumerate(servers, ServerInfo *, v, {
             sortedServers.add(v);
         });
-        
+
         sortedServers.sort(sortServers);
-        
-        loopvj(sortedServers)
+
+        loopstart(id, stack);
+        vector<char> buf;
+        string value;
+
+        loopv(sortedServers)
         {
-            ServerInfo *v = sortedServers[j];
-            
-            string key;
-            string keyList = {0};
-            
-            loopv(v->info)
+            buf.shrink(0);
+            loopvj(sortedServers[i]->info)
             {
-                formatstring(key)("%s.%s", var, v->info[i].key);
-                concatstring(keyList, key);
-                concatstring(keyList, " ");
-                
-                if(keys.access(key) != NULL)
-                {
-                    aliasa(key, newstring(v->info[i].value));
-                }
-                else
-                {
-                    ident *id = newident(key);
-                    if(id->type==ID_ALIAS)
-                    {
-                        pushident(*id, newstring(v->info[i].value));
-                        keys[newstring(key)] = id;
-                    }
-                }
-                
+                formatstring(value)(" %s", escapestring(sortedServers[i]->info[j].key));
+                loopi(strlen(value)) buf.add(value[i]);
+                formatstring(value)(" %s", escapestring(sortedServers[i]->info[j].value));
+                loopi(strlen(value)) buf.add(value[i]);
             }
-            
-            if(keys.access(var) != NULL)
-            {
-                aliasa(var, newstring(keyList));
-            }
-            else
-            {
-                ident *id = newident(var);
-                if(id->type==ID_ALIAS)
-                {
-                    pushident(*id, newstring(keyList));
-                    keys[newstring(var)] = id;
-                }
-            }
-            
+            buf.add('\0');
+            loopiter(id, stack, buf.buf);
             execute(body);
         }
-        
-        enumeratekt(keys, const char *, key, ident *, id, {
-            popident(*id);
-            delete [] key;
-        });
-             
+
+        loopend(id, stack);
     }
     
-    COMMAND(loopServers, "ss");
+    COMMAND(loopServers, "re");
     
     bool isLastVersion = true;
     http_parser *lastversionParser = NULL;

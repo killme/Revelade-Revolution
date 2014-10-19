@@ -48,7 +48,7 @@ enum { PHYS_FLOAT = 0, PHYS_FALL, PHYS_SLIDE, PHYS_SLOPE, PHYS_FLOOR, PHYS_STEP_
 
 enum { ENT_PLAYER = 0, ENT_AI, ENT_INANIMATE, ENT_CAMERA, ENT_BOUNCE };
 
-enum { COLLIDE_AABB = 0, COLLIDE_OBB, COLLIDE_ELLIPSE };
+enum { COLLIDE_NONE = 0, COLLIDE_ELLIPSE, COLLIDE_OBB, COLLIDE_ELLIPSE_PRECISE };
 
 struct physent                                  // base entity type, can be affected by physics
 {
@@ -141,6 +141,7 @@ static const char * const animnames[] =
 #define ANIM_START       (1<<8)
 #define ANIM_END         (1<<9)
 #define ANIM_REVERSE     (1<<10)
+#define ANIM_CLAMP       (ANIM_START|ANIM_END)
 #define ANIM_DIR         0x780
 #define ANIM_SECONDARY   11
 #define ANIM_NOSKIN      (1<<22)
@@ -150,7 +151,8 @@ static const char * const animnames[] =
 #define ANIM_NORENDER    (1<<26)
 #define ANIM_RAGDOLL     (1<<27)
 #define ANIM_SETSPEED    (1<<28)
-#define ANIM_GHOST       (1<<29)
+#define ANIM_NOPITCH     (1<<29)
+#define ANIM_GHOST       (1<<30)
 #define ANIM_FLAGS       (0x1FF<<22)
 
 struct animinfo // description of a character's animation
@@ -172,6 +174,8 @@ struct animinterpinfo // used for animation blending of animated characters
     void *lastmodel;
 
     animinterpinfo() : lastswitch(-1), lastmodel(NULL) {}
+
+    void reset() { lastswitch = -1; }
 };
 
 #define MAXANIMPARTS 3
@@ -214,6 +218,7 @@ struct dynent : physent                         // animated characters, or chara
     {
         physent::reset();
         stopmoving();
+        loopi(MAXANIMPARTS) animinterp[i].reset();
         burnmillis = 0;
     }
 

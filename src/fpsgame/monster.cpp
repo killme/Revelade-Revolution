@@ -53,7 +53,7 @@ namespace monster
             { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       false,      true,       3.0f,   3.0f,       0.5f },
         },
         {
-            { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 400,    A_YELLOW,   100,    28,         "juggernaut", 0},
+            { {WEAP_SLIME, WEAP_BITE, WEAP_NONE, WEAP_NONE}, 400,    A_YELLOW,   100,    28,         "juggernaut", 0},
                0,       0,      100,    400,    1,          11,     100,    S_PAINH,    S_DEATHH, MONSTER_TYPE_TRAIT_BOSS,
             { "playermodels/zombies/juggernaut",NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "juggernaut",   NULL,       NULL,       false,      true,       7.0f,   22.0f,      3.0f },
         }

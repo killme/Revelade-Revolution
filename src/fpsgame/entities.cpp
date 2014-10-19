@@ -4,6 +4,40 @@ namespace entities
 {
     using namespace game;
 
+    int extraentinfosize() { return 0; }       // size in bytes of what the 2 methods below read/write... so it can be skipped by other games
+
+    void writeent(entity &e, char *buf)   // write any additional data to disk (except for ET_ ents)
+    {
+    }
+
+    void readent(entity &e, char *buf, int ver)     // read from disk, and init
+    {
+        if(ver <= 30) switch(e.type)
+        {
+            case FLAG:
+            case MONSTER:
+            case TELEDEST:
+            case RESPAWNPOINT:
+            case BOX:
+            case BARREL:
+            case PLATFORM:
+            case ELEVATOR:
+                e.attr1 = (int(e.attr1)+180)%360;
+                break;
+        }
+        if(ver <= 31) switch(e.type)
+        {
+            case BOX:
+            case BARREL:
+            case PLATFORM:
+            case ELEVATOR:
+                int yaw = (int(e.attr1)%360 + 360)%360 + 7; 
+                e.attr1 = yaw - yaw%15;
+                break;
+        }
+    }
+
+#ifndef STANDALONE
     vector<extentity *> ents;
 
     vector<extentity *> &getents() { return ents; }
@@ -27,7 +61,7 @@ namespace entities
 
     const char *entmdlname(int type)
     {
-        static const char *entmdlnames[] =
+        static const char * const entmdlnames[] =
         {
             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
             "gamemodels/ammo/ammo_lv1", "gamemodels/ammo/ammo_lv2", "gamemodels/ammo/ammo_lv3", "gamemodels/ammo/ammo_lv4",
@@ -141,18 +175,30 @@ namespace entities
 
     void pickupeffects(int n, fpsent *d)
     {
-        if(!ents.inrange(n) || d->isInfected()) return;
+        if(!ents.inrange(n))
+        {
+            DEBUG_ERROR("Server sent pickup effect for ent not in range: %i %p (%s[%i])", n, d, d->name, d->clientnum);
+            return;
+        }
         int type = ents[n]->type;
-        if(type<I_AMMO || type>I_QUAD) return;
+        if(type<I_AMMO || type>I_QUAD)
+        {
+            DEBUG_ERROR("Server sent pickup effect for invalid entity type: %i<I_AMMO(%i) || %i>I_QUAD(%i) [%i]", type, I_AMMO, type, I_QUAD, n); 
+            return;
+        }
         ents[n]->spawned = false;
-        if(!d) return;
+        if(!d)
+        {
+            DEBUG_ERROR("Server sent pickup effect for NULL player: %i %p", n, d);
+            return;
+        }
         itemstat &is = itemstats[type-I_AMMO];
         if(d!=player1 || isthirdperson())
         {
             //particle_text(d->abovehead(), is.name, PART_TEXT, 2000, 0xFFC864, 4.0f, -8);
             particle_icon(d->abovehead(), is.icon%8, is.icon/8, PART_HUD_ICON_GREY, 2000, 0xFFFFFF, 2.0f, -8);
         }
-        playsound(is.sound, d!=player1 ? &d->o : NULL, NULL, 0, 0, -1, 0, 1500);
+        playsound(is.sound, d!=player1 ? &d->o : NULL, NULL, 0, 0, 0, -1, 0, 1500);
         d->pickup(type, ents[n]->attr1);
         if(d==player1) switch(type)
         {
@@ -167,11 +213,20 @@ namespace entities
 
     void teleporteffects(fpsent *d, int tp, int td, bool local)
     {
-        if(d == player1) playsound(S_TELEPORT);
+        if(ents.inrange(tp) && ents[tp]->type == TELEPORT)
+        {
+            extentity &e = *ents[tp];
+            if(e.attr4 >= 0) 
+            {
+                int snd = S_TELEPORT, flags = 0;
+                if(e.attr4 > 0) { snd = e.attr4; flags = SND_MAP; }
+                if(d == player1) playsound(snd, NULL, NULL, flags);
         else
         {
-            if(ents.inrange(tp)) playsound(S_TELEPORT, &ents[tp]->o);
-            if(ents.inrange(td)) playsound(S_TELEPORT, &ents[td]->o);
+                    playsound(snd, &e.o, NULL, flags);
+                    if(ents.inrange(td) && ents[td]->type == TELEDEST) playsound(snd, &ents[td]->o, NULL, flags);
+                }
+            }
         }
         if(local && d->clientnum >= 0)
         {
@@ -188,8 +243,17 @@ namespace entities
 
     void jumppadeffects(fpsent *d, int jp, bool local)
     {
-        if(d == player1) playsound(S_JUMPPAD);
-        else if(ents.inrange(jp)) playsound(S_JUMPPAD, &ents[jp]->o);
+        if(ents.inrange(jp) && ents[jp]->type == JUMPPAD)
+        {
+            extentity &e = *ents[jp];
+            if(e.attr4 >= 0)
+            {
+                int snd = S_JUMPPAD, flags = 0;
+                if(e.attr4 > 0) { snd = e.attr4; flags = SND_MAP; }
+                if(d == player1) playsound(snd, NULL, NULL, flags);
+                else playsound(snd, &e.o, NULL, flags);
+            }
+        }
         if(local && d->clientnum >= 0)
         {
             sendposition(d);
@@ -529,22 +593,6 @@ namespace entities
                     if(e.attr4) doleveltrigger(e.attr4, 0);
                     break;
 
-                    default:
-                    /*
-                        if(m_dmsp && e.attr5 > 0 && e.triggerstate < TRIGGERING)
-                        {
-                            if(o.dist(e.o) < 20)
-                            {
-                                if(game::didbuy())
-                                {
-                                    if( player1->guts > e.attr5) player1->guts -= e.attr5;
-                                    continue;
-                                }
-                                else game::canbuy(e.attr5);
-                                }
-                        }
-                    */
-                        break;
             }
         }
     }
@@ -664,30 +712,6 @@ namespace entities
         return i>=0 && size_t(i)<sizeof(entnames)/sizeof(entnames[0]) ? entnames[i] : "";
     }
 
-    int extraentinfosize() { return 0; }       // size in bytes of what the 2 methods below read/write... so it can be skipped by other games
-
-    void writeent(entity &e, char *buf)   // write any additional data to disk (except for ET_ ents)
-    {
-    }
-
-    void readent(entity &e, char *buf)     // read from disk, and init
-    {
-        int ver = getmapversion();
-        if(ver <= 30) switch(e.type)
-        {
-            case FLAG:
-            case MONSTER:
-            case TELEDEST:
-            case RESPAWNPOINT:
-            case BOX:
-            case BARREL:
-            case PLATFORM:
-            case ELEVATOR:
-                e.attr1 = (int(e.attr1)+180)%360;
-                break;
-        }
-    }
-
     void editent(int i, bool local)
     {
         extentity &e = *ents[i];
@@ -707,5 +731,6 @@ namespace entities
         if(e.type==BASE || e.type==FLAG) return 0.0f;
         return 4.0f;
     }
+#endif
 }
 

@@ -41,11 +41,7 @@ static void inithemisphere(int hres, int depth)
     hemiverts = new vec[tris+1];
     hemiindices = new GLushort[tris*3];
     hemiverts[heminumverts++] = vec(0.0f, 0.0f, 1.0f); //build initial 'hres' sided pyramid
-    loopi(hres)
-    {
-        float a = PI2*float(i)/hres;
-        hemiverts[heminumverts++] = vec(cosf(a), sinf(a), 0.0f);
-    }
+    loopi(hres) hemiverts[heminumverts++] = vec(sincos360[(360*i)/hres], 0.0f);
     loopi(hres) genface(depth, 0, i+1, 1+(i+1)%hres);
 
     if(hasVBO)
@@ -363,7 +359,7 @@ static void cleanupexplosion()
     }
     else
     {
-        if(explosion2d) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        if(!explosion2d) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     }
 
     if(hasVBO)
@@ -407,7 +403,6 @@ struct fireballrenderer : listrenderer
         particleshader->set();
     }
 
-    using listrenderer::cleanup;
     void cleanup()
     {
         deleteexplosions();
@@ -420,7 +415,6 @@ struct fireballrenderer : listrenderer
             fireballent()
             {
                 type = ENT_CAMERA;
-                collidetype = COLLIDE_AABB;
             }
         } e;
 
@@ -436,7 +430,7 @@ struct fireballrenderer : listrenderer
 
             e.o = p->o;
             e.radius = e.xradius = e.yradius = e.eyeheight = e.aboveeye = psize;
-            if(::collide(&e, vec(0, 0, 0), 0, false)) continue;
+            if(!::collide(&e, vec(0, 0, 0), 0, false)) continue;
 
             if(depthfxscissor==2 && !depthfxtex.addscissorbox(p->o, psize)) continue;
 
@@ -477,11 +471,11 @@ struct fireballrenderer : listrenderer
         pe.extendbb(o, (size+1+pe.ent->attr2)*WOBBLE); 
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, float size, uchar *color)
+    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, uchar *color)
     {
         float pmax = p->val,
-              asize = p->fade ? float(ts)/p->fade : 1,
-              psize = size + pmax * asize;
+              size = p->fade ? float(ts)/p->fade : 1,
+              psize = p->size + pmax * size;
 
         if(isfoggedsphere(psize*WOBBLE, p->o)) return;
 
@@ -521,8 +515,8 @@ struct fireballrenderer : listrenderer
         if(renderpath!=R_FIXEDFUNCTION)
         {
             setlocalparamf("center", SHPARAM_VERTEX, 0, o.x, o.y, o.z);
-            setlocalparamf("animstate", SHPARAM_VERTEX, 1, asize, psize, pmax, float(lastmillis));
-            binddepthfxparams(depthfxblend, inside ? blend/(2*255.0f) : 0, 2*(size + pmax)*WOBBLE >= depthfxblend, p);
+            setlocalparamf("animstate", SHPARAM_VERTEX, 1, size, psize, pmax, float(lastmillis));
+            binddepthfxparams(depthfxblend, inside ? blend/(2*255.0f) : 0, 2*(p->size + pmax)*WOBBLE >= depthfxblend, p);
         }
 
         glRotatef(lastmillis/7.0f, -rotdir.x, rotdir.y, -rotdir.z);
@@ -561,9 +555,9 @@ struct swrenderer : listrenderer
     {
     }
 
-    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, float size, uchar *color)
+    void renderpart(listparticle *p, const vec &o, const vec &d, int blend, int ts, uchar *color)
     {
-        float hsize = size;
+        float hsize = p->size;
 
         glPushMatrix();
         //glColor4f(1.0f, 1.0f, 1.0f, 1.0f);

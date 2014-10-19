@@ -10,7 +10,12 @@ local BaseModule = require "server.module".BaseModule
 local Module = BaseModule:extend()
 
 function Module:load(config)
-    self.db = Database and Database:new(config.path)
+    if Database then
+        local suc, err = pcall(function()
+            self.db = Database:new(config.path)
+        end)
+        geoipError = not suc and err
+    end
 
     if self.db then
         self.serverHandle:print ("[geoip] Opened database: "..config.path)

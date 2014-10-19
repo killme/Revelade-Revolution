@@ -144,6 +144,10 @@ PFNGLGETUNIFORMOFFSETEXTPROC     glGetUniformOffset_     = NULL;
 // GL_EXT_fog_coord
 PFNGLFOGCOORDPOINTEREXTPROC glFogCoordPointer_ = NULL;
 
+// GL_ARB_map_buffer_range
+PFNGLMAPBUFFERRANGEPROC         glMapBufferRange_         = NULL;
+PFNGLFLUSHMAPPEDBUFFERRANGEPROC glFlushMappedBufferRange_ = NULL;
+
 void *getprocaddress(const char *name)
 {
     return SDL_GL_GetProcAddress(name);
@@ -552,9 +556,8 @@ void gl_checkextensions()
 
     if(hasext(exts, "GL_ARB_map_buffer_range"))
     {
-        // Unused in justice
-        //glMapBufferRange_         = (PFNGLMAPBUFFERRANGEPROC)        getprocaddress("glMapBufferRange");
-        //glFlushMappedBufferRange_ = (PFNGLFLUSHMAPPEDBUFFERRANGEPROC)getprocaddress("glFlushMappedBufferRange");
+        glMapBufferRange_         = (PFNGLMAPBUFFERRANGEPROC)        getprocaddress("glMapBufferRange");
+        glFlushMappedBufferRange_ = (PFNGLFLUSHMAPPEDBUFFERRANGEPROC)getprocaddress("glFlushMappedBufferRange");
         hasMBR = true;
         if(dbgexts) conoutf(CON_INIT, "Using GL_ARB_map_buffer_range.");
     }
@@ -826,7 +829,10 @@ void cleanupgl()
 
 VAR(wireframe, 0, 0, 1);
 
-ICOMMAND(getcampos, "", (),
+ICOMMAND(getcamyaw, "", (), floatret(camera1->yaw));
+ICOMMAND(getcampitch, "", (), floatret(camera1->pitch));
+ICOMMAND(getcamroll, "", (), floatret(camera1->roll));
+ICOMMAND(getcampos, "", (), 
 {
     defformatstring(pos)("%s %s %s", floatstr(camera1->o.x), floatstr(camera1->o.y), floatstr(camera1->o.z));
     result(pos);
@@ -836,9 +842,9 @@ vec worldpos, camdir, camright, camup;
 
 void findorientation()
 {
-    vecfromyawpitch(camera1->yaw, camera1->pitch, 1, 0, camdir);
-    vecfromyawpitch(camera1->yaw, 0, 0, -1, camright);
-    vecfromyawpitch(camera1->yaw, camera1->pitch+90, 1, 0, camup);
+    mvmatrix.transposedtransformnormal(vec(viewmatrix.getcolumn(1)), camdir);
+    mvmatrix.transposedtransformnormal(vec(viewmatrix.getcolumn(0)).neg(), camright);
+    mvmatrix.transposedtransformnormal(vec(viewmatrix.getcolumn(2)), camup);
 
     if(raycubepos(camera1->o, camdir, worldpos, 0, RAY_CLIPMAT|RAY_SKIPFIRST) == -1)
         worldpos = vec(camdir).mul(2*worldsize).add(camera1->o); //otherwise 3dgui won't work when outside of map
@@ -869,6 +875,7 @@ VAR(avatarfov, 10, 65, 150);
 FVAR(avatardepth, 0, 0.5f, 1);
 FVAR(zombiedepth, 0, 0.5f, 1);
 FVAR(zombiespeed, 0, 0.033f, 90);
+FVARNP(aspect, forceaspect, 0, 0, 1e3f);
 
 static int zoommillis = 0;
 VARF(zoom, -1, 0, 1,
@@ -949,8 +956,9 @@ FVARP(mouseaccel, 0, 0, 1000);
 
 VARP(killcammode, 0, 1, 2);
 VARP(thirdperson, 0, 0, 2);
-FVAR(thirdpersondistance, 0, 20, 1000);
-FVAR(thirdpersonheight, -10, 0.4, 1000);
+FVAR(thirdpersondistance, 0, 20, 50);
+FVAR(thirdpersonup, -25, 0, 25);
+FVAR(thirdpersonside, -25, 0, 25);
 physent *camera1 = NULL;
 bool detachedcamera = false;
 bool isthirdperson() { return player!=camera1 || detachedcamera || reflecting; }
@@ -966,7 +974,7 @@ void fixcamerarange()
 
 void mousemove(int dx, int dy)
 {
-    if (cameracap) return;
+    if(cameracap || !game::allowmouselook()) return;
     float cursens = sensitivity, curaccel = mouseaccel;
     if(zoom)
     {
@@ -1024,7 +1032,6 @@ void recomputecamera()
         }
         camera1->reset();
         camera1->type = ENT_CAMERA;
-        camera1->collidetype = COLLIDE_AABB;
         camera1->move = -1;
         camera1->eyeheight = camera1->aboveeye = camera1->radius = camera1->xradius = camera1->yradius = 2;
 
@@ -1044,15 +1051,40 @@ void recomputecamera()
         }
         lastpos = vec(camera1->o);
 
-        vec dir;
-        vecfromyawpitch(camera1->yaw, camera1->pitch, -1, 0, dir);
-        dir.z += thirdpersonheight;
-        if(game::collidecamera())
+        matrix3x3 orient;
+        orient.identity();
+        orient.rotate_around_y(camera1->roll*RAD);
+        orient.rotate_around_x(camera1->pitch*-RAD);
+        orient.rotate_around_z(camera1->yaw*-RAD);
+        vec dir = vec(orient.b).neg(), side = vec(orient.a).neg(), up = orient.c;
+
+        if(game::collidecamera()) 
         {
             movecamera(camera1, dir, thirdpersondistance, 1);
             movecamera(camera1, dir, clamp(thirdpersondistance - camera1->o.dist(player->o), 0.0f, 1.0f), 0.1f);
+            if(thirdpersonup)
+            {
+                vec pos = camera1->o;
+                float dist = fabs(thirdpersonup);
+                if(thirdpersonup < 0) up.neg();
+                movecamera(camera1, up, dist, 1);
+                movecamera(camera1, up, clamp(dist - camera1->o.dist(pos), 0.0f, 1.0f), 0.1f);
+            }
+            if(thirdpersonside)
+            {
+                vec pos = camera1->o;
+                float dist = fabs(thirdpersonside);
+                if(thirdpersonside < 0) side.neg();
+                movecamera(camera1, side, dist, 1);
+                movecamera(camera1, side, clamp(dist - camera1->o.dist(pos), 0.0f, 1.0f), 0.1f);
+            }
         }
-        else camera1->o.add(vec(dir).mul(thirdpersondistance));
+        else 
+        {
+            camera1->o.add(vec(dir).mul(thirdpersondistance));
+            if(thirdpersonup) camera1->o.add(vec(up).mul(thirdpersonup));
+            if(thirdpersonside) camera1->o.add(vec(side).mul(thirdpersonside));
+        }
     }
 
     setviewcell(camera1->o);
@@ -1071,7 +1103,7 @@ void readmatrices()
     invmvpmatrix.invert(mvpmatrix);
 }
 
-FVAR(nearplane, 1e-3f, 0.54f, 1e3f);
+FVAR(nearplane, 0.01f, 0.54f, 2.0f);
 
 void project(float fovy, float aspect, int farplane, bool flipx = false, bool flipy = false, bool swapxy = false, float zscale = 1)
 {
@@ -1297,14 +1329,16 @@ HVARFR(fogcolour, 0, 0x8099B3, 0xFFFFFF,
 
 static float findsurface(int fogmat, const vec &v, int &abovemat)
 {
+    fogmat &= MATF_VOLUME;
     ivec o(v), co;
     int csize;
     do
     {
         cube &c = lookupcube(o.x, o.y, o.z, 0, co, csize);
-        if(!c.ext || (c.ext->material&MATF_VOLUME) != fogmat)
+        int mat = c.material&MATF_VOLUME;
+        if(mat != fogmat)
         {
-            abovemat = c.ext && isliquid(c.ext->material&MATF_VOLUME) ? c.ext->material&MATF_VOLUME : MAT_AIR;
+            abovemat = isliquid(mat) ? c.material : MAT_AIR;
             return o.z;
         }
         o.z = co.z + csize;
@@ -1316,17 +1350,25 @@ static float findsurface(int fogmat, const vec &v, int &abovemat)
 
 static void blendfog(int fogmat, float blend, float logblend, float &start, float &end, float *fogc)
 {
-    switch(fogmat)
+    switch(fogmat&MATF_VOLUME)
     {
         case MAT_WATER:
-            loopk(3) fogc[k] += blend*watercolor[k]/255.0f;
-            end += logblend*min(fog, max(waterfog*4, 32));
+        {
+            const bvec &wcol = getwatercolor(fogmat);
+            int wfog = getwaterfog(fogmat);
+            loopk(3) fogc[k] += blend*wcol[k]/255.0f;
+            end += logblend*min(fog, max(wfog*4, 32));
             break;
+        }
 
         case MAT_LAVA:
-            loopk(3) fogc[k] += blend*lavacolor[k]/255.0f;
-            end += logblend*min(fog, max(lavafog*4, 32));
+        {
+            const bvec &lcol = getlavacolor(fogmat);
+            int lfog = getlavafog(fogmat);
+            loopk(3) fogc[k] += blend*lcol[k]/255.0f;
+            end += logblend*min(fog, max(lfog*4, 32));
             break;
+        }
 
         default:
             loopk(3) fogc[k] += blend*fogcolor[k]/255.0f;
@@ -1354,17 +1396,23 @@ static void setfog(int fogmat, float below = 1, int abovemat = MAT_AIR)
 static void blendfogoverlay(int fogmat, float blend, float *overlay)
 {
     float maxc;
-    switch(fogmat)
+    switch(fogmat&MATF_VOLUME)
     {
         case MAT_WATER:
-            maxc = max(watercolor[0], max(watercolor[1], watercolor[2]));
-            loopk(3) overlay[k] += blend*max(0.4f, watercolor[k]/min(32.0f + maxc*7.0f/8.0f, 255.0f));
+        {
+            const bvec &wcol = getwatercolor(fogmat);
+            maxc = max(wcol[0], max(wcol[1], wcol[2]));
+            loopk(3) overlay[k] += blend*max(0.4f, wcol[k]/min(32.0f + maxc*7.0f/8.0f, 255.0f));
             break;
+        }
 
         case MAT_LAVA:
-            maxc = max(lavacolor[0], max(lavacolor[1], lavacolor[2]));
-            loopk(3) overlay[k] += blend*max(0.4f, lavacolor[k]/min(32.0f + maxc*7.0f/8.0f, 255.0f));
+        {
+            const bvec &lcol = getlavacolor(fogmat);
+            maxc = max(lcol[0], max(lcol[1], lcol[2]));
+            loopk(3) overlay[k] += blend*max(0.4f, lcol[k]/min(32.0f + maxc*7.0f/8.0f, 255.0f));
             break;
+        }
 
         default:
             loopk(3) overlay[k] += blend;
@@ -1468,13 +1516,15 @@ VARR(refractsky, 0, 0, 1);
 
 glmatrixf fogmatrix, invfogmatrix;
 
-void drawreflection(float z, bool refract)
+void drawreflection(float z, bool refract, int fogdepth, const bvec &col)
 {
     reflectz = z < 0 ? 1e16f : z;
     reflecting = !refract;
     refracting = refract ? (z < 0 || camera1->o.z >= z ? -1 : 1) : 0;
     fading = renderpath!=R_FIXEDFUNCTION && waterrefract && waterfade && hasFBO && z>=0;
     fogging = refracting<0 && z>=0;
+    refractfog = fogdepth;
+    refractcolor = fogging ? col : fogcolor;
 
     float oldfogstart, oldfogend, oldfogcolor[4];
     glGetFloatv(GL_FOG_START, &oldfogstart);
@@ -1484,7 +1534,7 @@ void drawreflection(float z, bool refract)
     if(fogging)
     {
         glFogf(GL_FOG_START, camera1->o.z - z);
-        glFogf(GL_FOG_END, camera1->o.z - (z-waterfog));
+        glFogf(GL_FOG_END, camera1->o.z - (z-max(refractfog, 1)));
         GLfloat m[16] =
         {
              1,   0,  0, 0,
@@ -1497,7 +1547,7 @@ void drawreflection(float z, bool refract)
         pushprojection();
         glPushMatrix();
         glLoadMatrixf(fogmatrix.v);
-        float fogc[4] = { watercolor.x/255.0f, watercolor.y/255.0f, watercolor.z/255.0f, 1.0f };
+        float fogc[4] = { col.x/255.0f, col.y/255.0f, col.z/255.0f, 1.0f };
         glFogfv(GL_FOG_COLOR, fogc);
     }
     else
@@ -1645,8 +1695,7 @@ void drawcubemap(int size, const vec &o, float yaw, float pitch, const cubemapsi
 
     defaultshader->set();
 
-    int fogmat = lookupmaterial(o)&MATF_VOLUME;
-    if(fogmat!=MAT_WATER && fogmat!=MAT_LAVA) fogmat = MAT_AIR;
+    int fogmat = lookupmaterial(o)&(MATF_VOLUME|MATF_INDEX);
 
     setfog(fogmat);
 
@@ -1695,69 +1744,76 @@ void drawcubemap(int size, const vec &o, float yaw, float pitch, const cubemapsi
     envmapping = false;
 }
 
-bool playerpreviewing = false;
+bool modelpreviewing = false;
 
-void renderplayerpreview(bool background)
+namespace modelpreview
 {
-    float fovy = 90.f, aspect = 1.f;
-    envmapping = playerpreviewing = true;
+    physent *oldcamera;
+    float oldfogstart, oldfogend, oldfogcolor[4]; 
 
-    physent *oldcamera = camera1;
-    static physent pcamera;
-    pcamera = *camera1;
-    pcamera.reset();
-    pcamera.type = ENT_CAMERA;
-    pcamera.o = vec(0, 0, 0);
-    pcamera.yaw = 0;
-    pcamera.pitch = 0;
-    pcamera.roll = 0;
-    camera1 = &pcamera;
+    physent camera;
 
-    float oldfogstart, oldfogend, oldfogcolor[4];
-    glGetFloatv(GL_FOG_START, &oldfogstart);
-    glGetFloatv(GL_FOG_END, &oldfogend);
-    glGetFloatv(GL_FOG_COLOR, oldfogcolor);
+    void start(bool background)
+    {
+        float fovy = 90.f, aspect = 1.f;
+        envmapping = modelpreviewing = true;
 
-    GLfloat fogc[4] = { 0, 0, 0, 1 };
-    glFogf(GL_FOG_START, 0);
-    glFogf(GL_FOG_END, 1000000);
-    glFogfv(GL_FOG_COLOR, fogc);
-    glClearColor(fogc[0], fogc[1], fogc[2], fogc[3]);
+        oldcamera = camera1;
+        camera = *camera1;
+        camera.reset();
+        camera.type = ENT_CAMERA;
+        camera.o = vec(0, 0, 0);
+        camera.yaw = 0;
+        camera.pitch = 0;
+        camera.roll = 0;
+        camera1 = &camera;
 
-    glClear((background ? GL_COLOR_BUFFER_BIT : 0) | GL_DEPTH_BUFFER_BIT);
+        glGetFloatv(GL_FOG_START, &oldfogstart);
+        glGetFloatv(GL_FOG_END, &oldfogend);
+        glGetFloatv(GL_FOG_COLOR, oldfogcolor);
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
+        GLfloat fogc[4] = { 0, 0, 0, 1 };
+        glFogf(GL_FOG_START, 0);
+        glFogf(GL_FOG_END, 1000000);
+        glFogfv(GL_FOG_COLOR, fogc);
+        glClearColor(fogc[0], fogc[1], fogc[2], fogc[3]);
 
-    project(fovy, aspect, 1024);
-    transplayer();
-    readmatrices();
-    setenvmatrix();
+        glClear((background ? GL_COLOR_BUFFER_BIT : 0) | GL_DEPTH_BUFFER_BIT);
 
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
 
-    game::renderplayerpreview();
+        project(fovy, aspect, 1024);
+        transplayer();
+        readmatrices();
+        setenvmatrix();
 
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+    }
 
-    defaultshader->set();
+    void end()
+    {
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_DEPTH_TEST);
 
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
+        defaultshader->set();
 
-    glFogf(GL_FOG_START, oldfogstart);
-    glFogf(GL_FOG_END, oldfogend);
-    glFogfv(GL_FOG_COLOR, oldfogcolor);
-    glClearColor(oldfogcolor[0], oldfogcolor[1], oldfogcolor[2], oldfogcolor[3]);
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
 
-    camera1 = oldcamera;
-    envmapping = playerpreviewing = false;
+        glFogf(GL_FOG_START, oldfogstart);
+        glFogf(GL_FOG_END, oldfogend);
+        glFogfv(GL_FOG_COLOR, oldfogcolor);
+        glClearColor(oldfogcolor[0], oldfogcolor[1], oldfogcolor[2], oldfogcolor[3]);
+
+        camera1 = oldcamera;
+        envmapping = modelpreviewing = false;
+    }
 }
 
 bool minimapping = false;
@@ -1790,7 +1846,7 @@ void clipminimap(ivec &bbmin, ivec &bbmax, cube *c = worldroot, int x = 0, int y
     {
         ivec o(i, x, y, z, size);
         if(c[i].children) clipminimap(bbmin, bbmax, c[i].children, o.x, o.y, o.z, size>>1);
-        else if(!isentirelysolid(c[i]) && (!c[i].ext || (c[i].ext->material&MATF_CLIP)!=MAT_CLIP))
+        else if(!isentirelysolid(c[i]) && (c[i].material&MATF_CLIP)!=MAT_CLIP)
         {
             loopk(3) bbmin[k] = min(bbmin[k], o[k]);
             loopk(3) bbmax[k] = max(bbmax[k], o[k] + size);
@@ -1865,9 +1921,7 @@ void drawminimap()
     glClearColor(fogc[0], fogc[1], fogc[2], fogc[3]);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    glViewport(1, 1, size-2, size-2);
-    glScissor(1, 1, size-2, size-2);
-    glEnable(GL_SCISSOR_TEST);
+    glViewport(0, 0, size, size);
 
     glDisable(GL_FOG);
     glEnable(GL_CULL_FACE);
@@ -1904,7 +1958,6 @@ void drawminimap()
     glDisable(GL_CULL_FACE);
     glDisable(GL_FOG);
 
-    glDisable(GL_SCISSOR_TEST);
     glViewport(0, 0, screen->w, screen->h);
 
     camera1 = oldcamera;
@@ -1913,69 +1966,45 @@ void drawminimap()
     glBindTexture(GL_TEXTURE_2D, minimaptex);
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB5, 0, 0, size, size, 0);
     setuptexparameters(minimaptex, NULL, 3, 1, GL_RGB5, GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    GLfloat border[4] = { minimapcolor.x/255.0f, minimapcolor.y/255.0f, minimapcolor.z/255.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void drawslice(float start, float length, float x, float y, float size)
 {
     float end = start + length,
-          sx = cosf((start + 0.25f)*2*M_PI), sy = -sinf((start + 0.25f)*2*M_PI),
-          ex = cosf((end + 0.25f)*2*M_PI), ey = -sinf((end + 0.25f)*2*M_PI);
+            sx = cosf((start + 0.25f)*2*M_PI), sy = -sinf((start + 0.25f)*2*M_PI),
+            ex = cosf((end + 0.25f)*2*M_PI), ey = -sinf((end + 0.25f)*2*M_PI);
+
     glBegin(GL_TRIANGLE_FAN);
-    glTexCoord2f(0.5f, 0.5f); glVertex2f(x, y);
-
-    if(start < 0.125f || start >= 0.875f) { glTexCoord2f(0.5f + 0.5f*sx/sy, 0); glVertex2f(x + sx/sy*size, y - size);  }
-    else if(start < 0.375f) { glTexCoord2f(1, 0.5f - 0.5f*sy/sx); glVertex2f(x + size, y - sy/sx*size); }
-    else if(start < 0.625f) { glTexCoord2f(0.5f - 0.5f*sx/sy, 1); glVertex2f(x - sx/sy*size, y + size); }
-    else { glTexCoord2f(0, 0.5f + 0.5f*sy/sx); glVertex2f(x - size, y + sy/sx*size); }
-
-    if(start <= 0.125f && end >= 0.125f) { glTexCoord2f(1, 0); glVertex2f(x + size, y - size); }
-    if(start <= 0.375f && end >= 0.375f) { glTexCoord2f(1, 1); glVertex2f(x + size, y + size); }
-    if(start <= 0.625f && end >= 0.625f) { glTexCoord2f(0, 1); glVertex2f(x - size, y + size); }
-    if(start <= 0.875f && end >= 0.875f) { glTexCoord2f(0, 0); glVertex2f(x - size, y - size); }
-
-    if(end < 0.125f || end >= 0.875f) { glTexCoord2f(0.5f + 0.5f*ex/ey, 0); glVertex2f(x + ex/ey*size, y - size);  }
-    else if(end < 0.375f) { glTexCoord2f(1, 0.5f - 0.5f*ey/ex); glVertex2f(x + size, y - ey/ex*size); }
-    else if(end < 0.625f) { glTexCoord2f(0.5f - 0.5f*ex/ey, 1); glVertex2f(x - ex/ey*size, y + size); }
-    else { glTexCoord2f(0, 0.5f + 0.5f*ey/ex); glVertex2f(x - size, y + ey/ex*size); }
+        glTexCoord2f(0.5f, 0.5f); glVertex2f(x, y);
+        if(start < 0.125f || start >= 0.875f) { glTexCoord2f(0.5f + 0.5f*sx/sy, 0); glVertex2f(x + sx/sy*size, y - size);  }
+        else if(start < 0.375f) { glTexCoord2f(1, 0.5f - 0.5f*sy/sx); glVertex2f(x + size, y - sy/sx*size); }
+        else if(start < 0.625f) { glTexCoord2f(0.5f - 0.5f*sx/sy, 1); glVertex2f(x - sx/sy*size, y + size); }
+        else { glTexCoord2f(0, 0.5f + 0.5f*sy/sx); glVertex2f(x - size, y + sy/sx*size); }
+        if(start <= 0.125f && end >= 0.125f) { glTexCoord2f(1, 0); glVertex2f(x + size, y - size); }
+        if(start <= 0.375f && end >= 0.375f) { glTexCoord2f(1, 1); glVertex2f(x + size, y + size); }
+        if(start <= 0.625f && end >= 0.625f) { glTexCoord2f(0, 1); glVertex2f(x - size, y + size); }
+        if(start <= 0.875f && end >= 0.875f) { glTexCoord2f(0, 0); glVertex2f(x - size, y - size); }
+        if(end < 0.125f || end >= 0.875f) { glTexCoord2f(0.5f + 0.5f*ex/ey, 0); glVertex2f(x + ex/ey*size, y - size);  }
+        else if(end < 0.375f) { glTexCoord2f(1, 0.5f - 0.5f*ey/ex); glVertex2f(x + size, y - ey/ex*size); }
+        else if(end < 0.625f) { glTexCoord2f(0.5f - 0.5f*ex/ey, 1); glVertex2f(x - ex/ey*size, y + size); }
+        else { glTexCoord2f(0, 0.5f + 0.5f*ey/ex); glVertex2f(x - size, y + ey/ex*size); }
     glEnd();
 }
 
-void drawfadedslice(float start, float length, float x, float y, float size, float alpha, float r, float g, float b, float minsize)
+
+bool deferdrawtextures = false;
+
+void drawtextures()
 {
-    float end = start + length,
-          sx = cosf((start + 0.25f)*2*M_PI), sy = -sinf((start + 0.25f)*2*M_PI),
-          ex = cosf((end + 0.25f)*2*M_PI), ey = -sinf((end + 0.25f)*2*M_PI);
-
-    #define SLICEVERT(ox, oy) \
-    { \
-        glTexCoord2f(0.5f + (ox)*0.5f, 0.5f + (oy)*0.5f); \
-        glVertex2f(x + (ox)*size, y + (oy)*size); \
-    }
-    #define SLICESPOKE(ox, oy) \
-    { \
-        SLICEVERT((ox)*minsize, (oy)*minsize); \
-        SLICEVERT(ox, oy); \
-    }
-
-    glBegin(GL_TRIANGLE_STRIP);
-    glColor4f(r, g, b, alpha);
-    if(start < 0.125f || start >= 0.875f) SLICESPOKE(sx/sy, -1)
-    else if(start < 0.375f) SLICESPOKE(1, -sy/sx)
-    else if(start < 0.625f) SLICESPOKE(-sx/sy, 1)
-    else SLICESPOKE(-1, sy/sx)
-
-    if(start <= 0.125f && end >= 0.125f) { glColor4f(r, g, b, alpha - alpha*(0.125f - start)/(end - start)); SLICESPOKE(1, -1) }
-    if(start <= 0.375f && end >= 0.375f) { glColor4f(r, g, b, alpha - alpha*(0.375f - start)/(end - start)); SLICESPOKE(1, 1) }
-    if(start <= 0.625f && end >= 0.625f) { glColor4f(r, g, b, alpha - alpha*(0.625f - start)/(end - start)); SLICESPOKE(-1, 1) }
-    if(start <= 0.875f && end >= 0.875f) { glColor4f(r, g, b, alpha - alpha*(0.875f - start)/(end - start)); SLICESPOKE(-1, -1) }
-
-    glColor4f(r, g, b, 0);
-    if(end < 0.125f || end >= 0.875f) SLICESPOKE(ex/ey, -1)
-    else if(end < 0.375f) SLICESPOKE(1, -ey/ex)
-    else if(end < 0.625f) SLICESPOKE(-ex/ey, 1)
-    else SLICESPOKE(-1, ey/ex)
-    glEnd();
+    if(minimized) { deferdrawtextures = true; return; }
+    deferdrawtextures = false;
+    genenvmaps();
+    drawminimap();
 }
 
 GLuint motiontex = 0;
@@ -2001,7 +2030,7 @@ void addmotionblur()
         return;
     }
 
-    if(paused || game::ispaused()) { lastmotion = 0; return; }
+    if(game::ispaused()) { lastmotion = 0; return; }
 
     if(!motiontex || motionw != screen->w || motionh != screen->h)
     {
@@ -2012,49 +2041,43 @@ void addmotionblur()
         createtexture(motiontex, motionw, motionh, NULL, 3, 0, GL_RGB, GL_TEXTURE_RECTANGLE_ARB);
     }
 
-    if (motionblur || lastquake)
-    {
-        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, motiontex);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, motiontex);
 
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
 
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glDisable(GL_TEXTURE_2D);
-        glEnable(GL_TEXTURE_RECTANGLE_ARB);
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
-        rectshader->set();
+    rectshader->set();
 
-        float blurfade = lastmotion ? pow(motionblurscale, max(float(lastmillis - lastmotion)/motionblurmillis, 1.0f)) : 0;
-        if (camera1->quake) blurfade = min(blurfade+((float)camera1->quake/200.f), 0.8f);
+    glColor4f(1, 1, 1, lastmotion ? pow(motionblurscale, max(float(lastmillis - lastmotion)/motionblurmillis, 1.0f)) : 0);
+    glBegin(GL_TRIANGLE_STRIP);
+    glTexCoord2f(      0,       0); glVertex2f(-1, -1);
+    glTexCoord2f(motionw,       0); glVertex2f( 1, -1);
+    glTexCoord2f(      0, motionh); glVertex2f(-1,  1);
+    glTexCoord2f(motionw, motionh); glVertex2f( 1,  1);
+    glEnd();
 
-        glColor4f(1, 1, 1, blurfade);
-        glBegin(GL_TRIANGLE_STRIP);
-        glTexCoord2f(      0,       0); glVertex2f(-1, -1);
-        glTexCoord2f(motionw,       0); glVertex2f( 1, -1);
-        glTexCoord2f(      0, motionh); glVertex2f(-1,  1);
-        glTexCoord2f(motionw, motionh); glVertex2f( 1,  1);
-        glEnd();
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
+    glEnable(GL_TEXTURE_2D);
 
-        glDisable(GL_TEXTURE_RECTANGLE_ARB);
-        glEnable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
 
-        glDisable(GL_BLEND);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
 
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
-    }
-
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+ 
     if(lastmillis - lastmotion >= motionblurmillis)
     {
         lastmotion = lastmillis - lastmillis%motionblurmillis;
@@ -2072,7 +2095,7 @@ void invalidatepostfx()
     dopostfx = false;
 }
 
-void gl_drawhud(int w, int h, bool drawch = true);
+void gl_drawhud(int w, int h);
 void drawcrosshair(int w, int h);
 
 int xtraverts, xtravertsva;
@@ -2146,17 +2169,17 @@ static void gl_drawframe_real(int w, int h)
 
     updatedynlights();
 
-    aspect = w/float(h);
+    aspect = forceaspect ? forceaspect : w/float(h);
     fovy = 2*atan2(tan(curfov/2*RAD), aspect)/RAD;
-
-    int fogmat = lookupmaterial(camera1->o)&MATF_VOLUME, abovemat = MAT_AIR;
+    
+    int fogmat = lookupmaterial(camera1->o)&(MATF_VOLUME|MATF_INDEX), abovemat = MAT_AIR;
     float fogblend = 1.0f, causticspass = 0.0f;
-    if(fogmat==MAT_WATER || fogmat==MAT_LAVA)
+    if(isliquid(fogmat&MATF_VOLUME))
     {
         float z = findsurface(fogmat, camera1->o, abovemat) - WATER_OFFSET;
         if(camera1->o.z < z + 1) fogblend = min(z + 1 - camera1->o.z, 1.0f);
         else fogmat = abovemat;
-        if(caustics && fogmat==MAT_WATER && camera1->o.z < z)
+        if(caustics && (fogmat&MATF_VOLUME)==MAT_WATER && camera1->o.z < z)
             causticspass = renderpath==R_FIXEDFUNCTION ? 1.0f : min(z - camera1->o.z, 1.0f);
     }
     else fogmat = MAT_AIR;
@@ -2218,6 +2241,9 @@ static void gl_drawframe_real(int w, int h)
 
     renderdecals(true);
 
+    extern void drawsounds();
+    drawsounds();
+
     rendermapmodels();
     rendergame(true);
     if(!isthirdperson())
@@ -2244,9 +2270,9 @@ static void gl_drawframe_real(int w, int h)
     rendermaterials();
     renderalphageom();
 
-    renderparticles(true);
-
     if(wireframe && editmode) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    renderparticles(true);
 
     glDisable(GL_FOG);
     glDisable(GL_CULL_FACE);
@@ -2254,26 +2280,16 @@ static void gl_drawframe_real(int w, int h)
 
     addmotionblur();
     addglare();
-    if(fogmat==MAT_WATER || fogmat==MAT_LAVA) drawfogoverlay(fogmat, fogblend, abovemat);
+    if(isliquid(fogmat&MATF_VOLUME)) drawfogoverlay(fogmat, fogblend, abovemat);
     renderpostfx();
-
-    glDisable(GL_TEXTURE_2D);
-    notextureshader->set();
-
-    gl_drawhud(w, h, false);
-
-    glEnable(GL_TEXTURE_2D);
 
     defaultshader->set();
     g3d_render();
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    drawcrosshair(w, h);
-    glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_2D);
     notextureshader->set();
 
+    gl_drawhud(w, h);
 
     renderedgame = false;
 }
@@ -2365,19 +2381,14 @@ void gl_drawmainmenu(int w, int h)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    notextureshader->set();
-    gl_drawhud(w, h);
-
     defaultshader->set();
     glEnable(GL_TEXTURE_2D);
     g3d_render();
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    drawcrosshair(w, h);
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
 
     notextureshader->set();
+    glDisable(GL_TEXTURE_2D);
+
+    gl_drawhud(w, h);
 }
 
 VARNP(damagecompass, usedamagecompass, 0, 1, 1);
@@ -2390,7 +2401,7 @@ VARP(damagecompassmax, 1, 200, 1000);
 float dcompass[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 void damagecompass(int n, const vec &loc)
 {
-    if(!usedamagecompass) return;
+    if(!usedamagecompass || minimized) return;
     vec delta(loc);
     delta.sub(camera1->o);
     float yaw, pitch;
@@ -2449,7 +2460,7 @@ VARP(damagescreenmax, 1, 1000, 4000);
 
 void damageblend(int n)
 {
-    if(!damagescreen) return;
+    if(!damagescreen || minimized) return;
     if(lastmillis > damageblendmillis) damageblendmillis = lastmillis;
     damageblendmillis += clamp(n, damagescreenmin, damagescreenmax)*damagescreenfactor;
 }
@@ -2460,9 +2471,11 @@ void resetdamagescreen()
     damageblendmillis = min(lastmillis+damagescreenmin, damageblendmillis);
 }
 
+VAR(dbgdamagescreen, 0, 0, 1);
+VAR(dbgdamagescreentime, 0, 500, 5000);
 void drawdamagescreen(int w, int h)
 {
-    if(lastmillis >= damageblendmillis) return;
+    if(!dbgdamagescreen && lastmillis >= damageblendmillis) return;
 
     defaultshader->set();
     glEnable(GL_TEXTURE_2D);
@@ -2474,7 +2487,7 @@ void drawdamagescreen(int w, int h)
     glBindTexture(GL_TEXTURE_2D, damagetex->id);
     float fade = damagescreenalpha/100.0f;
     if(damageblendmillis - lastmillis < damagescreenfade)
-        fade *= float(damageblendmillis - lastmillis)/damagescreenfade;
+        fade *= float(dbgdamagescreen ? dbgdamagescreentime : (damageblendmillis - lastmillis))/damagescreenfade;
     glColor4f(fade, fade, fade, fade);
 
     glBegin(GL_TRIANGLE_STRIP);
@@ -2663,13 +2676,6 @@ ICOMMAND(getcrosshair, "i", (int *i),
     result(name);
 });
 
-/*void writecrosshairs(stream *f)
-{
-    loopi(MAXCROSSHAIRS*2) if(crosshairpath(i, i%2) && crosshairpath(i, i%2)!=NULL)
-        f->printf("loaded crosshair \"%s\" %d\n", crosshairpath(i, i%2), i);
-    f->printf("\n");
-}*/ // No longer needed - this is done on client side per variable now
-
 void drawcrosshair(int w, int h)
 {
     bool windowhit = g3d_windowhit(true, false);
@@ -2704,25 +2710,18 @@ void drawcrosshair(int w, int h)
         if(!crosshair) crosshair = notexture;
         chsize = crosshairsize*w/900.0f;
     }
-    /*bool domod = false;
-    loopi(3) { if(player->vel[i] > 0.f) domod = true; }
-    if (game::ismoving() || domod) chsize *= 1.25f;*/ // FIXME: doesnt want to be dynamic
+    if(crosshair->type&Texture::ALPHA) glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    else glBlendFunc(GL_ONE, GL_ONE);
+    glColor3f(r, g, b);
     float x = cx*w - (windowhit ? 0 : chsize/2.0f);
     float y = cy*h - (windowhit ? 0 : chsize/2.0f);
-    defaultshader->set();
-    glEnable(GL_TEXTURE_2D);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, crosshair->id);
-    if(windowhit) glColor4f(1.f, 1.f, 1.f, 1.f);
-    else glColor4f(r, g, b, f);
     glBegin(GL_TRIANGLE_STRIP);
     glTexCoord2f(0, 0); glVertex2f(x,          y);
     glTexCoord2f(1, 0); glVertex2f(x + chsize, y);
     glTexCoord2f(0, 1); glVertex2f(x,          y + chsize);
     glTexCoord2f(1, 1); glVertex2f(x + chsize, y + chsize);
     glEnd();
-    glDisable(GL_TEXTURE_2D);
-    notextureshader->set();
 }
 
 VARP(wallclock, 0, 0, 1);
@@ -2738,8 +2737,10 @@ VAR(statrate, 1, 200, 1000);
 
 FVARP(conscale, 1e-3f, 0.33f, 1e3f);
 
-void gl_drawhud(int w, int h, bool drawch)
+void gl_drawhud(int w, int h)
 {
+    if(forceaspect) w = int(ceil(h*forceaspect));
+
     if(editmode && !hidehud && !mainmenu)
     {
         glEnable(GL_DEPTH_TEST);
@@ -2877,24 +2878,36 @@ void gl_drawhud(int w, int h, bool drawch)
             if(editmode)
             {
                 abovehud -= FONTH;
-                draw_textf("cube %s%d", FONTH/2, abovehud, selchildcount<0 ? "1/" : "", abs(selchildcount));
+                draw_textf("cube %s%d%s", FONTH/2, abovehud, selchildcount<0 ? "1/" : "", abs(selchildcount), showmat && selchildmat > 0 ? getmaterialdesc(selchildmat, ": ") : "");
 
-                char *editinfo = executeret("edithud");
+                char *editinfo = executestr("edithud");
                 if(editinfo)
                 {
-                    abovehud -= FONTH;
-                    draw_text(editinfo, FONTH/2, abovehud);
+                    if(editinfo[0])
+                    {
+                        int tw, th;
+                        text_bounds(editinfo, tw, th);
+                        th += FONTH-1; th -= th%FONTH;
+                        abovehud -= max(th, FONTH);
+                        draw_text(editinfo, FONTH/2, abovehud);
+                    }
                     DELETEA(editinfo);
                 }
             }
             else if(identexists("gamehud"))
             {
-                char *gameinfo = executeret("gamehud");
+                char *gameinfo = executestr("gamehud");
                 if(gameinfo)
                 {
-                    draw_text(gameinfo, conw-max(5*FONTH, 2*FONTH+text_width(gameinfo)), conh-FONTH*3/2-roffset);
+                    if(gameinfo[0])
+                    {
+                        int tw, th;
+                        text_bounds(gameinfo, tw, th);
+                        th += FONTH-1; th -= th%FONTH;
+                        roffset += max(th, FONTH);    
+                        draw_text(gameinfo, conw-max(5*FONTH, 2*FONTH+tw), conh-FONTH/2-roffset);
+                    }
                     DELETEA(gameinfo);
-                    roffset += FONTH;
                 }
             }
 
@@ -2949,7 +2962,7 @@ void gl_drawhud(int w, int h, bool drawch)
 
     glPopMatrix();
 
-    if (drawch) drawcrosshair(w, h);
+    drawcrosshair(w, h);
 
     glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_2D);

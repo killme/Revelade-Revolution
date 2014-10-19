@@ -1,4 +1,4 @@
-#ifndef randomstuff
+#if 0
 
 #ifndef PARSEMESSAGES
 
@@ -913,9 +913,11 @@ case N_SURVROUNDOVER:
 
 #else
 #ifndef PARSEMESSAGES
+struct zombie : fpsent { int ztype; };
 #ifdef SERVMODE
 struct survivalservmode : servmode
 #else
+void stackzombie(physent *d, physent *o) {}
 struct survivalclientmode : clientmode
 #endif
 {};

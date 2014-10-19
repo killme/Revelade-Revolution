@@ -154,6 +154,10 @@ typedef void (APIENTRYP PFNGLGETACTIVEUNIFORMBLOCKIVPROC) (GLuint program, GLuin
 typedef void (APIENTRYP PFNGLUNIFORMBLOCKBINDINGPROC) (GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
 #endif
 
+#ifndef GL_INVALID_INDEX
+#define GL_INVALID_INDEX                  0xFFFFFFFFu
+#endif
+
 #ifndef GL_VERSION_3_0
 #define GL_VERSION_3_0 1
 typedef void (APIENTRYP PFNGLBINDBUFFERRANGEPROC) (GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
@@ -505,7 +509,8 @@ struct Texture
         STUB       = 1<<8,
         TRANSIENT  = 1<<9,
         COMPRESSED = 1<<10, 
-        FLAGS      = 0xF0
+        ALPHA      = 1<<11,
+        FLAGS      = 0xFF00
     };
 
     char *name;
@@ -686,7 +691,7 @@ struct cubemapside
 
 extern cubemapside cubemapsides[6];
 extern Texture *notexture;
-extern Shader *defaultshader, *rectshader, *cubemapshader, *notextureshader, *nocolorshader, *foggedshader, *foggednotextureshader, *stdworldshader, *lineshader, *foggedlineshader;
+extern Shader *defaultshader, *rectshader, *cubemapshader, *notextureshader, *nocolorshader, *nocolorglslshader, *foggedshader, *foggednotextureshader, *stdworldshader, *lineshader, *foggedlineshader;
 extern int reservevpparams, maxvpenvparams, maxvplocalparams, maxfpenvparams, maxfplocalparams, maxvsuniforms, maxfsuniforms;
 
 extern Shader *lookupshaderbyname(const char *name);

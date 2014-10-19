@@ -20,9 +20,6 @@ enum
 #define DNF 100.0f              // for normalized vectors
 #define DVELF 1.0f              // for playerspeed based velocity vectors
 
-#ifdef XRRS
-#undef PLATFORM
-#endif
 
 enum                            // static entity types
 {
@@ -109,7 +106,6 @@ struct fpsstate;
 
 namespace game
 {
-    //TODO: move playermodel info to fpsstate
     extern const playermodelinfo &getplayermodelinfo(fpsstate *);
     extern const playerclassinfo &getplayerclassinfo(fpsstate *);
     extern const playermodelinfo *getplayermodelinfo(int n);
@@ -185,21 +181,21 @@ struct Mutator
 
 const static Mutator mutators[] =
 {
-    {M_TEAM, "\fs\fbTeamplay:\fr Kill other teams' players to score points.\n"},
-    {M_NOITEMS, "\fs\fbNo items:\fr There are no pick up items.\n"},
-    {M_NOAMMO, "\fs\fbNo ammo:\fr There is no pick up ammo.\n"},
-    {M_INSTA, "\fs\fbInsta:\fr One shot kill.\n"},
-    {M_EFFICIENCY, "\fs\fbEfficiency:\fr You spawn with full health, armour and ammo.\n"},
-    {M_TACTICS, "\fs\fbTactics:\fr .\n"},
-    {M_CAPTURE, "\fs\fbCapture:\fr .\n"},
-    {M_REGEN, "\fs\fbRegen:\fr .\n"},
-    {M_CTF, "\fs\fbCTF:\fr Bring the enemies' flag to your base to score points.\n"},
-    {M_PROTECT, "\fs\fbProtect:\fr Touch the enemies' flag to score points.\n"},
-    {M_HOLD, "\fs\fbHold:\fr Hold the flag for 10 seconds to score for your team.\n"},
-    {M_EDIT, "\fs\fbCoop-edit:\fr Edit maps with other players.\n"},
-    {M_SURVIVAL, "\fs\fbSurvival:\fr Survive as many rounds as you can against the zombies.\n"},
-    {M_INFECTION, "\fs\fbInfection:\fr Players kill infectees to score points. Infectees tag players to transfer infection.\n"},
-    {M_ONETEAM, "\fs\fbOne team:\fr All players are on the same team.\n"}
+    {M_TEAM,        "\fbTeamplay: "     "\frKill other teams' players to score points.\n"},
+    {M_NOITEMS,     "\fbNo items: "     "\frThere are no pick up items.\n"},
+    {M_NOAMMO,      "\fbNo ammo: "      "\frThere is no pick up ammo.\n"},
+    {M_INSTA,       "\fbInsta: "        "\frOne shot kill.\n"},
+    {M_EFFICIENCY,  "\fbEfficiency: "   "\frYou spawn with full health, armour and ammo.\n"},
+    {M_TACTICS,     "\fbTactics: "      "\fr .\n"},
+    {M_CAPTURE,     "\fbCapture: "      "\fr .\n"},
+    {M_REGEN,       "\fbRegen: "        "\fr .\n"},
+    {M_CTF,         "\fbCTF: "          "\frBring the enemies' flag to your base to score points.\n"},
+    {M_PROTECT,     "\fbProtect: "      "\frTouch the enemies' flag to score points.\n"},
+    {M_HOLD,        "\fbHold: "         "\frHold the flag for 10 seconds to score for your team.\n"},
+    {M_EDIT,        "\fbCoop-edit: "    "\frEdit maps with other players.\n"},
+    {M_SURVIVAL,    "\fbSurvival: "     "\frSurvive as many rounds as you can against the zombies.\n"},
+    {M_INFECTION,   "\fbInfection: "    "\frPlayers kill infectees to score points. Infectees tag players to transfer infection.\n"},
+    {M_ONETEAM,     "\fbOne team: "     "\frAll players are on the same team.\n"}
 };
 
 #define RR_FOREACH_MUTATOR loopi(sizeof(mutators)/sizeof(Mutator))
@@ -236,7 +232,7 @@ const static GameMode gameModes[] =
     {-3,    M_LOCAL | M_CLASSICSP,                                  "SP",                   "sp",           NULL },
     {-2,    M_LOCAL | M_DMSP,                                       "DMSP",                 "dmsp",         NULL },
     {-1,    M_DEMO | M_LOCAL,                                       "demo",                 "demo",         NULL },
-    {0,     M_LOBBY,                                                "ffa",                  "ffa",          "\fs\fbFFA:\fr Frag everyone to score points.\n" },
+    {0,     M_LOBBY,                                                "ffa",                  "ffa",          "\fbFFA: \frFrag everyone to score points.\n" },
     {1,     M_EDIT,                                                 "coop edit",            "coop",         NULL },
     {2,     M_TEAM | M_OVERTIME,                                    "teamplay",             "teamplay",     NULL },
     {3,     M_NOITEMS | M_EFFICIENCY,                               "efficiency",           "effic",        NULL },
@@ -254,7 +250,9 @@ const static GameMode gameModes[] =
     {15,    M_NOITEMS | M_EFFICIENCY | M_CTF | M_HOLD | M_TEAM,     "efficiency hold",      "effichold",    NULL },
 };
 
-#define RR_FOREACH_GAMEMODE loopi(sizeof(gameModes)/sizeof(GameMode))
+#define RR_NUM_GAMEMODE (sizeof(gameModes)/sizeof(GameMode))
+#define RR_FOREACH_GAMEMODE loopi(RR_NUM_GAMEMODE)
+#define RR_FOREACH_GAMEMODEk loopk(RR_NUM_GAMEMODE)
 
 inline const GameMode *getGameMode(int id)
 {
@@ -438,9 +436,7 @@ enum
     S_FLAGRETURN,
     S_FLAGSCORE,
     S_FLAGRESET,
-
-    // extra
-    S_MENU_CLICK
+    S_FLAGFAIL,
 };
 
 // network messages codes, c2s, c2c, s2c
@@ -661,15 +657,16 @@ enum
     N_SAYTEAM,
     N_CLIENT,
     N_AUTH_SERVER_HELLO, N_CLIENT_AUTH, N_SERVER_AUTH, N_AUTH_FINISH, // 90
-    N_PAUSEGAME,
+    N_PAUSEGAME, N_GAMESPEED,
     N_ADDBOT, N_DELBOT, N_INITAI, N_FROMAI, N_BOTLIMIT, N_BOTBALANCE,
     N_MAPCRC, N_CHECKMAPS,
-    N_SWITCHNAME, N_SWITCHMODEL, N_SWITCHTEAM, N_SWITCHCLASS, DEPRECATED_N_SETCLASS,
-    N_ONFIRE, N_SETONFIRE,
+    N_SWITCHNAME, N_SWITCHTEAM,
+    N_ONFIRE, N_SETONFIRE, N_EFFECT,
     N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
     N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_SURVROUNDOVER,
     N_GUTS, N_BUY,
     N_SERVER_COMMAND,
+    N_DEMOPACKET,
     NUMSV
 };
 
@@ -678,7 +675,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_CONNECT, 0, N_SERVINFO, 0, N_WELCOME, 2, N_INITCLIENT, 0, N_POS, 0, N_TEXT, 0, N_SOUND, 2, N_CDIS, 2,
     N_SHOOT, 0, N_EXPLODE, 0, N_SUICIDE, 2,
     N_DIED, 6, N_DAMAGE, 7, N_HITPUSH, 7, N_SHOTFX, 0, N_EXPLODEFX, 4,
-    N_TRYSPAWN, 1, N_SPAWNSTATE, 14, N_SPAWN, 3, N_FORCEDEATH, 2,
+    N_TRYSPAWN, 3, N_SPAWNSTATE, 14, N_SPAWN, 3, N_FORCEDEATH, 2,
     N_GUNSELECT, 2, N_TAUNT, 1,
     N_MAPCHANGE, 0, N_MAPVOTE, 0, N_CLEARVOTE, 0, N_ITEMSPAWN, 2, N_ITEMPICKUP, 2, N_ITEMACC, 3,
     N_PING, 2, N_PONG, 2, N_CLIENTPING, 2,
@@ -693,14 +690,15 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     N_SAYTEAM, 0,
     N_CLIENT, 0,
     N_AUTH_SERVER_HELLO, 0, N_CLIENT_AUTH, 0, N_SERVER_AUTH, 0, N_AUTH_FINISH, 0,
-    N_PAUSEGAME, 2,
+    N_PAUSEGAME, 0, N_GAMESPEED, 0,
     N_ADDBOT, 2, N_DELBOT, 1, N_INITAI, 0, N_FROMAI, 2, N_BOTLIMIT, 2, N_BOTBALANCE, 2,
     N_MAPCRC, 0, N_CHECKMAPS, 1,
-    N_SWITCHNAME, 0, N_SWITCHMODEL, 2, N_SWITCHTEAM, 0, N_SWITCHCLASS, 2, DEPRECATED_N_SETCLASS, 0,
+    N_SWITCHNAME, 0, N_SWITCHTEAM, 0,
     N_ONFIRE, 0/*4*/, N_SETONFIRE, 0/*4*/,
     N_INFECT, 0, N_INITINF, 0, N_RADIOTEAM, 0, N_RADIOALL, 0,
     N_SURVINIT, 0, N_SURVREASSIGN, 0, N_SURVSPAWNSTATE, 0, N_SURVNEWROUND, 0, N_SURVROUNDOVER, 2,
     N_GUTS, 3, N_BUY, 0, N_SERVER_COMMAND, 0,
+    N_DEMOPACKET, 0,
     -1
 };
 
@@ -727,6 +725,11 @@ struct demoheader
 
 #define TEAM_0 "survivor"
 #define TEAM_1 "scavenger"
+
+#define TEAM_0_COLOR_TEXT "\fb"
+#define TEAM_1_COLOR_TEXT "\fr"
+#define TEAM_COLOR_TEXT2(team, pre, post) (isteam(team, TEAM_0) ? pre TEAM_0_COLOR_TEXT post : pre TEAM_1_COLOR_TEXT post)
+#define TEAM_COLOR_TEXT(team) TEAM_COLOR_TEXT2(team, , )
 
 enum
 {
@@ -804,19 +807,15 @@ struct fpsstate
 
     //infectedType = monsterTypeID + 1
     int infectedType;
+    
+    WeaponEffect effects;
 
-    fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(-1), playermodel(-1), guts(0), infectedType(0) {}
+    fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(-1), playermodel(-1), guts(0), infectedType(0), effects(WE_NONE) {}
 
-    //void baseammo(int gun, int k = 2, int scale = 1)
-    //{
-    //    ammo[gun] = (itemstats[gun-WEAP_SLUGSHOT].add*k)/scale;
-    //}
-
-    //void addammo(int gun, int k = 1, int scale = 1)
-    //{
-    //    itemstat &is = itemstats[gun-WEAP_SLUGSHOT];
-    //    ammo[gun] = min(ammo[gun] + (is.add*k)/scale, is.max);
-    //}
+    virtual void updateEffects()
+    {
+        
+    }
 
     inline bool isInfected()
     {
@@ -960,9 +959,11 @@ struct fpsent : dynent, fpsstate
     int lastpickup, lastpickupmillis, lastbase, lastrepammo, flagpickup;
     int frags, flags, deaths, totaldamage, totalshots;
     editinfo *edit;
-    float deltayaw, deltapitch, newyaw, newpitch;
+    float deltayaw, deltapitch, deltaroll, newyaw, newpitch, newroll;
     int smoothmillis;
 
+    int initialSpeed;
+    
     int follow;
     string name, team, info;
     ai::aiinfo *ai;
@@ -984,6 +985,9 @@ struct fpsent : dynent, fpsstate
         edit(NULL),
         deltayaw(0), deltapitch(0), newyaw(0), newpitch(0),
         smoothmillis(-1),
+        
+        initialSpeed(-1),
+        
         follow(-1),
         ai(NULL),
         ownernum(-1),
@@ -999,7 +1003,17 @@ struct fpsent : dynent, fpsstate
         if(idlechan >= 0) stopsound(idlesound, idlechan);
         if(ai) delete ai;
     }
-
+    void updateEffects()
+    {
+        if(effects & WE_SLIMED)
+        {
+            maxspeed = initialSpeed/2;
+        }
+        else
+        {
+            maxspeed = initialSpeed;
+        }
+    }
     void hitpush(int damage, const vec &dir, fpsent *actor, int gun)
     {
         vec push(dir);
@@ -1024,7 +1038,7 @@ struct fpsent : dynent, fpsstate
     {
         dynent::reset();
         fpsstate::respawn();
-        maxspeed = !m_classes ? 100 : game::getplayerclassinfo(this).maxspeed;
+        initialSpeed = maxspeed = !m_classes ? 100 : game::getplayerclassinfo(this).maxspeed;
         if(!m_infection) infectedType = 0;
         respawned = suicided = -1;
         lastaction = 0;
@@ -1059,13 +1073,16 @@ struct teamscore
     teamscore() {}
     teamscore(const char *s, int n) : team(s), score(n) {}
 
-    static int compare(const teamscore *x, const teamscore *y)
+    static bool compare(const teamscore &x, const teamscore &y)
     {
-        if(x->score > y->score) return -1;
-        if(x->score < y->score) return 1;
-        return strcmp(x->team, y->team);
+        if(x.score > y.score) return true;
+        if(x.score < y.score) return false;
+        return strcmp(x.team, y.team) < 0;
     }
 };
+
+static inline uint hthash(const teamscore &t) { return hthash(t.team); }
+static inline bool htcmp(const char *key, const teamscore &t) { return htcmp(key, t.team); }
 
 namespace client
 {
@@ -1166,7 +1183,10 @@ namespace game
     extern bool clientoption(const char *arg);
     extern fpsent *getclient(int cn);
     extern fpsent *newclient(int cn);
-    extern const char *colorname(fpsent *d, const char *name = NULL, const char *prefix = "");
+    extern const char *colorname(fpsent *d, const char *name = NULL, const char *prefix = "", const char *suffix = "", const char *alt = NULL);
+    extern const char *teamcolorname(fpsent *d, const char *alt = "you");
+    extern const char *teamcolor(const char *name, bool sameteam, const char *alt = NULL);
+    extern const char *teamcolor(const char *name, const char *team, const char *alt = NULL);
     extern fpsent *pointatplayer();
     extern fpsent *hudplayer();
     extern fpsent *followingplayer();
@@ -1191,7 +1211,7 @@ namespace game
     extern void drawminimap(fpsent *d, float x, float y, float s);
     extern void drawradar(float x, float y, float s);
     extern void drawblip(fpsent *d, float x, float y, float s, const vec &pos, bool flagblip);
-    extern void drawprogress(int x, int y, float start, float length, float size, bool left, bool sec, bool millis = false, const vec &colour = vec(1, 1, 1), float fade = 1, float skew = 1, float textscale = 1, const char *text = NULL, ...);
+    extern void drawprogress(int x, int y, float start, float length, float size, bool left, bool sec, bool millis = false, const vec &colour = vec(1, 1, 1), float fade = 1, float skew = 1, float textscale = 1, const char *text = NULL, ...) PRINTFARGS(13, 14);
 
 
     enum buyables
@@ -1214,7 +1234,7 @@ namespace game
     extern void applyitem(fpsent *d, int item);
 
     // client
-    extern bool connected, remote, demoplayback;
+    extern bool remote, demoplayback;
     extern string servinfo;
     extern char *demodir;
 
@@ -1327,6 +1347,8 @@ namespace server
     extern void startintermission();
     extern void stopdemo();
     extern void forcemap(const char *map, int mode);
+    extern void forcepaused(bool paused);
+    extern void forcegamespeed(int speed);
     extern void hashpassword(int cn, int sessionid, const char *pwd, char *result, int maxlen = MAXSTRLEN);
     extern int msgsizelookup(int msg);
     extern bool serveroption(const char *arg);

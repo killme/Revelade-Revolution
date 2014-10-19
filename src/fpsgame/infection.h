@@ -4,8 +4,6 @@
 #define infflagteam(i) (i==1 ? TEAM_0 : (i==2 ? TEAM_1 : NULL))
 
 #ifdef SERVMODE
-extern void pausegame(bool val);
-
 struct infectionservmode : servmode
 #else
 FVARP(zombieradarscale, 0.f, 1.f, 100.f);
