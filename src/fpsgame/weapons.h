@@ -2,6 +2,7 @@
 #define WEAPONS_H_INCLUDED
 
 extern int quakemillis;
+extern char *deathmessage;
 
 enum
 {
@@ -264,7 +265,7 @@ static const struct weapinfo {
 #define GUN_FRAG_INSANITY                "insanatized"
 #define GUN_FRAGBY_INSANITY                "insanatized"
 
-#define GUN_SUICIDE_FALL            "fell to the unknown"
+#define GUN_SUICIDE_FALL            deathmessage
 #define GUN_SUICIDE_LAVA            "was incinirated"
 
 #define GUN_FRAG_SPECIAL            " with a headshot!"
