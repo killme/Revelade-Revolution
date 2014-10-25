@@ -827,12 +827,20 @@ struct fpsstate
         return infectedType - 1;
     }
 
-    bool hasmaxammo()
+    bool hasmaxammo(int type = I_AMMO)
     {
+        if(type<I_AMMO || type>I_QUAD) return false;
+
         const playerclassinfo &pci = game::getplayerclassinfo(this);
-        loopi(WEAPONS_PER_CLASS)
-        {
-            if (ammo[pci.weap[i]]<GUN_AMMO_MAX(pci.weap[i])) return true;
+        switch(type)
+        { //TODO: for all items
+            case I_HEALTH: return health<maxhealth;
+            case I_AMMO: case I_AMMO2: case I_AMMO3: case I_AMMO4:
+                loopi(WEAPONS_PER_CLASS)
+                {
+                    if (ammo[pci.weap[i]]<GUN_AMMO_MAX(pci.weap[i])) return true;
+                }
+                return false;
         }
         return false;
     }
