@@ -538,13 +538,13 @@ namespace game
         return d;
     }
 
-    void respawnself()
+    void respawnself(bool isMapstart = false)
     {
-        if(ispaused()) return;
+        if(!isMapstart && ispaused()) return;
         resetdamagescreen();
-        if(m_mp(gamemode))
+        if(isMapstart || m_mp(gamemode))
         {
-            if(player1->respawned!=player1->lifesequence)
+            if(isMapstart || player1->respawned!=player1->lifesequence)
             {
                 addmsg(N_TRYSPAWN, "rcii", player1, playerclass, playermodel);
                 player1->respawned = player1->lifesequence;
@@ -1079,6 +1079,7 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
+            d->state = CS_DEAD;
             d->frags = d->flags = 0;
             d->deaths = 0;
             d->totaldamage = 0;
@@ -1127,8 +1128,7 @@ namespace game
         ai::clearwaypoints(true);
 
         respawnent = -1; // so we don't respawn at an old spot
-        if(!m_mp(gamemode)) spawnplayer(player1);
-        else findplayerspawn(player1, -1);
+        respawnself(true);
         entities::resetspawns();
         copystring(clientmap, name ? name : "");
 

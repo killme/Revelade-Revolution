@@ -2052,7 +2052,6 @@ namespace server
             clientinfo *ci = clients[i];
             ci->mapchange();
             ci->state.lasttimeplayed = lastmillis;
-            if(m_mp(gamemode) && ci->state.state!=CS_SPECTATOR) sendspawn(ci);
         }
 
         aiman::changemap();
