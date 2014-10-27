@@ -323,6 +323,13 @@ inline void ident::getval(tagval &v) const
 #define CS_SCONSTANT(name, cur) char *name = svariable(#name, cur, &name, NULL, IDF_READONLY);
 #define CS_CONSTANT(name, cur) int name = variable(#name, 0, cur, cur, &name, NULL, IDF_READONLY);
 
+// debug build only vars
+#ifdef _DEBUG
+    #define VARDBG(name, default) VAR(name, 0, default, 1);
+#else
+    #define VARDBG(name, default) static int const name = 0;
+#endif
+
 // anonymous inline commands, uses nasty template trick with line numbers to keep names unique
 #define ICOMMANDNS(name, cmdname, nargs, proto, b) template<int N> struct cmdname; template<> struct cmdname<__LINE__> { static bool init; static void run proto; }; bool cmdname<__LINE__>::init = addcommand(name, (identfun)cmdname<__LINE__>::run, nargs); void cmdname<__LINE__>::run proto \
     { b; }

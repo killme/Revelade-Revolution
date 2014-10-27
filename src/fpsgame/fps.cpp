@@ -1237,12 +1237,14 @@ namespace game
 
     int numdynents() { return players.length()+monsters.length()+movables.length()+(cmode? cmode->getdynents().length(): 0); }
 
+    ICOMMAND(numdynents, "", (), intret(numdynents()));
+
     dynent *iterdynents(int i)
     {
         ASSERT(i >= -1 && "Dynent id can not be negative!");
         if(i<players.length()) return players[i];
         i -= players.length();
-        if(i<monsters.length()) return (dynent *)monsters[i];
+        if(i<monsters.length()) return (fpsent *)monsters[i];
         i -= monsters.length();
         if(i<movables.length()) return (dynent *)movables[i];
         if (!cmode) return NULL;

@@ -1130,9 +1130,12 @@ void renderclient(dynent *d, const char *mdlname, modelattach *attachments, int 
     }
 }
 
+VARDBG(dbgsetbbfrommodel, 1);
+
 void setbbfrommodel(dynent *d, const char *mdl)
 {
     model *m = loadmodel(mdl);
+    if(dbgsetbbfrommodel) conoutf(CON_DEBUG, "Setting bb from model (ent:%p model:%p name:%s)", d, m, mdl);
     if(!m) return;
     vec center, radius;
     m->collisionbox(center, radius);
@@ -1143,5 +1146,6 @@ void setbbfrommodel(dynent *d, const char *mdl)
     d->radius    = d->collidetype==COLLIDE_OBB ? sqrtf(d->xradius*d->xradius + d->yradius*d->yradius) : max(d->xradius, d->yradius);
     d->eyeheight = (center.z-radius.z) + radius.z*2*m->eyeheight;
     d->aboveeye  = radius.z*2*(1.0f-m->eyeheight);
+    if(dbgsetbbfrommodel) conoutf(CON_DEBUG, "(xradius:%f yradius:%f radius:%f eyeheight:%f aboveeye:%f)", d->xradius, d->yradius, d->radius, d->eyeheight, d->aboveeye);
 }
 

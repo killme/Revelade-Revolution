@@ -518,8 +518,13 @@ namespace game
         loopi(min(damage/25, 40)+1) spawnbouncer(from, vel, d, BNC_GIBS);
     }
 
+    VARDBG(dbghit, 0);
+
     void hit(int damage, dynent *d, fpsent *at, const vec &vel, int gun, float info1, int info2 = 1, bool headshot = false)
     {
+        if(dbghit) conoutf(CON_DEBUG, "hit:(damage=%i dynent=%p at=%p vel=[%f,%f,%f] gun=%i info1=%f info2=%i headshot=%i)",
+                                            damage,   d,        at, vel.x, vel.y, vel.z, gun, info1, info2,   headshot);
+
         if(at==player1 && d!=at && damage>0)
         {
             extern int hitsound;

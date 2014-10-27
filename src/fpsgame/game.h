@@ -99,6 +99,7 @@ struct playermodelinfo
     *ffaicon, *blueicon, *redicon;
     bool ragdoll, selectable;
     float radius, eyeheight, aboveeye;
+    int weight;
 };
 
 struct fpsent;
@@ -125,7 +126,7 @@ namespace monster
     struct MonsterType      // see docs for how these values modify behaviour
     {
         playerclassinfo classInfo;
-        short freq, lag, rate, pain, loyalty, bscale, weight;
+        short freq, lag, rate, pain, loyalty;
         short painsound, diesound;
         uchar traits;
         playermodelinfo modelInfo;
@@ -822,7 +823,7 @@ struct fpsstate
         return infectedType > 0;
     }
 
-    int getMonsterType()
+    virtual int getMonsterType()
     {
         return infectedType - 1;
     }
@@ -1066,11 +1067,15 @@ struct fpsent : dynent, fpsstate
         radius = 4.1f;
         eyeheight = 14;
         aboveeye = 1;
+        weight = 100;
 
         const playermodelinfo &mdl = game::getplayermodelinfo(this);
         radius = (mdl.radius > 0.f) ? mdl.radius : radius;
         eyeheight = (mdl.eyeheight > 0.f) ? mdl.eyeheight : eyeheight;
         aboveeye = (mdl.aboveeye > 0.f) ? mdl.aboveeye : aboveeye;
+        weight = (mdl.weight > 0) ? mdl.weight : weight;
+
+        xradius = yradius = radius;
     }
 };
 
