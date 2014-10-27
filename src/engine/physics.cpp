@@ -1716,7 +1716,7 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
     else if(pl->inwater && !water) game::physicstrigger(pl, local, 0, 1, pl->inwater);
     pl->inwater = water ? material&MATF_VOLUME : MAT_AIR;
 
-    if(pl->state==CS_ALIVE && (pl->o.z < 0 || material&MAT_DEATH)) game::suicide(pl);
+    if(pl->state==CS_ALIVE && (pl->o.z < 0 || material&MAT_DEATH)) game::suicide(pl, pl->o.z < 0 ? game::SUICIDE_TYPE_FALL : game::SUICIDE_TYPE_MAT);
 
     return true;
 }

@@ -62,7 +62,17 @@ namespace game
     extern const char *getclientmap();
     extern const char *getmapinfo();
     extern void resetgamestate();
-    extern void suicide(physent *d, int type = 0); // type = 0 (generic), 1 (fall), 2 (lava)
+    // RR -> Different suicide types
+    enum
+    {
+        SUICIDE_TYPE_GENERIC = 0,
+        SUICIDE_TYPE_FALL,
+        SUICIDE_TYPE_MAT,
+        SUICIDE_TYPE_LAVA,
+        SUICIDE_TYPE_GAME
+    };
+    extern void suicide(physent *d, int type = SUICIDE_TYPE_GENERIC);
+    ///RR
     extern void newmap(int size);
     extern void startmap(const char *name);
     extern void preload();

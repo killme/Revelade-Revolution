@@ -2297,7 +2297,7 @@ namespace server
         if(gs.state!=CS_ALIVE) return;
         ci->state.frags += smode ? smode->fragvalue(ci, ci) : -1;
         ci->state.deaths++;
-        sendf(-1, 1, "ri6", N_DIED, ci->clientnum, ci->clientnum, gs.frags, -1-type, 0);
+        sendf(-1, 1, "ri6", N_DIED, ci->clientnum, ci->clientnum, gs.frags, -2-type, 0);
         ci->position.setsize(0);
         bool didrespawn = false;
         if(smode) didrespawn = smode->died(ci, NULL);

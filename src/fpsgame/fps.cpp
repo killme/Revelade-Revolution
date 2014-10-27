@@ -901,15 +901,15 @@ namespace game
         }
         else if((d->state!=CS_ALIVE && d->state != CS_LAGGED && d->state != CS_SPAWNING) || intermission) return;
 
-        if(actor == player1 && d != player1)
-        {
-            hudevents.add(hudevent(special ? (WEAP_IS_EXPLOSIVE(gun) ? HET_DIRECTHIT : HET_HEADSHOT): HET_KILL, lastmillis));
-        }
-
         fpsent *h = followingplayer();
         if(!h) h = player1;
         if(special != -1)
         {
+            if(actor == h && d != h)
+            {
+                hudevents.add(hudevent(special ? (WEAP_IS_EXPLOSIVE(gun) ? HET_DIRECTHIT : HET_HEADSHOT): HET_KILL, lastmillis));
+            }
+
             int contype = d==h || actor==h ? CON_FRAG_SELF : CON_FRAG_OTHER;
             const char *dname = "", *aname = "";
             if(m_teammode && teamcolorfrags)
@@ -926,7 +926,7 @@ namespace game
                 conoutf(contype, "\f2%s got killed by %s!", dname, aname);
             else if(d==actor || actor->type==ENT_INANIMATE)
             {
-                if (gun < -1) conoutf(contype, "\f2%s %s", dname, GUN_SUICIDE_MESSAGE(gun));
+                if (gun < -1) conoutf(contype, "\f2%s %s%s", dname, GUN_SUICIDE_MESSAGE_INSERT_YOU(-2-gun, d == player1 ? "were " : "was "), GUN_SUICIDE_MESSAGE(-2-gun));
                 else conoutf(contype, "\f2%s %s %s", dname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), d==player1 ? "yourself!" : "thyself");
             }
             else if(isteam(d->team, actor->team))
@@ -1295,7 +1295,7 @@ namespace game
         cidx = (cidx+1)%3;
         formatstring(cname[cidx])(TEAM_COLOR_TEXT2(team, "\fs", "%s\fS"), isteam(player1->team, team) || !alt ? name : alt);
         return cname[cidx];
-    }    
+    }
 
     void suicide(physent *d, int type)
     {
