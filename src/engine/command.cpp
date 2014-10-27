@@ -433,7 +433,7 @@ static inline void setalias(ident &id, tagval &v)
     if(id.valtype == VAL_STR) delete[] id.val.s;
     id.setval(v);
     cleancode(id);
-    id.flags = (id.flags & identflags) | identflags;
+    id.flags = ((id.flags & identflags) | identflags) & ~IDF_PERSIST;
 }
 
 static void setalias(const char *name, tagval &v)
