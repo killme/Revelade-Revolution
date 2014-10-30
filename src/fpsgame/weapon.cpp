@@ -569,7 +569,7 @@ namespace game
                         damagecompass(damage, at ? at->o : f->o);
                         playsound(min<int>(S_PAIN_ALAN+f->playermodel, S_PAIN_ADVENT));
                     }
-                    else if (f->aitype != AI_ZOMBIE) playsound(S_PAIN1+rnd(5), &f->o);
+                    else /*if (f->ai.type != AI_ZOMBIE)*/ playsound(S_PAIN1+rnd(5), &f->o); //TODO: zombie pains
                 }
             }
         }
@@ -810,7 +810,7 @@ namespace game
         d->burngun = gun;
         if (d == hudplayer()) setisburning(true);
 
-        if (local && (attacker->type == ENT_PLAYER || ((fpsent*)attacker)->ai))
+        if (local && (attacker->type == ENT_PLAYER || ((fpsent*)attacker)->ai.local))
             addmsg(N_ONFIRE, "ri5", ((fpsent*)attacker)->clientnum, ((fpsent*)d)->clientnum, gun, projid, 1);
     }
 
@@ -1151,7 +1151,7 @@ namespace game
 
         if(attacktime<d->gunwait || !inputenabled) return;
         d->gunwait = 0;
-        if((d==player1 || d->ai) && !d->attacking) return;
+        if((d==player1 || d->ai.local) && !d->attacking) return;
         d->lastaction = lastmillis;
         d->lastattackgun = d->gunselect;
         if(!d->isInfected() && (d->ammo[WEAPONI(gun)] < 1 || d->ammo[WEAPONI(gun)] < WEAP(gun, numshots)))
@@ -1199,7 +1199,7 @@ namespace game
         if(WEAP_IS_RAY(gun)) raydamage(from, to, d, gun);
         shoteffects(gun, from, to, d, true, 0, prevaction);
 
-        if(d==player1 || d->ai || d->type == ENT_AI)
+        if(d==player1 || d->ai.local || d->type == ENT_AI)
         {
             if(d == player1)
             {
@@ -1214,7 +1214,7 @@ namespace game
         }
 
         d->gunwait = WEAP(gun,attackdelay);
-        if(d->gunselect == WEAP_PISTOL && d->ai) d->gunwait += int(d->gunwait*(((101-d->skill)+rnd(111-d->skill))/100.f));
+        if(d->gunselect == WEAP_PISTOL && d->ai.local) d->gunwait += int(d->gunwait*(((101-d->ai.skill)+rnd(111-d->ai.skill))/100.f));
         d->totalshots += WEAP(gun,damage)*(d->quadmillis? 4: 1)*(headshot? 1: GUN_HEADSHOT_MUL)*WEAP(gun,numrays);
     }
 
@@ -1388,7 +1388,7 @@ namespace game
             checkattacksound(d, d==following);
             checkidlesound(d, d==following);
 
-            if (d->onfire && d->inwater && (d==player1 || d->ai))
+            if (d->onfire && d->inwater && (d==player1 || d->ai.local))
             {
                 player1->onfire = false;
                 addmsg(N_ONFIRE, "ri5", d->clientnum, d->clientnum, 0, 0, 0);
@@ -1396,7 +1396,7 @@ namespace game
 
             if (m_dmsp)
             {
-                if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai) && lastmillis-d->lastburnpain >= clamp(lastmillis-d->burnmillis, 200, 1000))
+                if (d->onfire && d->state == CS_ALIVE && (d->fireattacker == player1 || ((fpsent*)d->fireattacker)->ai.local) && lastmillis-d->lastburnpain >= clamp(lastmillis-d->burnmillis, 200, 1000))
                 {
                     int damage = min(WEAP(d->burngun,damage)*1000/max(lastmillis-d->burnmillis, 1000), d->health)*(((fpsent *)d->fireattacker)->quadmillis ? 4 : 1);
                     if(d->fireattacker->type==ENT_PLAYER) ((fpsent*)d->fireattacker)->totaldamage += damage;

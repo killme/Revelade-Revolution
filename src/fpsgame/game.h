@@ -143,6 +143,8 @@ namespace monster
     extern int getRandomType();
 
     extern bool shouldSpawnRat();
+
+    extern bool providesGuts(fpsstate *state);
 }
 
 enum
@@ -802,7 +804,7 @@ struct fpsstate
     int quadmillis;
     int gunselect, gunwait, hudgun;
     int ammo[NUMWEAPS+1];//+1 -> WEAP_NONE TODO: find a cleaner way of doing this
-    int aitype, skill;
+    ai::AiState ai;
     int playerclass, playermodel;
     int guts; // regenmillis;
 
@@ -811,7 +813,7 @@ struct fpsstate
     
     WeaponEffect effects;
 
-    fpsstate() : maxhealth(100), aitype(AI_NONE), skill(0), playerclass(-1), playermodel(-1), guts(0), infectedType(0), effects(WE_NONE) {}
+    fpsstate() : maxhealth(100), ai(), playerclass(-1), playermodel(-1), guts(0), infectedType(0), effects(WE_NONE) {}
 
     virtual void updateEffects()
     {
@@ -975,7 +977,6 @@ struct fpsent : dynent, fpsstate
     
     int follow;
     string name, team, info;
-    ai::aiinfo *ai;
     int ownernum, lastnode;
 
     vec muzzle;
@@ -998,7 +999,6 @@ struct fpsent : dynent, fpsstate
         initialSpeed(-1),
         
         follow(-1),
-        ai(NULL),
         ownernum(-1),
         muzzle(-1, -1, -1)
     {
@@ -1010,7 +1010,6 @@ struct fpsent : dynent, fpsstate
         freeeditinfo(edit);
         if(attackchan >= 0) stopsound(attacksound, attackchan);
         if(idlechan >= 0) stopsound(idlesound, idlechan);
-        if(ai) delete ai;
     }
     void updateEffects()
     {
@@ -1163,8 +1162,6 @@ namespace game
         virtual bool aipursue(fpsent *d, ai::aistate &b) { return false; }
 
         virtual const vector<dynent *> &getdynents() { static vector<dynent *> emptyvec; return emptyvec; }
-        virtual void zombiepain(int damage, fpsent *d, fpsent *actor) {} // survival specific
-        virtual void zombiekilled(fpsent *d, fpsent *actor) {} // survival specific
     };
 
     extern clientmode *cmode;

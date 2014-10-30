@@ -43,7 +43,7 @@ namespace game
     int otherclients(bool ai = false, bool nospec = true)
     {
         int n = 0; // ai don't count
-        loopv(players) if(players[i] && (ai || players[i]->aitype == AI_NONE) && (!nospec || players[i]->state != CS_SPECTATOR)) n++;
+        loopv(players) if(players[i] && (ai || players[i]->ai.type == ai::AI_TYPE_NONE) && (!nospec || players[i]->state != CS_SPECTATOR)) n++;
         return n;
     }
     ICOMMAND(otherclients, "", (), otherclients());
@@ -177,8 +177,8 @@ namespace game
     bool isai(int cn, int type)
     {
         fpsent *d = getclient(cn);
-        int aitype = type > 0 && type < AI_MAX ? type : AI_BOT;
-        return d && d->aitype==aitype;
+        int aitype = type > 0 && type < ai::AI_TYPE_NUM ? type : ai::AI_TYPE_BOT;
+        return d && d->ai.type==aitype;
     }
     ICOMMAND(isai, "ii", (int *cn, int *type), intret(isai(*cn, *type) ? 1 : 0));
 
@@ -218,7 +218,7 @@ namespace game
             buf.put(cn, strlen(cn));
             numclients++;
         }
-        loopv(clients) if(clients[i] && (bots || clients[i]->aitype == AI_NONE))
+        loopv(clients) if(clients[i] && (bots || clients[i]->ai.type == ai::AI_TYPE_NONE))
         {
             formatstring(cn)("%d", clients[i]->clientnum);
             if(numclients++) buf.add(' ');
@@ -856,14 +856,14 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
-            if((d == player1 || d->ai) && (d->state == CS_ALIVE || d->state == CS_EDITING))
+            if((d == player1 || d->ai.local) && (d->state == CS_ALIVE || d->state == CS_EDITING))
             {
                 packetbuf q(100);
                 sendposition(d, q);
                 for(int j = i+1; j < players.length(); j++)
                 {
                     fpsent *d = players[j];
-                    if((d == player1 || d->ai) && (d->state == CS_ALIVE || d->state == CS_EDITING))
+                    if((d == player1 || d->ai.local) && (d->state == CS_ALIVE || d->state == CS_EDITING))
                         sendposition(d, q);
                 }
                 sendclientpacket(q.finalize(), 0);
@@ -1356,7 +1356,7 @@ namespace game
                 int rays = getint(p);
                 loopj(rays) loopk(3) shotrays[j][k] = getint(p)/DNF;
                 fpsent *s = getclient(scn);
-                if(!s || s==player1 || s->ai) break;
+                if(!s || s==player1 || s->ai.local) break;
                 if(WEAPONI(gun)>WEAP_FIST && WEAPONI(gun)<=WEAP_PISTOL && s->ammo[WEAPONI(gun)]) s->ammo[WEAPONI(gun)]--;
                 s->gunselect = clamp(WEAPONI(gun), (int)WEAP_FIST, (int)WEAP_PISTOL);
                 s->gunwait = WEAP(gun,attackdelay);
@@ -1826,7 +1826,7 @@ namespace game
 
             case N_INITAI:
             {
-                int bn = getint(p), on = getint(p), at = getint(p), sk = clamp(getint(p), 1, 101), pm = getint(p), pc = getint(p);
+                int bn = getint(p), on = getint(p), type = getint(p), sk = clamp(getint(p), 1, 101), pm = getint(p), pc = getint(p);
                 string name, team;
                 getstring(text, p);
                 filtertext(name, text, NAMEALLOWSPACES, MAXNAMELEN);
@@ -1834,7 +1834,7 @@ namespace game
                 filtertext(team, text, false, MAXTEAMLEN);
                 fpsent *b = newclient(bn);
                 if(!b) break;
-                ai::init(b, at, on, sk, bn, pm, pc, name, team);
+                ai::init(b, ai::AiType(type), on, sk, bn, pm, pc, name, team);
                 break;
             }
 

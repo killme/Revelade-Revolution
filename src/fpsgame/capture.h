@@ -685,7 +685,7 @@ struct captureclientmode : clientmode
             //    if(f.ammo > 0 && f.ammotype > 0 && f.ammotype <= I_CARTRIDGES-I_SHELLS+1 && !d->hasmaxammo(gun))
             //        regen = gun != d->ai->weappref ? 2 : 4;
             //}
-            loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai && e->state == CS_ALIVE && isteam(d->team, e->team))
+            loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai.local && e->state == CS_ALIVE && isteam(d->team, e->team))
             { // try to guess what non ai are doing
                 vec ep = e->feetpos();
                 if(targets.find(e->clientnum) < 0 && ep.squaredist(f.o) <= (CAPTURERADIUS*CAPTURERADIUS))
@@ -723,7 +723,7 @@ struct captureclientmode : clientmode
                 targets.setsize(0);
                 ai::checkothers(targets, d, ai::AI_S_DEFEND, ai::AI_T_AFFINITY, b.target, true);
                 fpsent *e = NULL;
-                loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai && e->state == CS_ALIVE && isteam(d->team, e->team))
+                loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai.local && e->state == CS_ALIVE && isteam(d->team, e->team))
                 { // try to guess what non ai are doing
                     vec ep = e->feetpos();
                     if(targets.find(e->clientnum) < 0 && (ep.squaredist(f.o) <= (CAPTURERADIUS*CAPTURERADIUS*4)))
@@ -731,9 +731,9 @@ struct captureclientmode : clientmode
                 }
                 if(!targets.empty())
                 {
-                    if(lastmillis-b.millis >= (201-d->skill)*33)
+                    if(lastmillis-b.millis >= (201-d->ai.skill)*33)
                     {
-                        d->ai->trywipe = true; // re-evaluate so as not to herd
+                        ai::tryWipe(d); // re-evaluate so as not to herd
                         return true;
                     }
                     else walk = 2;

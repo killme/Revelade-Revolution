@@ -2,9 +2,6 @@ struct fpsent;
 
 #define MAXBOTS 32
 
-enum { AI_NONE = 0, AI_BOT, AI_ZOMBIE, AI_MAX };
-#define isaitype(a) (a >= 0 && a <= AI_MAX-1)
-
 namespace ai
 {
     const int MAXWAYPOINTS = USHRT_MAX - 2;
@@ -183,7 +180,67 @@ namespace ai
 
     const int NUMPREVNODES = 6;
 
-    struct aiinfo
+    enum AiType
+    {
+        AI_TYPE_NONE,
+        AI_TYPE_BOT,
+        AI_TYPE_MONSTER,
+        AI_TYPE_NUM
+    };
+
+    struct AiState;
+
+    struct AiInterface
+    {
+        virtual void destroy(fpsent *d) = 0;
+        virtual void create(fpsent *d) = 0;
+
+        virtual void clearState(AiState *state) {};
+    };
+
+    //TODO: allow server-only AIs
+#ifndef STANDALONE
+    extern AiInterface * const getAiType(AiType type);
+    extern AiInterface * const getAiType(fpsent *d);
+    extern struct BotAiInfo *getBotState(fpsent *d);
+#endif
+
+    struct AiState
+    {
+        AiType type;
+        int skill;
+        bool local;
+        void *data;
+
+        AiState() : type(AI_TYPE_NONE), skill(0), local(false), data(NULL) {}
+
+        ~AiState()
+        {
+#ifndef STANDALONE
+            getAiType(type)->clearState(this);
+#endif
+        }
+    };
+
+
+    struct DummyAi : AiInterface
+    {
+        void destroy(fpsent *d);
+        void create(fpsent *d);
+    };
+    struct BotAi : AiInterface
+    {
+        void destroy(fpsent *d);
+        void create(fpsent *d);
+    };
+
+    struct AiInfo
+    {
+        AiType type;
+        AiInfo(AiType type) : type(type) {}
+    };
+
+    struct BotAiInfo : AiInfo
     {
         vector<aistate> state;
         vector<int> route;
@@ -193,13 +250,13 @@ namespace ai
         float targyaw, targpitch, views[3], aimrnd[3];
         bool dontmove, becareful, tryreset, trywipe;
 
-        aiinfo()
+        BotAiInfo() : AiInfo(AI_TYPE_BOT)
         {
             clearsetup();
             reset();
             loopk(3) views[k] = 0.f;
         }
-        ~aiinfo() {}
+        ~BotAiInfo() {}
 
         void clearsetup()
         {
@@ -290,7 +347,7 @@ namespace ai
     extern bool targetable(fpsent *d, fpsent *e);
     extern bool cansee(fpsent *d, vec &x, vec &y, vec &targ = aitarget);
 
-    extern void init(fpsent *d, int at, int on, int sk, int bn, int pm, int pc, const char *name, const char *team);
+    extern void init(fpsent *d, AiType aiType, int on, int sk, int bn, int pm, int pc, const char *name, const char *team);
     extern void update();
     extern void avoid();
     extern void think(fpsent *d, bool run);
@@ -306,6 +363,8 @@ namespace ai
     extern bool defend(fpsent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, float wander = SIGHTMAX, int walk = 1);
     extern void assist(fpsent *d, aistate &b, vector<interest> &interests, bool all = false, bool force = false);
     extern bool parseinterests(fpsent *d, aistate &b, vector<interest> &interests, bool override = false, bool ignore = false);
+    extern void tryWipe(fpsent *d);
+    extern void switchState(fpsent *d, aistate &b, int t, int r = -1, int v = -1);
 
     extern void spawned(fpsent *d);
     extern void damaged(fpsent *d, fpsent *e);

@@ -82,27 +82,27 @@ static int bestenemy;
             const ::monster::MonsterType &t = ::monster::getMonsterType(ztype);
             type = ENT_AI;
             aitype = AI_ZOMBIE;
-            eyeheight = 8.0f;
-            aboveeye = 7.0f;
-            radius *= t.bscale/10.0f;
-            xradius = yradius = radius;
-            eyeheight *= t.bscale/10.0f;
-            aboveeye *= t.bscale/10.0f;
-            weight = t.weight;
+//             eyeheight = 8.0f;
+//             aboveeye = 7.0f;
+//             radius *= t.bscale/10.0f;
+//             xradius = yradius = radius;
+//             eyeheight *= t.bscale/10.0f;
+//             aboveeye *= t.bscale/10.0f;
+//             weight = t.weight;
             spawnplayer(this);
             trigger = lastmillis+100;
             targetyaw = yaw = (float)rnd(360);
             move = 1;
             if (t.loyalty == 0) enemy = -1;
             else enemy = players[rnd(players.length())]->clientnum;
-            maxspeed = (float)t.classInfo.maxspeed*4;
+
+            //TODO: let spawnstate take care of this
+            gunselect = t.classInfo.weap[0];
+            maxspeed = (float)t.classInfo.maxspeed/4;
             maxhealth = health = t.classInfo.maxhealth;
             armour = 0;
-            loopi(WEAPONS_PER_CLASS)
-            {
-                ammo[t.classInfo.weap[i]] = 10000;
-            }
-            gunselect = t.classInfo.weap[0];
+
+            loopi(NUMWEAPS) ammo[i] = 10000;
             pitch = 0;
             roll = 0;
             state = CS_ALIVE;
@@ -612,7 +612,7 @@ int newround(bool force = false)
             putint(p, zi->ownernum);
         }
     }
-
+/*
     void buildworldstate(worldstate &ws)
     {
         loopv(zombies)
@@ -621,7 +621,7 @@ int newround(bool force = false)
             ci.overflow = 0;
             addclientstate(ws, ci);
         }
-    }
+    }*/
 
     void initclient(clientinfo *ci, packetbuf &p, bool connecting)
     {
@@ -631,7 +631,7 @@ int newround(bool force = false)
         loopv(zombies) if (zombies[i]->state.state == CS_ALIVE) n++;
         putint(p, n);
         loopv(zombies) sendzombiestate(zombies[i], p);
-        if (connecting) ci->state.guts = 0;
+        if (ci && connecting) ci->state.guts = 0;
     }
 
     clientinfo *getcinfo(int n)

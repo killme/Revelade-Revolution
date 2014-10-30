@@ -443,7 +443,7 @@ namespace server
         loopvrev(clients)
         {
             clientinfo &c = *clients[i];
-            if(c.state.aitype != AI_NONE || c.privilege >= PRIV_ADMIN || c.local) continue;
+            if(c.state.ai.type != ai::AI_TYPE_NONE || c.privilege >= PRIV_ADMIN || c.local) continue;
             if(actor && ((c.privilege > priv && !actor->local) || c.clientnum == actor->clientnum)) continue;
             if(getclientip(c.clientnum) == ip) disconnect_client(c.clientnum, DISC_KICK);
         }
@@ -698,7 +698,7 @@ namespace server
 
     void addteamkill(clientinfo *actor, clientinfo *victim, int n)
     {
-        if(!m_timed || actor->state.aitype != AI_NONE || actor->local || actor->privilege || (victim && victim->state.aitype != AI_NONE)) return;
+        if(!m_timed || actor->state.ai.type != ai::AI_TYPE_NONE || actor->local || actor->privilege || (victim && victim->state.ai.type != ai::AI_TYPE_NONE)) return;
         shouldcheckteamkills = true;
         uint ip = getclientip(actor->clientnum);
         loopv(teamkills) if(teamkills[i].ip == ip) 
@@ -834,7 +834,7 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
-            if(ci->clientnum!=exclude && (!nospec || ci->state.state!=CS_SPECTATOR || (priv && (ci->privilege >= PRIV_MASTER || ci->local))) && (!noai || ci->state.aitype == AI_NONE)) n++;
+            if(ci->clientnum!=exclude && (!nospec || ci->state.state!=CS_SPECTATOR || (priv && (ci->privilege >= PRIV_MASTER || ci->local))) && (!noai || ci->state.ai.type == ai::AI_TYPE_NONE)) n++;
         }
         return n;
     }
@@ -849,11 +849,11 @@ namespace server
     const char *colorname(clientinfo *ci, char *name = NULL)
     {
         if(!name) name = ci->name;
-        if(name[0] && !duplicatename(ci, name) && ci->state.aitype == AI_NONE) return name;
+        if(name[0] && !duplicatename(ci, name) && ci->state.ai.type == ai::AI_TYPE_NONE) return name;
         static string cname[3];
         static int cidx = 0;
         cidx = (cidx+1)%3;
-        formatstring(cname[cidx])(ci->state.aitype == AI_NONE ? "%s \fs\f5(%d)\fS" : "%s \fs\f5[%d]\fS", name, ci->clientnum);
+        formatstring(cname[cidx])(ci->state.ai.type == ai::AI_TYPE_NONE ? "%s \fs\f5(%d)\fS" : "%s \fs\f5[%d]\fS", name, ci->clientnum);
         return cname[cidx];
     }
 
@@ -1046,7 +1046,7 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
-            if(ci==exclude || ci->state.aitype!=AI_NONE || ci->state.state==CS_SPECTATOR || !ci->team[0]) continue;
+            if(ci==exclude || ci->state.ai.type != ai::AI_TYPE_NONE || ci->state.state==CS_SPECTATOR || !ci->team[0]) continue;
             ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
             ci->state.lasttimeplayed = lastmillis;
 
@@ -1598,8 +1598,10 @@ namespace server
         void cleanup() { DELETEA(data); len = 0; }
         bool contains(const uchar *p) const { return p >= data && p < &data[len]; }
     };
+
     vector<worldstate> worldstates;
     bool reliablemessages = false;
+
     void cleanworldstate(ENetPacket *packet)
     {
         loopv(worldstates)
@@ -1634,7 +1636,7 @@ namespace server
         loopv(clients)
         {
             clientinfo &ci = *clients[i];
-            if(ci.state.aitype != AI_NONE) continue;
+            if(ci.state.ai.type != ai::AI_TYPE_NONE) continue;
             uchar *data = wsbuf.buf;
             int size = wslen;
             if(ci.wsdata >= wsbuf.buf) { data = ci.wsdata + ci.wslen; size -= ci.wslen; }
@@ -1645,7 +1647,8 @@ namespace server
             else enet_packet_destroy(packet);
         }
         wsbuf.offset(wsbuf.length());
-        }
+    }
+
     static inline void addposition(worldstate &ws, ucharbuf &wsbuf, int mtu, clientinfo &bi, clientinfo &ci)
     {
         if(bi.position.empty()) return;
@@ -1667,7 +1670,7 @@ namespace server
         loopv(clients)
         {
             clientinfo &ci = *clients[i];
-            if(ci.state.aitype != AI_NONE) continue;
+            if(ci.state.ai.type != ai::AI_TYPE_NONE) continue;
             uchar *data = wsbuf.buf;
             int size = wslen;
             if(ci.wsdata >= wsbuf.buf) { data = ci.wsdata + ci.wslen; size -= ci.wslen; }
@@ -1676,12 +1679,12 @@ namespace server
             sendpacket(ci.clientnum, 1, packet);
             if(packet->referenceCount) { ws.uses++; packet->freeCallback = cleanworldstate; }
             else enet_packet_destroy(packet);
-                }
+        }
         wsbuf.offset(wsbuf.length());
     }
 
     static inline void addmessages(worldstate &ws, ucharbuf &wsbuf, int mtu, clientinfo &bi, clientinfo &ci)
-                {
+    {
         if(bi.messages.empty()) return;
         if(wsbuf.length() + 10 + bi.messages.length() > mtu) sendmessages(ws, wsbuf);
         int offset = wsbuf.length();
@@ -1693,9 +1696,10 @@ namespace server
         int len = wsbuf.length() - offset;
         if(ci.wsdata < wsbuf.buf) { ci.wsdata = &wsbuf.buf[offset]; ci.wslen = len; }
         else ci.wslen += len;
-                }
+    }
+
     bool buildworldstate()
-        {
+    {
         int wsmax = 0;
         loopv(clients)
         {
@@ -1715,28 +1719,30 @@ namespace server
         int mtu = getservermtu() - 100;
         if(mtu <= 0) mtu = ws.len;
         ucharbuf wsbuf(ws.data, ws.len);
+
         loopv(clients)
         {
             clientinfo &ci = *clients[i];
-            if(ci.state.aitype != AI_NONE) continue;
+            if(ci.state.ai.type != ai::AI_TYPE_NONE) continue;
             addposition(ws, wsbuf, mtu, ci, ci);
             loopvj(ci.bots) addposition(ws, wsbuf, mtu, *ci.bots[j], ci);
-            }
-
+        }
         sendpositions(ws, wsbuf);
+
         loopv(clients)
-            {
+        {
             clientinfo &ci = *clients[i];
-            if(ci.state.aitype != AI_NONE) continue;
+            if(ci.state.ai.type != ai::AI_TYPE_NONE) continue;
             addmessages(ws, wsbuf, mtu, ci, ci);
             loopvj(ci.bots) addmessages(ws, wsbuf, mtu, *ci.bots[j], ci);
-            }
+        }
         sendmessages(ws, wsbuf);
+
         reliablemessages = false;
         if(ws.uses) return true;
         ws.cleanup();
         worldstates.drop();
-            return false;
+        return false;
     }
 
     bool sendpackets(bool force)
@@ -1791,13 +1797,13 @@ namespace server
 
     void putinitclient(clientinfo *ci, packetbuf &p)
     {
-        if(ci->state.aitype != AI_NONE)
+        if(ci->state.ai.type != ai::AI_TYPE_NONE)
         {
             putint(p, N_INITAI);
             putint(p, ci->clientnum);
             putint(p, ci->ownernum);
-            putint(p, ci->state.aitype);
-            putint(p, ci->state.skill);
+            putint(p, ci->state.ai.type);
+            putint(p, ci->state.ai.skill);
             putint(p, ci->state.playerclass);
             putint(p, ci->state.playermodel);
             sendstring(ci->name, p);
@@ -1938,7 +1944,7 @@ namespace server
             loopv(clients)
             {
                 clientinfo *oi = clients[i];
-                if(oi->state.aitype > AI_NONE || (ci && oi->clientnum == ci->clientnum)) continue;
+                if(oi->state.ai.type != ai::AI_TYPE_NONE || (ci && oi->clientnum == ci->clientnum)) continue;
                 if(oi->mapvote[0])
                 {
                     putint(p, N_MAPVOTE);
@@ -2105,7 +2111,7 @@ namespace server
         {
             clientinfo *oi = clients[i];
             if(oi->state.state==CS_SPECTATOR && !oi->privilege && !oi->local) continue;
-            if(oi->state.aitype!=AI_NONE) continue;
+            if(oi->state.ai.type != ai::AI_TYPE_NONE) continue;
             maxvotes++;
             if(!m_valid(oi->modevote)) continue;
             votecount *vc = NULL;
@@ -2236,7 +2242,7 @@ namespace server
         if (m_survivalb && actor!=target && isteam(actor->team, target->team)) actor->state.teamshooter = true;
         if(ts.health<=0)
         {
-            if (m_survival && target->state.aitype==AI_ZOMBIE)
+            if (m_survival && monster::providesGuts(&target->state))
             {
                 const ::monster::MonsterType &zt = ::monster::getMonsterType(((zombie*)target)->ztype);
                 actor->state.guts += zt.classInfo.maxhealth/zt.freq*2;
@@ -2332,7 +2338,7 @@ namespace server
         {
             hitinfo &h = hits[i];
             clientinfo *target = getinfo(h.target);
-            if(!target || target->state.state!=CS_ALIVE || (h.lifesequence!=target->state.lifesequence && target->state.aitype != AI_ZOMBIE) || h.dist<0 || (WEAP_IS_EXPLOSIVE(gun) && h.dist>WEAP(gun,projradius))) continue;
+            if(!target || target->state.state!=CS_ALIVE || (h.lifesequence!=target->state.lifesequence) || h.dist<0 || (WEAP_IS_EXPLOSIVE(gun) && h.dist>WEAP(gun,projradius))) continue;
 
             bool dup = false;
             loopj(i) if(hits[j].target==h.target) { dup = true; break; }
@@ -2382,7 +2388,7 @@ namespace server
                 {
                     hitinfo &h = hits[i];
                     clientinfo *target = getinfo(h.target);
-                    if(!target || target->state.state!=CS_ALIVE || (h.lifesequence!=target->state.lifesequence && target->state.aitype != AI_ZOMBIE) || h.rays<1 || h.dist > WEAP(gun,range) + 1) continue;
+                    if(!target || target->state.state!=CS_ALIVE || h.lifesequence!=target->state.lifesequence || h.rays<1 || h.dist > WEAP(gun,range) + 1) continue;
 
                     damage = h.rays*game::getdamageranged(WEAP(gun,damage), gun, headshot, gs.quadmillis, from, target->state.o);
                     gs.shotdamage += damage;
@@ -2499,7 +2505,7 @@ namespace server
             int numLoadedMap = 0, numTotalClients = 0;
             loopv(clients)
             {
-                if(clients[i]->state.aitype == AI_NONE)
+                if(clients[i]->state.ai.type == ai::AI_TYPE_NONE)
                 {
                     if(clients[i]->maploaded)
                     {
@@ -2563,7 +2569,7 @@ namespace server
             loopvrev(clients)
             {
                 clientinfo &c = *clients[i];
-                if(c.state.aitype != AI_NONE) continue;
+                if(c.state.ai.type != ai::AI_TYPE_NONE) continue;
                 if(c.checkexceeded()) disconnect_client(c.clientnum, DISC_MSGERR);
                 else c.scheduleexceeded();
             }
@@ -2633,7 +2639,7 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
-            if(ci->state.state==CS_SPECTATOR || ci->state.aitype != AI_NONE) continue;
+            if(ci->state.state==CS_SPECTATOR || ci->state.ai.type != ai::AI_TYPE_NONE) continue;
             total++;
             if(!ci->clientmap[0])
             {
@@ -2654,7 +2660,7 @@ namespace server
         loopv(clients)
         {
             clientinfo *ci = clients[i];
-            if(ci->state.state==CS_SPECTATOR || ci->state.aitype != AI_NONE || ci->clientmap[0] || ci->mapcrc >= 0 || (req < 0 && ci->warned)) continue;
+            if(ci->state.state==CS_SPECTATOR || ci->state.ai.type != ai::AI_TYPE_NONE || ci->clientmap[0] || ci->mapcrc >= 0 || (req < 0 && ci->warned)) continue;
             formatstring(msg)("%s has modified map \"%s\"", colorname(ci), smapname);
             sendf(req, 1, "ris", N_SERVMSG, msg);
             if(req < 0) ci->warned = true;
@@ -2665,7 +2671,7 @@ namespace server
             if(i || info.matches <= crcs[i+1].matches) loopvj(clients)
             {
                 clientinfo *ci = clients[j];
-                if(ci->state.state==CS_SPECTATOR || ci->state.aitype != AI_NONE || !ci->clientmap[0] || ci->mapcrc != info.crc || (req < 0 && ci->warned)) continue;
+                if(ci->state.state==CS_SPECTATOR || ci->state.ai.type != ai::AI_TYPE_NONE || !ci->clientmap[0] || ci->mapcrc != info.crc || (req < 0 && ci->warned)) continue;
                 formatstring(msg)("%s has modified map \"%s\"", colorname(ci), smapname);
                 sendf(req, 1, "ris", N_SERVMSG, msg);
                 if(req < 0) ci->warned = true;
@@ -2799,7 +2805,7 @@ namespace server
         loopvrev(clients)
         {
             clientinfo *ci = clients[i];
-            if(ci->state.aitype != AI_NONE || ci->local || ci->privilege >= PRIV_ADMIN) continue;
+            if(ci->state.ai.type != ai::AI_TYPE_NONE || ci->local || ci->privilege >= PRIV_ADMIN) continue;
             if(checkgban(getclientip(ci->clientnum))) disconnect_client(ci->clientnum, DISC_IPBAN);
         }
     }
@@ -3250,7 +3256,7 @@ namespace server
                     cp->state.o = pos;
                     cp->gameclip = (flags&0x80)!=0;
 
-                    if(!cp->maploaded && cp->state.aitype == AI_NONE)
+                    if(!cp->maploaded && cp->state.ai.type == ai::AI_TYPE_NONE)
                     {
                         cp->maploaded = totalmillis;
                     }
@@ -3492,7 +3498,7 @@ namespace server
                 loopv(clients)
                 {
                     clientinfo *t = clients[i];
-                    if(t==cq || t->state.state==CS_SPECTATOR || t->state.aitype != AI_NONE || strcmp(cq->team, t->team)) continue;
+                    if(t==cq || t->state.state==CS_SPECTATOR || t->state.ai.type != ai::AI_TYPE_NONE || strcmp(cq->team, t->team)) continue;
                     sendf(t->clientnum, 1, "riis", N_SAYTEAM, cq->clientnum, text);
                 }
                 break;
@@ -3604,7 +3610,7 @@ namespace server
             }
 
             case N_PING:
-                if(ci && !ci->maploaded && ci->state.aitype == AI_NONE)
+                if(ci && !ci->maploaded && ci->state.ai.type == ai::AI_TYPE_NONE)
                 {
                     ci->maploaded = totalmillis;
                 }
@@ -3909,7 +3915,7 @@ namespace server
                 if (text[0] && ci->state.state != CS_SPECTATOR) loopv(clients)
                 {
                     clientinfo *t = clients[i];
-                    if(t==cq || t->state.state==CS_SPECTATOR || t->state.aitype != AI_NONE || strcmp(cq->team, t->team)) continue;
+                    if(t==cq || t->state.state==CS_SPECTATOR || t->state.ai.type != ai::AI_TYPE_NONE || strcmp(cq->team, t->team)) continue;
                     sendf(t->clientnum, 1, "riis", N_RADIOTEAM, cq->clientnum, text);
                 }
                 break;

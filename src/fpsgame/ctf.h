@@ -973,7 +973,7 @@ struct ctfclientmode : clientmode
                 }
                 if(flags.inrange(goal) && ai::makeroute(d, b, flags[goal].pos()))
                 {
-                    d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_AFFINITY, goal);
+                    ai::switchState(d, b, ai::AI_S_PURSUE, ai::AI_T_AFFINITY, goal);
                     return true;
                 }
             }
@@ -981,7 +981,7 @@ struct ctfclientmode : clientmode
         if(b.type == ai::AI_S_INTEREST && b.targtype == ai::AI_T_NODE) return true; // we already did this..
         if(randomnode(d, b, ai::SIGHTMIN, 1e16f))
         {
-            d->ai->switchstate(b, ai::AI_S_INTEREST, ai::AI_T_NODE, d->ai->route[0]);
+            ai::switchState(d, b, ai::AI_S_INTEREST, ai::AI_T_NODE, ai::getBotState(d)->route[0]);
             return true;
         }
         return false;
@@ -1001,7 +1001,7 @@ struct ctfclientmode : clientmode
         if(!ai::badhealth(d) && !takenflags.empty())
         {
             int flag = takenflags.length() > 2 ? rnd(takenflags.length()) : 0;
-            d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_AFFINITY, takenflags[flag]);
+            ai::switchState(d, b, ai::AI_S_PURSUE, ai::AI_T_AFFINITY, takenflags[flag]);
             return true;
         }
         return false;
@@ -1020,7 +1020,7 @@ struct ctfclientmode : clientmode
                 bool home = !m_hold && f.team == ctfteamflag(d->team);
                 ai::checkothers(targets, d, home ? ai::AI_S_DEFEND : ai::AI_S_PURSUE, ai::AI_T_AFFINITY, j, true);
                 fpsent *e = NULL;
-                loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai && e->state == CS_ALIVE && isteam(d->team, e->team))
+                loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai.local && e->state == CS_ALIVE && isteam(d->team, e->team))
                 { // try to guess what non ai are doing
                     vec ep = e->feetpos();
                     if(targets.find(e->clientnum) < 0 && (ep.squaredist(f.pos()) <= (FLAGRADIUS*FLAGRADIUS*4) || f.owner == e))
@@ -1030,12 +1030,12 @@ struct ctfclientmode : clientmode
                 {
                     bool guard = false;
                     if((f.owner && f.team != ctfteamflag(f.owner->team)) || f.droptime || targets.empty()) guard = true;
-                    else if(d->hasammo(d->ai->weappref))
+                    else if(d->hasammo(ai::getBotState(d)->weappref))
                     { // see if we can relieve someone who only has a piece of crap
                         fpsent *t;
                         loopvk(targets) if((t = getclient(targets[k])))
                         {
-                            if((t->ai && !t->hasammo(t->ai->weappref)) || (!t->ai && (t->gunselect == WEAP_FIST || t->gunselect == WEAP_PISTOL)))
+                            if((t->ai.local && !t->hasammo(ai::getBotState(t)->weappref)) || (!t->ai.local && (t->gunselect == WEAP_FIST || t->gunselect == WEAP_PISTOL)))
                             {
                                 guard = true;
                                 break;
@@ -1094,13 +1094,13 @@ struct ctfclientmode : clientmode
 			if(f.droptime) return ai::makeroute(d, b, f.pos());
 			if(f.owner) return ai::violence(d, b, f.owner, 4);
             int walk = 0;
-            if(lastmillis-b.millis >= (201-d->skill)*33)
+            if(lastmillis-b.millis >= (201-d->ai.skill)*33)
             {
                 static vector<int> targets; // build a list of others who are interested in this
                 targets.setsize(0);
                 ai::checkothers(targets, d, ai::AI_S_DEFEND, ai::AI_T_AFFINITY, b.target, true);
                 fpsent *e = NULL;
-                loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai && e->state == CS_ALIVE && isteam(d->team, e->team))
+                loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai.local && e->state == CS_ALIVE && isteam(d->team, e->team))
                 { // try to guess what non ai are doing
                     vec ep = e->feetpos();
                     if(targets.find(e->clientnum) < 0 && (ep.squaredist(f.pos()) <= (FLAGRADIUS*FLAGRADIUS*4) || f.owner == e))
@@ -1108,7 +1108,7 @@ struct ctfclientmode : clientmode
                 }
                 if(!targets.empty())
                 {
-                    d->ai->trywipe = true; // re-evaluate so as not to herd
+                    ai::tryWipe(d); // re-evaluate so as not to herd
                     return true;
                 }
                 else

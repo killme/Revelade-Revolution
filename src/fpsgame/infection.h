@@ -188,7 +188,7 @@ struct infectionclientmode : clientmode
         loopv(clients)
         {
             makeZombie(clients[i], false);
-            if(clients[i]->state.aitype == AI_BOT)
+            if(clients[i]->state.ai.type == ai::AI_TYPE_BOT)
             {
                 aiNum ++;
             }
@@ -412,7 +412,7 @@ struct infectionclientmode : clientmode
         }
         if (!closest) return false;
         b.millis = lastmillis;
-        d->ai->switchstate(b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
+        ai::switchState(d, b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
         return true;
     }
 

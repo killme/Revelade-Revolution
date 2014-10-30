@@ -435,17 +435,21 @@ namespace ai
 
         if(d)
         {
-            if(retries <= 1 && d->ai) loopi(ai::NUMPREVNODES) if(d->ai->prevnodes[i] != node && iswaypoint(d->ai->prevnodes[i]))
+            if(retries <= 1 && d->ai.local && d->ai.type == ai::AI_TYPE_NONE)
             {
-                waypoints[d->ai->prevnodes[i]].route = routeid;
-                waypoints[d->ai->prevnodes[i]].curscore = -1;
-                waypoints[d->ai->prevnodes[i]].estscore = 0;
+                ai::BotAiInfo *ai = ai::getBotState(d);
+                loopi(ai::NUMPREVNODES) if(ai->prevnodes[i] != node && iswaypoint(ai->prevnodes[i]))
+                {
+                    waypoints[ai->prevnodes[i]].route = routeid;
+                    waypoints[ai->prevnodes[i]].curscore = -1;
+                    waypoints[ai->prevnodes[i]].estscore = 0;
             }
-			if(retries <= 0)
-			{
+        }
+        if(retries <= 0)
+        {
             loopavoid(obstacles, d,
             {
-					if(iswaypoint(wp) && wp != node && wp != goal && waypoints[node].find(wp) < 0 && waypoints[goal].find(wp) < 0)
+                if(iswaypoint(wp) && wp != node && wp != goal && waypoints[node].find(wp) < 0 && waypoints[goal].find(wp) < 0)
                 {
                     waypoints[wp].route = routeid;
                     waypoints[wp].curscore = -1;
@@ -532,13 +536,13 @@ namespace ai
     static inline bool shouldnavigate()
     {
         if(dropwaypoints) return true;
-        loopvrev(players) if(players[i]->aitype != AI_NONE) return true;
+        loopvrev(players) if(players[i]->ai.type != ai::AI_TYPE_NONE) return true;
         return false;
     }
 
     static inline bool shoulddrop(fpsent *d)
     {
-        return !d->ai && (dropwaypoints || !loadedwaypoints[0]);
+        return !d->ai.local && (dropwaypoints || !loadedwaypoints[0]);
     }
 
     void inferwaypoints(fpsent *d, const vec &o, const vec &v, float mindist)
@@ -569,7 +573,7 @@ namespace ai
         bool dropping = shoulddrop(d);
         int mat = lookupmaterial(v);
         if((mat&MATF_CLIP) == MAT_CLIP || (mat&MATF_VOLUME) == MAT_LAVA || mat&MAT_DEATH) dropping = false;
-        float dist = dropping ? WAYPOINTRADIUS : (d->ai ? WAYPOINTRADIUS : SIGHTMIN);
+        float dist = dropping ? WAYPOINTRADIUS : (d->ai.local ? WAYPOINTRADIUS : SIGHTMIN);
         int curnode = closestwaypoint(v, dist, false, d), prevnode = d->lastnode;
         if(!iswaypoint(curnode) && dropping)
         {
@@ -584,7 +588,7 @@ namespace ai
                 if(!d->timeinair) linkwaypoint(waypoints[curnode], d->lastnode);
             }
             d->lastnode = curnode;
-            if(d->ai && iswaypoint(prevnode) && d->lastnode != prevnode) d->ai->addprevnode(prevnode);
+            if(d->ai.local && iswaypoint(prevnode) && d->lastnode != prevnode) ai::getBotState(d)->addprevnode(prevnode);
         }
         else if(!iswaypoint(d->lastnode) || waypoints[d->lastnode].o.squaredist(v) > SIGHTMIN*SIGHTMIN)
             d->lastnode = closestwaypoint(v, SIGHTMAX, false, d);

@@ -26,7 +26,6 @@ namespace game
         fpsent *r = new fpsent(*d);
         r->lastupdate = ragdollfade && lastmillis > d->lastpain + max(ragdollmillis - ragdollfade, 0) ? lastmillis - max(ragdollmillis - ragdollfade, 0) : d->lastpain;
         r->edit = NULL;
-        r->ai = NULL;
         r->attackchan = r->idlechan = -1;
         ragdolls.add(r);
         d->ragdoll = NULL;

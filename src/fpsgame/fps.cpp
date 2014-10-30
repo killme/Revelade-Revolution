@@ -647,7 +647,7 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
-            if(d == player1 || d->ai) continue;
+            if(d == player1 || d->ai.local) continue;
 
             if(d->state==CS_DEAD && d->ragdoll) moveragdoll(d);
             else if(!intermission)
@@ -825,8 +825,6 @@ namespace game
     {
         if(d->state!=CS_ALIVE || intermission) return;
 
-        if (cmode) cmode->zombiepain(damage, d, actor);
-
         if(local) damage = d->dodamage(damage);
         else if(actor==player1)
         {
@@ -857,7 +855,7 @@ namespace game
 
         if(d->health<=0) { if(local) killed(d, actor, gun); }
         else if(d==h) playsound(min<int>(S_PAIN_ALAN+d->playermodel, S_PAIN_ADVENT));
-        else if (d->aitype != AI_ZOMBIE) playsound(S_PAIN1+rnd(5), &d->o);
+        else /*if (d->ai.type != ai::AI_TYPE_MONSTER)*/ playsound(S_PAIN1+rnd(5), &d->o); //TODO: zombie pain sounds
     }
 
     VARP(deathscore, 0, 1, 1);
@@ -884,7 +882,7 @@ namespace game
             d->move = d->strafe = 0;
             d->resetinterp();
             d->smoothmillis = 0;
-            if (d->aitype != AI_ZOMBIE) playsound(S_DIE1+rnd(2), &d->o);
+            /*if (d->aitype != AI_ZOMBIE)*/ playsound(S_DIE1+rnd(2), &d->o); //TODO: zombie die sounds
         }
     }
 
@@ -948,7 +946,6 @@ namespace game
             dmspscore();
         }
         deathstate(d);
-        if (cmode && d->aitype == AI_ZOMBIE) cmode->zombiekilled(d, actor);
         ai::killed(d, actor);
         if(d == player1) d->follow = actor->clientnum;
     }
@@ -1192,8 +1189,8 @@ namespace game
         if(d->type==ENT_INANIMATE) return;
         if     (waterlevel>0) { if(material!=MAT_LAVA) playsound(S_SPLASH1, d==player1 ? NULL : &d->o); }
         else if(waterlevel<0) playsound(material==MAT_LAVA ? S_BURN : S_SPLASH2, d==player1 ? NULL : &d->o);
-        if     (floorlevel>0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai) msgsound(S_JUMP, d); }
-        else if(floorlevel<0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai) msgsound(S_LAND, d); }
+        if     (floorlevel>0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai.local) msgsound(S_JUMP, d); }
+        else if(floorlevel<0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai.local) msgsound(S_LAND, d); }
         if     (d->state == CS_DEAD && floorlevel<0) playsound(S_SPLOSH+(rand()%3), &d->o);
     }
 
@@ -1229,7 +1226,7 @@ namespace game
         }
         else
         {
-            if(d->type==ENT_PLAYER && ((fpsent *)d)->ai)
+            if(d->type==ENT_PLAYER && ((fpsent *)d)->ai.local)
                 addmsg(N_SOUND, "ci", d, n);
             playsound(n, &d->o);
         }
@@ -1267,11 +1264,11 @@ namespace game
     const char *colorname(fpsent *d, const char *name, const char *prefix, const char *suffix, const char *alt)
     {
         if(!name) name = alt && d == player1 ? alt : d->name; 
-        bool dup = !name[0] || duplicatename(d, name, alt) || d->aitype != AI_NONE;
+        bool dup = !name[0] || duplicatename(d, name, alt) || d->ai.type != ai::AI_TYPE_NONE;
         if(dup || prefix[0] || suffix[0])
         {
             cidx = (cidx+1)%3;
-            if(dup) formatstring(cname[cidx])(d->aitype == AI_NONE ? "%s%s \fs\f5(%d)\fS%s" : "%s%s \fs\f5[%d]\fS%s", prefix, name, d->clientnum, suffix);
+            if(dup) formatstring(cname[cidx])(d->ai.type == ai::AI_TYPE_NONE ? "%s%s \fs\f5(%d)\fS%s" : "%s%s \fs\f5[%d]\fS%s", prefix, name, d->clientnum, suffix);
             else formatstring(cname[cidx])("%s%s%s", prefix, name, suffix);
             return cname[cidx];
         }
@@ -1299,7 +1296,7 @@ namespace game
 
     void suicide(physent *d, int type)
     {
-        if(d==player1 || (d->type==ENT_PLAYER && ((fpsent *)d)->ai) || ((fpsent *)d)->aitype == AI_ZOMBIE)
+        if(d==player1 || (d->type==ENT_PLAYER && ((fpsent *)d)->ai.local))
         {
             if(d->state!=CS_ALIVE) return;
             fpsent *pl = (fpsent *)d;

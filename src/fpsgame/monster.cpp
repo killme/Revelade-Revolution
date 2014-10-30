@@ -141,6 +141,11 @@ namespace monster
         }
     }
 #endif
+
+    bool providesGuts(fpsstate *state)
+    {
+        return state->ai.type==ai::AI_TYPE_MONSTER;
+    }
 }
 
 #ifndef STANDALONE

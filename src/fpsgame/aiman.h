@@ -65,7 +65,7 @@ namespace aiman
 
     static inline bool validaiclient(clientinfo *ci)
     {
-        return ci->clientnum >= 0 && ci->state.aitype == AI_NONE && (ci->state.state!=CS_SPECTATOR || ci->local || (ci->privilege >= PRIV_MASTER && !ci->warned));
+        return ci->clientnum >= 0 && ci->state.ai.type == ai::AI_TYPE_NONE && (ci->state.state!=CS_SPECTATOR || ci->local || (ci->privilege >= PRIV_MASTER && !ci->warned));
     }
 
     clientinfo *findaiclient(clientinfo *exclude = NULL)
@@ -156,11 +156,11 @@ namespace aiman
         if(!bots[cn]) bots[cn] = new clientinfo;
         clientinfo *ci = bots[cn];
         ci->clientnum = MAXCLIENTS + cn;
-        ci->state.aitype = AI_BOT;
+        ci->state.ai.type = ai::AI_TYPE_BOT;
         clientinfo *owner = findaiclient();
         ci->ownernum = owner ? owner->clientnum : -1;
         if(owner) owner->bots.add(ci);
-        ci->state.skill = skill <= 0 ? rnd(50) + 51 : clamp(skill, 1, 101);
+        ci->state.ai.skill = skill <= 0 ? rnd(50) + 51 : clamp(skill, 1, 101);
         clients.add(ci);
         ci->state.lasttimeplayed = lastmillis;
         copystring(ci->name, getbotname(), MAXNAMELEN+1);
@@ -206,7 +206,7 @@ namespace aiman
         if(ci->ownernum < 0) deleteai(ci);
         else if(ci->aireinit >= 1)
         {
-            sendf(-1, 1, "ri7ss", N_INITAI, ci->clientnum, ci->ownernum, ci->state.aitype, ci->state.skill, ci->state.playermodel, ci->state.playerclass, ci->name, ci->team);
+            sendf(-1, 1, "ri7ss", N_INITAI, ci->clientnum, ci->ownernum, ci->state.ai.type, ci->state.ai.skill, ci->state.playermodel, ci->state.playerclass, ci->name, ci->team);
             if(ci->aireinit == 2)
             {
                 ci->reassign();
@@ -271,9 +271,9 @@ namespace aiman
         vector<int> skills;
         loopv(bots)
         {
-            if(bots[i] != NULL)
+            if(bots[i] != NULL && bots[i]->state.ai.type == ai::AI_TYPE_BOT)
             {
-                skills.add(bots[i]->state.skill);
+                skills.add(bots[i]->state.ai.skill);
             }
         }
         clearai();
@@ -332,11 +332,11 @@ namespace aiman
 
     void addclient(clientinfo *ci)
     {
-        if(ci->state.aitype == AI_NONE) dorefresh = true;
+        if(ci->state.ai.type == ai::AI_TYPE_NONE) dorefresh = true;
     }
 
     void changeteam(clientinfo *ci)
     {
-        if(ci->state.aitype == AI_NONE) dorefresh = true;
+        if(ci->state.ai.type == ai::AI_TYPE_NONE) dorefresh = true;
     }
 }
