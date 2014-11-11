@@ -670,7 +670,7 @@ namespace game
 
     void addmsg(int type, const char *fmt, ...)
     {
-        if(connectionState == CONNECTION_STATE_NONE) { DEBUG_ERROR("premature message: %i(%s)", type, fmt); return;}
+        if(connectionState == CONNECTION_STATE_NONE) { DEBUG_ERROR("premature message: %i(%s)", type, fmt); ASSERT(0); return;}
         static uchar buf[MAXTRANS];
         ucharbuf p(buf, sizeof(buf));
         putint(p, type);
