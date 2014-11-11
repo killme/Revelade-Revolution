@@ -8,7 +8,7 @@ VARP(capturetether, 0, 1, 1);
 VARP(autorepammo, 0, 1, 1);
 VARP(basenumbers, 0, 0, 1);
 
-struct captureclientmode : clientmode
+struct captureclientmode : clientmode, ai::bot::BotGameMode
 #endif
 {
     static const int CAPTURERADIUS = 64;
@@ -248,6 +248,8 @@ struct captureclientmode : clientmode
     }
 
 #ifndef SERVMODE
+    ::ai::bot::BotGameMode *getBotGameMode() { return this; }
+
     static const int AMMOHEIGHT = 5;
 
     captureclientmode() : captures(0)
@@ -662,12 +664,12 @@ struct captureclientmode : clientmode
     const char *prefixnextmap() { return "capture_"; }
 
 
-    bool aicheck(fpsent *d, ai::aistate &b)
+    bool aicheck(fpsent *d, ai::bot::aistate &b)
     {
         return false;
     }
 
-    void aifind(fpsent *d, ai::aistate &b, vector<ai::interest> &interests)
+    void aifind(fpsent *d, ai::bot::aistate &b, vector<ai::bot::interest> &interests)
     {
         vec pos = d->feetpos();
         loopvj(bases)
@@ -675,7 +677,7 @@ struct captureclientmode : clientmode
             baseinfo &f = bases[j];
             static vector<int> targets; // build a list of others who are interested in this
             targets.setsize(0);
-            ai::checkothers(targets, d, ai::AI_S_DEFEND, ai::AI_T_AFFINITY, j, true);
+            ai::bot::checkothers(targets, d, ai::bot::AI_S_DEFEND, ai::bot::AI_T_AFFINITY, j, true);
             fpsent *e = NULL;
             int regen = !m_regencapture || d->health >= 100 ? 0 : 1;
             // todo-shell
@@ -693,17 +695,17 @@ struct captureclientmode : clientmode
             }
             if((regen && f.owner[0] && !strcmp(f.owner, d->team)) || (targets.empty() && (!f.owner[0] || strcmp(f.owner, d->team) || f.enemy[0])))
             {
-                ai::interest &n = interests.add();
-                n.state = ai::AI_S_DEFEND;
+                ai::bot::interest &n = interests.add();
+                n.state = ai::bot::AI_S_DEFEND;
                 n.node = ai::closestwaypoint(f.o, ai::SIGHTMIN, false);
                 n.target = j;
-                n.targtype = ai::AI_T_AFFINITY;
+                n.targtype = ai::bot::AI_T_AFFINITY;
                 n.score = pos.squaredist(f.o)/(regen ? float(100*regen) : 1.f);
             }
         }
     }
 
-    bool aidefend(fpsent *d, ai::aistate &b)
+    bool aidefend(fpsent *d, ai::bot::aistate &b)
     {
         if(bases.inrange(b.target))
         {
@@ -721,7 +723,7 @@ struct captureclientmode : clientmode
             {
                 static vector<int> targets; // build a list of others who are interested in this
                 targets.setsize(0);
-                ai::checkothers(targets, d, ai::AI_S_DEFEND, ai::AI_T_AFFINITY, b.target, true);
+                ai::bot::checkothers(targets, d, ai::bot::AI_S_DEFEND, ai::bot::AI_T_AFFINITY, b.target, true);
                 fpsent *e = NULL;
                 loopi(numdynents()) if((e = (fpsent *)iterdynents(i)) && !e->ai.local && e->state == CS_ALIVE && isteam(d->team, e->team))
                 { // try to guess what non ai are doing
@@ -733,7 +735,7 @@ struct captureclientmode : clientmode
                 {
                     if(lastmillis-b.millis >= (201-d->ai.skill)*33)
                     {
-                        ai::tryWipe(d); // re-evaluate so as not to herd
+                        ai::bot::tryWipe(d); // re-evaluate so as not to herd
                         return true;
                     }
                     else walk = 2;
@@ -741,14 +743,14 @@ struct captureclientmode : clientmode
                 else walk = 1;
                 b.millis = lastmillis;
             }
-            return ai::defend(d, b, f.o, float(CAPTURERADIUS), float(CAPTURERADIUS*(2+(walk*2))), walk); // less wander than ctf
+            return ai::bot::defend(d, b, f.o, float(CAPTURERADIUS), float(CAPTURERADIUS*(2+(walk*2))), walk); // less wander than ctf
         }
         return false;
     }
 
-    bool aipursue(fpsent *d, ai::aistate &b)
+    bool aipursue(fpsent *d, ai::bot::aistate &b)
     {
-        b.type = ai::AI_S_DEFEND;
+        b.type = ai::bot::AI_S_DEFEND;
         return aidefend(d, b);
     }
 };

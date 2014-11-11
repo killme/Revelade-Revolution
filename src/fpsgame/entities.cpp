@@ -337,7 +337,7 @@ namespace entities
                 d->lastpickupmillis = lastmillis;
                 jumppadeffects(d, n, true);
                 vec v((int)(char)ents[n]->attr3*10.0f, (int)(char)ents[n]->attr2*10.0f, ents[n]->attr1*12.5f);
-                if(d->ai.local && d->ai.type == ai::AI_TYPE_BOT) ai::getBotState(d)->becareful = true;
+                if(d->ai.local && d->ai.type == ai::AI_TYPE_BOT) ai::bot::getBotState(d)->becareful = true;
                 d->falling = vec(0, 0, 0);
                 d->physstate = PHYS_FALL;
                 d->timeinair = 1;

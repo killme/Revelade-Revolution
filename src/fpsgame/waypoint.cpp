@@ -437,8 +437,8 @@ namespace ai
         {
             if(retries <= 1 && d->ai.local && d->ai.type == ai::AI_TYPE_NONE)
             {
-                ai::BotAiInfo *ai = ai::getBotState(d);
-                loopi(ai::NUMPREVNODES) if(ai->prevnodes[i] != node && iswaypoint(ai->prevnodes[i]))
+                ai::bot::BotAiInfo *ai = ai::bot::getBotState(d);
+                loopi(ai::AiInfo::NUMPREVNODES) if(ai->prevnodes[i] != node && iswaypoint(ai->prevnodes[i]))
                 {
                     waypoints[ai->prevnodes[i]].route = routeid;
                     waypoints[ai->prevnodes[i]].curscore = -1;
@@ -588,7 +588,7 @@ namespace ai
                 if(!d->timeinair) linkwaypoint(waypoints[curnode], d->lastnode);
             }
             d->lastnode = curnode;
-            if(d->ai.local && iswaypoint(prevnode) && d->lastnode != prevnode) ai::getBotState(d)->addprevnode(prevnode);
+            if(d->ai.local && d->ai.type == ai::AI_TYPE_BOT && iswaypoint(prevnode) && d->lastnode != prevnode) ai::bot::getBotState(d)->addprevnode(prevnode);
         }
         else if(!iswaypoint(d->lastnode) || waypoints[d->lastnode].o.squaredist(v) > SIGHTMIN*SIGHTMIN)
             d->lastnode = closestwaypoint(v, SIGHTMAX, false, d);

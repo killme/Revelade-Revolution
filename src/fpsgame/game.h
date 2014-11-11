@@ -1156,11 +1156,7 @@ namespace game
         virtual fpsent *getclient(int cn) { return NULL; }
         virtual void update(int curtime) {}
         virtual void message(int type, ucharbuf &p) {}
-        virtual void aifind(fpsent *d, ai::aistate &b, vector<ai::interest> &interests) {}
-        virtual bool aicheck(fpsent *d, ai::aistate &b) { return false; }
-        virtual bool aidefend(fpsent *d, ai::aistate &b) { return false; }
-        virtual bool aipursue(fpsent *d, ai::aistate &b) { return false; }
-
+        virtual ai::bot::BotGameMode *getBotGameMode() { return NULL; }
         virtual const vector<dynent *> &getdynents() { static vector<dynent *> emptyvec; return emptyvec; }
     };
 

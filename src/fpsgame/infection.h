@@ -9,7 +9,7 @@ struct infectionservmode : servmode
 FVARP(zombieradarscale, 0.f, 1.f, 100.f);
 VARP(zombieradaroffset, 0, 200, 1000);
 
-struct infectionclientmode : clientmode
+struct infectionclientmode : clientmode, ::ai::bot::BotGameMode
 #endif
 {
     static const int RESPAWNSECS = 5;
@@ -328,6 +328,7 @@ struct infectionclientmode : clientmode
     }
 };
 #else
+    ::ai::bot::BotGameMode *getBotGameMode() { return this; }
 
     infectionclientmode()
     {
@@ -402,7 +403,7 @@ struct infectionclientmode : clientmode
 
     const char *prefixnextmap() { return "infection_"; }
 
-    bool aicheck(fpsent *d, ai::aistate &b)
+    bool aicheck(fpsent *d, ai::bot::aistate &b)
     {
         float mindist = 1e16f;
         fpsent *closest = NULL;
@@ -412,11 +413,11 @@ struct infectionclientmode : clientmode
         }
         if (!closest) return false;
         b.millis = lastmillis;
-        ai::switchState(d, b, ai::AI_S_PURSUE, ai::AI_T_PLAYER, closest->clientnum);
+        ai::bot::switchState(d, b, ai::bot::AI_S_PURSUE, ai::bot::AI_T_PLAYER, closest->clientnum);
         return true;
     }
 
-    void aifind(fpsent *d, ai::aistate &b, vector<ai::interest> &interests)
+    void aifind(fpsent *d, ai::bot::aistate &b, vector<ai::bot::interest> &interests)
     {
         bool inf = d->isInfected();
         loopv(players)
@@ -424,26 +425,26 @@ struct infectionclientmode : clientmode
             fpsent *f = players[i];
             if (inf != f->isInfected() && f->state == CS_ALIVE)
             {
-                ai::interest &n = interests.add();
-                n.state = ai::AI_S_PURSUE;
+                ai::bot::interest &n = interests.add();
+                n.state = ai::bot::AI_S_PURSUE;
                 n.node = ai::closestwaypoint(f->o, ai::SIGHTMIN, true);
                 n.target = f->clientnum;
-                n.targtype = ai::AI_T_PLAYER;
+                n.targtype = ai::bot::AI_T_PLAYER;
                 n.score = d->o.squaredist(f->o)/100.f;
             }
         }
     }
 
-    bool aipursue(fpsent *d, ai::aistate &b)
+    bool aipursue(fpsent *d, ai::bot::aistate &b)
     {
         fpsent *e = getclient(b.target);
         if (d->isInfected() && !e->isInfected() && e->state == CS_ALIVE)
         {
-            return ai::defend(d, b, e->o, 5, 5, 2);
+            return ai::bot::defend(d, b, e->o, 5, 5, 2);
         }
         else if (!d->isInfected() && e->isInfected() && e->state == CS_ALIVE)
         {
-             return ai::violence(d, b, e, true);
+             return ai::bot::violence(d, b, e, true);
         }
         return false;
     }
