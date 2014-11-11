@@ -4109,6 +4109,9 @@ namespace server
     }
 
     #include "aiman.h"
+
+    //TODO: Remove
+    int getClientNumber(clientinfo *ci) { return ci->clientnum; }
 }
 
 #ifdef SERVER

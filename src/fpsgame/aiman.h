@@ -127,7 +127,7 @@ namespace aiman
         return generatename();
     }
 
-    bool addai(int skill, int limit)
+    int findFreeCn(int limit = -1)
     {
         int numai = 0, cn = -1, maxai = limit >= 0 ? min(limit, MAXBOTS) : MAXBOTS;
         loopv(bots)
@@ -136,43 +136,48 @@ namespace aiman
             if(!ci || ci->ownernum < 0) { if(cn < 0) cn = i; continue; }
             numai++;
         }
-        if(numai >= maxai) return false;
-        if(bots.inrange(cn))
-        {
-            clientinfo *ci = bots[cn];
-            if(ci)
-            { // reuse a slot that was going to removed
+        if(numai >= maxai) return -1;
+        return bots.inrange(cn) ? MAXCLIENTS + cn : MAXCLIENTS + numai;
+    }
 
-                clientinfo *owner = findaiclient();
-                ci->ownernum = owner ? owner->clientnum : -1;
-                if(owner) owner->bots.add(ci);
-                ci->aireinit = 2;
-                dorefresh = true;
-                return true;
-            }
-        }
-        else { cn = bots.length(); bots.add(NULL); }
-        const char *team = m_oneteam? TEAM_0: (m_teammode ? chooseteam() : "");
-        if(!bots[cn]) bots[cn] = new clientinfo;
-        clientinfo *ci = bots[cn];
-        ci->clientnum = MAXCLIENTS + cn;
-        ci->state.ai.type = ai::AI_TYPE_BOT;
+    clientinfo *getFreeSlot(int limit = -1)
+    {
+        int cn = findFreeCn();
+        if(cn < 0) return NULL;
+        if(!bots.inrange(cn - MAXCLIENTS)) bots.add(new clientinfo);
+        clientinfo *ci = bots[cn-MAXCLIENTS];
+        ci->clientnum = cn;
+        return ci;
+    }
+
+    clientinfo *addai(int skill, int limit, ai::AiType aiType = ai::AI_TYPE_BOT)
+    {
+        clientinfo *ci = getFreeSlot();
+        if(!ci) return NULL;
+        const char *team = m_oneteam ? TEAM_0 : (m_teammode ? chooseteam() : "");
+        ci->state.ai.type = aiType;
+
         clientinfo *owner = findaiclient();
         ci->ownernum = owner ? owner->clientnum : -1;
         if(owner) owner->bots.add(ci);
+
         ci->state.ai.skill = skill <= 0 ? rnd(50) + 51 : clamp(skill, 1, 101);
+
         clients.add(ci);
+
+        ci->state.state = CS_DEAD;
         ci->state.lasttimeplayed = lastmillis;
         copystring(ci->name, getbotname(), MAXNAMELEN+1);
-        ci->state.state = CS_DEAD;
         copystring(ci->team, team, MAXTEAMLEN+1);
         ci->state.playermodel = -1;
         ci->state.playerclass = -1;
         ci->aireinit = 2;
         ci->connectionState = CONNECTION_STATE_CONNECTED;
+
         dorefresh = true;
         if(smode) smode->entergame(ci);
-        return true;
+
+        return ci;
     }
 
     void deleteai(clientinfo *ci)

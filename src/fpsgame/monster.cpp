@@ -3,6 +3,15 @@
 
 extern int physsteps;
 
+namespace server
+{
+    extern int getClientNumber(clientinfo *ci);
+    namespace aiman
+    {
+        extern server::clientinfo *addai(int skill, int limit, ai::AiType aiType = ai::AI_TYPE_BOT);
+    }
+}
+
 namespace monster
 {
     static const MonsterType monstertypes[] =
@@ -182,6 +191,8 @@ namespace game
             stackpos(0, 0, 0)
         {
             type = ENT_AI;
+            ai.local = true;
+            ai.type = ai::AI_TYPE_MONSTER;
             respawn(gamemode);
             if(!::monster::isValidMonsterType(_type))
             {
@@ -458,19 +469,29 @@ namespace game
 
     int nextmonster, spawnremain, numkilled, monstertotal, mtimestart, remain, dmround, roundtotal, roundtime;
 
+    monster *addMonster(monster *monster)
+    {
+        //TODO: networking!
+        server::clientinfo *ci = server::aiman::addai(-1, -1, ai::AI_TYPE_MONSTER);
+        //ci->infectedType = type + 1;
+        monster->clientnum = getClientNumber(ci);
+        monsters.add(monster);
+        return monster;
+    }
+
     void spawnmonster()     // spawn a random monster according to freq distribution in DMSP
     {
         int type = ::monster::getRandomType();
 
         if(m_sp)
         {
-            monsters.add(new monster(type, rnd(360), 0, M_SEARCH, 1000, 1));
+            addMonster(new monster(type, rnd(360), 0, M_SEARCH, 1000, 1));
         }
     }
 
     void spawnrat(vec o)
     {
-        monster *mon = monsters.add(new monster(::monster::getRandomTypeWithTrait(::monster::MONSTER_TYPE_TRAIT_RAT), rnd(360), 0, M_SEARCH, 1000, 1));
+        monster *mon = addMonster(new monster(::monster::getRandomTypeWithTrait(::monster::MONSTER_TYPE_TRAIT_RAT), rnd(360), 0, M_SEARCH, 1000, 1));
         mon->o = o;
         mon->newpos = o;
         mon->counts = false;

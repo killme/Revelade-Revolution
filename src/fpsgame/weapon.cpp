@@ -1199,7 +1199,7 @@ namespace game
         if(WEAP_IS_RAY(gun)) raydamage(from, to, d, gun);
         shoteffects(gun, from, to, d, true, 0, prevaction);
 
-        if(d==player1 || d->ai.local || d->type == ENT_AI)
+        if(d==player1 || d->ai.local)
         {
             if(d == player1)
             {

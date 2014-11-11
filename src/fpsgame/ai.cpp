@@ -173,7 +173,8 @@ namespace ai
 
     AiInterface * const aiTypes[AI_TYPE_NUM] = {
         new DummyAi(),
-        new BotAi()
+        new BotAi(),
+        new DummyAi(),
     };
 
     AiInterface * const getAiType(AiType type)
