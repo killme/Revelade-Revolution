@@ -199,10 +199,75 @@ namespace game
     }
 
     VARP(teamskins, 0, 0, 1);
-#ifdef _DEBUG
-    VAR(dbghitbox, 0, 0, 1);
-#endif
+    VARDBG(dbghitbox, 1);
 
+    void renderhitbox(fpsent *d)
+    {
+        if(dbghitbox && d->state!=CS_DEAD)
+        {
+            vec bottom(d->o), top(d->o);
+            bottom.z -= d->eyeheight;
+            top.z += d->aboveeye;
+            
+            vec direction(d->yaw, d->pitch);
+            direction.z = 0;
+            direction.normalize().mul(d->radius);
+            
+            int colors[] = {
+                0xFF0000,
+                0xAA0000,
+                0xAAAA00,
+                0x00AA00,
+                0x00AAAA,
+                0x0000AA,
+                0xAA00AA,
+                0x0000FF,
+            };
+            
+            loopi(8)
+            {
+                float angle = float(i)/8.f*float(2)*M_PI;
+                vec spoke(direction);
+                spoke.rotate_around_z(angle);
+                
+                vec bottomSpoke(spoke);
+                bottomSpoke.add(bottom);
+                
+                vec topSpoke(spoke);
+                topSpoke.add(top);
+                
+                spoke.add(d->o);
+                
+                #define PARTICLE_OPTS 5, PART_DEBUG_LINE, colors[i], 1.0f
+                particle_flare(bottom, bottomSpoke, PARTICLE_OPTS);
+                particle_flare(bottomSpoke, topSpoke, PARTICLE_OPTS);
+                particle_flare(topSpoke, top, PARTICLE_OPTS);
+                
+                if(i == 0)
+                {
+                    vec eyeSpoke(direction);
+                    eyeSpoke.normalize()
+                    .mul(d->radius * 2)
+                    .add(d->o);
+                    particle_flare(d->o, eyeSpoke, PARTICLE_OPTS);
+                    
+                    vec headSpoke (direction);
+                    headSpoke.normalize()
+                    .mul(d->radius * 2)
+                    .add(d->o);
+                    
+                    headSpoke.z = (d->eyeheight + d->aboveeye) * 0.8f + (d->o.z - d->eyeheight);
+                    
+                    vec head(d->o);
+                    head.z = headSpoke.z;
+                    
+                    particle_flare(head, headSpoke, PARTICLE_OPTS);
+                }
+                #undef PARTICLE_OPTS
+            }
+        }
+    }
+    
     void rendergame(bool mainpass)
     {
         if(mainpass) ai::render();
@@ -228,72 +293,7 @@ namespace game
             copystring(d->info, colorname(d));
             if (d->isInfected()) concatstring(d->info, "  infected");
             if(d->state!=CS_DEAD) particle_text(d->abovehead(), d->info, PART_TEXT, 1, team ? (team==1 ? 0x6496FF : 0xFF4B19) : 0x1EC850, 2.0f);
-
-            #ifdef _DEBUG
-            if(dbghitbox && d->state!=CS_DEAD)
-            {
-                vec bottom(d->o), top(d->o);
-                bottom.z -= d->eyeheight;
-                top.z += d->aboveeye;
-
-                vec direction(d->yaw, d->pitch);
-                direction.z = 0;
-                direction.normalize().mul(d->radius);
-
-                int colors[] = {
-                    0xAAAAAA,
-                    0xAA0000,
-                    0xAAAA00,
-                    0x00AA00,
-                    0x000000,
-                    0x00AAAA,
-                    0x0000AA,
-                    0xAA00AA,
-                };
-
-                loopi(8)
-                {
-                    float angle = float(i)/8.f*float(2)*M_PI;
-                    vec spoke(direction);
-                    spoke.rotate_around_z(angle);
-
-                    vec bottomSpoke(spoke);
-                    bottomSpoke.add(bottom);
-
-                    vec topSpoke(spoke);
-                    topSpoke.add(top);
-
-                    spoke.add(d->o);
-
-                    #define PARTICLE_OPTS 0, PART_DEBUG_LINE, colors[i], 0.10f
-                    particle_flare(bottom, bottomSpoke, PARTICLE_OPTS);
-                    particle_flare(bottomSpoke, topSpoke, PARTICLE_OPTS);
-                    particle_flare(topSpoke, top, PARTICLE_OPTS);
-
-                    if(i == 0)
-                    {
-                        vec eyeSpoke(direction);
-                        eyeSpoke.normalize()
-                                .mul(d->radius * 2)
-                                .add(d->o);
-                        particle_flare(d->o, eyeSpoke, PARTICLE_OPTS);
-
-                        vec headSpoke (direction);
-                        headSpoke.normalize()
-                            .mul(d->radius * 2)
-                            .add(d->o);
-
-                        headSpoke.z = (d->eyeheight + d->aboveeye) * 0.8f + (d->o.z - d->eyeheight);
-
-                        vec head(d->o);
-                        head.z = headSpoke.z;
-
-                        particle_flare(head, headSpoke, PARTICLE_OPTS);
-                    }
-                    #undef PARTICLE_OPTS
-                }
-            }
-            #endif
+            renderhitbox(d);
         }
         loopv(ragdolls)
         {

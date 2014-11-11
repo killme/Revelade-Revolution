@@ -1348,6 +1348,7 @@ namespace game
     extern vec hudgunorigin(int gun, const vec &from, const vec &to, fpsent *d);
     extern int hudgunfm, hudgunfade;
     extern float mwaiti();
+    extern void renderhitbox(fpsent *d);
 }
 
 namespace server

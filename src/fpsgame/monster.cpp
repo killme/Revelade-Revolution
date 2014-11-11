@@ -635,6 +635,8 @@ namespace game
                 if(m.state==CS_DEAD) fade -= clamp(float(lastmillis - (m.lastpain + 9000))/1000, 0.0f, 1.0f);
                 renderclient(&m, monsterType.modelInfo.ffa, vwep[0].tag ? vwep : NULL, 0, m.monsterstate==M_ATTACKING ? -ANIM_ATTACK1 : 0, 300, m.lastaction, m.lastpain, fade, false);
             }
+
+            renderhitbox(monsters[i]);
         }
     }
 
