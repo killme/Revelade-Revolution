@@ -297,14 +297,16 @@ namespace aiman
         else clearai();
     }
 
-    void reqadd(clientinfo *ci, int skill)
+    void reqadd(clientinfo *ci, ai::AiType type, int skill)
     {
+        if(type < 0 || type >= ai::AI_TYPE_NUM) return;
         if(!ci->local && ci->privilege < PRIV_MASTER) return;
         if(!addai(skill, !ci->local && ci->privilege < PRIV_ADMIN ? botlimit : -1)) sendf(ci->clientnum, 1, "ris", N_SERVMSG, "failed to create or assign bot");
     }
 
-    void reqdel(clientinfo *ci)
+    void reqdel(clientinfo *ci, ai::AiType type)
     {
+        if(type < 0 || type >= ai::AI_TYPE_NUM) return;
         if(!ci->local && ci->privilege < PRIV_MASTER) return;
         if(!deleteai()) sendf(ci->clientnum, 1, "ris", N_SERVMSG, "failed to remove any bots");
     }

@@ -399,8 +399,8 @@ namespace server
         extern void clearai();
         extern void resetai();
         extern void checkai();
-        extern void reqadd(clientinfo *ci, int skill);
-        extern void reqdel(clientinfo *ci);
+        extern void reqadd(clientinfo *ci, ai::AiType type, int skill);
+        extern void reqdel(clientinfo *ci, ai::AiType type);
         extern void setbotlimit(clientinfo *ci, int limit);
         extern void setbotbalance(clientinfo *ci, bool balance);
         extern void changemap();
@@ -3797,15 +3797,15 @@ namespace server
                 break;
             }
 
-            case N_ADDBOT:
+            case N_REQADDAI:
             {
-                aiman::reqadd(ci, getint(p));
+                aiman::reqadd(ci, ai::AiType(getint(p)), getint(p));
                 break;
             }
 
-            case N_DELBOT:
+            case N_REQDELAI:
             {
-                aiman::reqdel(ci);
+                aiman::reqdel(ci, ai::AiType(getint(p)));
                 break;
             }
 
@@ -4030,7 +4030,7 @@ namespace server
                     else
                     {
                         int skill = atoi(args[1]);
-                        aiman::reqadd(ci, skill);
+                        aiman::reqadd(ci, ai::AI_TYPE_BOT, skill);
                         copystring(result, "added bot");
                     }
                 }

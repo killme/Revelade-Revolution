@@ -1,7 +1,18 @@
+#include "game.h"
+
 namespace ai
 {
     namespace bot
     {
+        using namespace game;
+
+        ICOMMAND(addbot, "i", (int *skill), requestAdd(AI_TYPE_BOT, *skill));
+        ICOMMAND(delbot, "", (), requestDel(AI_TYPE_BOT));
+        ICOMMAND(botlimit, "i", (int *n), addmsg(N_BOTLIMIT, "ri", *n));
+        ICOMMAND(botbalance, "i", (int *n), addmsg(N_BOTBALANCE, "ri", *n));
+
+        extern vector<char *> botnames;
+
         inline BotAiInfo *getBotState(fpsent *d)
         {
             ASSERT(d->ai.type == AI_TYPE_BOT);

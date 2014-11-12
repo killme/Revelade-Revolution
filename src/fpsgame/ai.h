@@ -215,6 +215,8 @@ namespace ai
 
     };
 
+    // Api for AI implementations
+    extern int forcegun, aidebug;
     extern avoidset obstacles;
     extern vec aitarget;
 
@@ -223,6 +225,19 @@ namespace ai
     extern float viewfieldy(int x = 101);
     extern bool targetable(fpsent *d, fpsent *e);
     extern bool badhealth(fpsent *d);
+
+    extern bool canmove(fpsent *d);
+    extern bool getsight(vec &o, float yaw, float pitch, vec &q, vec &v, float mdist, float fovx, float fovy);
+    extern bool weaprange(fpsent *d, int weap, float dist);
+    extern bool hasgoodammo(fpsent *d);
+    extern void findorientation(vec &o, float yaw, float pitch, vec &pos);
+    extern void fixrange(float &yaw, float &pitch);
+    extern void getyawpitch(const vec &from, const vec &pos, float &yaw, float &pitch);
+    extern bool lockon(fpsent *d, fpsent *e, float maxdist);
+    extern void scaleyawpitch(float &yaw, float &pitch, float targyaw, float targpitch, float frame, float scale);
+    extern bool canshoot(fpsent *d, fpsent *e);
+    extern bool isgoodammo(int gun);
+    ///Api
 
     extern void init(fpsent *d, AiType aiType, int on, int sk, int bn, int pm, int pc, const char *name, const char *team);
     extern void update();
@@ -233,6 +248,9 @@ namespace ai
     extern void killed(fpsent *d, fpsent *e);
     extern void itemspawned(int ent);
 
+    void requestAdd(AiType type = AI_TYPE_BOT, int skill = -1);
+    void requestDel(AiType type = AI_TYPE_BOT);
+    
     extern void render();
 }
 

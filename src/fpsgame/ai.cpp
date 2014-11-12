@@ -13,13 +13,16 @@ namespace ai
     VAR(aidebug, 0, 0, 6);
     VAR(aiforcegun, -1, -1, NUMWEAPS-1);
 
-    ICOMMAND(addbot, "s", (char *s), addmsg(N_ADDBOT, "ri", *s ? clamp(parseint(s), 1, 101) : -1));
-    ICOMMAND(delbot, "", (), addmsg(N_DELBOT, "r"));
-    ICOMMAND(botlimit, "i", (int *n), addmsg(N_BOTLIMIT, "ri", *n));
-    ICOMMAND(botbalance, "i", (int *n), addmsg(N_BOTBALANCE, "ri", *n));
+    void requestAdd(AiType type, int skill)
+    {
+        addmsg(N_REQADDAI, "ri2", type, skill > 0 ? clamp(skill, 1, 101) : -1);
+    }
 
-    extern vector<char *> botnames;
-    
+    void requestDel(AiType type)
+    {
+        addmsg(N_REQDELAI, "ri", type);
+    }
+
     float viewdist(int x)
     {
         return x <= 100 ? clamp((SIGHTMIN+(SIGHTMAX-SIGHTMIN))/100.f*float(x), float(SIGHTMIN), float(fog)) : float(fog);
@@ -196,7 +199,10 @@ namespace ai
         return false;
     }
 
-    int isgoodammo(int gun) { return WEAP_USABLE(gun) && !WEAP_IS_MELEE(gun); }
+    bool isgoodammo(int gun)
+    {
+        return WEAP_USABLE(gun) && !WEAP_IS_MELEE(gun);
+    }
 
     bool hasgoodammo(fpsent *d)
     {
@@ -386,5 +392,3 @@ namespace ai
         }
     }
 }
-
-#include "bot.cpp"

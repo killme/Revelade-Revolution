@@ -724,7 +724,7 @@ namespace game
             va_end(args);
         }
         int num = nums || numf ? 0 : numi, msgsize = server::msgsizelookup(type);
-        if(msgsize && num!=msgsize) { fatal("inconsistent msg size for %d (%d != %d)", type, num, msgsize); }
+        if(msgsize && num!=msgsize) { fatal("inconsistent msg size for %d (is: %d != should be:%d)", type, num, msgsize); }
         if(reliable) messagereliable = true;
         if(mcn != messagecn)
         {
