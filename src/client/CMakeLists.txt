@@ -61,8 +61,9 @@ set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/webRadio
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/bot
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/campaign
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/client       
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/client
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/entities
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/fps
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/gamemode
