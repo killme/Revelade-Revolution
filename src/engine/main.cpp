@@ -68,6 +68,7 @@ void fatal(const char *s, ...)    // failure exit
     }
 
     uv_tty_reset_mode();
+    ASSERT(0);
     exit(EXIT_FAILURE);
 }
 
