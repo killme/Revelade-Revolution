@@ -168,11 +168,11 @@ namespace game
     bool monsterhurt;
     vec monsterhurtpos;
     fpsent *bestenemy = NULL;
-    
+
     struct monster : fpsent
     {
         int monsterstate;                   // one of M_*, M_NONE means human
-    
+
         int mtype, tag;                     // see monstertypes table
         fpsent *enemy;                      // monster wants to kill this entity
         float targetyaw;                    // monster wants to look in this direction
@@ -184,7 +184,7 @@ namespace game
         fpsent *owner;
         bool counts;
         int lastshot;
-    
+
         monster(int _type, int _yaw, int _tag, int _state, int _trigger, int _move) :
             monsterstate(_state), tag(_tag),
             stacked(NULL),
@@ -299,9 +299,9 @@ namespace game
                     transition(M_SEARCH, 1, 100, 1000);
                 }
             }
-            
+
             float enemyyaw = -atan2(enemy->o.x - o.x, enemy->o.y - o.y)/RAD;
-            
+
             switch(monsterstate)
             {
                 case M_PAIN:
@@ -309,7 +309,7 @@ namespace game
                 case M_SEARCH:
                     if(trigger<lastmillis) transition(M_HOME, 1, 100, 200);
                     break;
-                    
+
                 case M_SLEEP:                       // state classic sp monster start in, wait for visual contact
                 {
                     if(editmode) break;          
@@ -331,7 +331,7 @@ namespace game
                     }
                     break;
                 }
-                
+
                 case M_AIMING:                      // this state is the delay between wanting to shoot and actually firing
                     if(trigger<lastmillis)
                     {
@@ -375,7 +375,7 @@ namespace game
                         }
                     }
                     break;
-                    
+
             }
 
             if(move || maymove() || (stacked && (stacked->state!=CS_ALIVE || stackpos != stacked->o)))
@@ -578,21 +578,21 @@ namespace game
         }
 
         if (m_dmsp && spawnremain == 0 && remain <= 6 && roundtime == 0) roundtime = lastmillis;
-    if (roundtime && lastmillis-roundtime > 150000) nextround();
-        
+        if (roundtime && lastmillis-roundtime > 150000) nextround();
+
         bool monsterwashurt = monsterhurt;
-        
+
         loopv(monsters)
         {
             if(monsters[i]->state==CS_ALIVE)
             {
                 monsters[i]->monsteraction(curtime);
-        if (monsters[i]->onfire && lastmillis-monsters[i]->lastburnpain >= 1000)
-        {
+                if (monsters[i]->onfire && lastmillis-monsters[i]->lastburnpain >= 1000)
+                {
                     monsters[i]->lastburnpain = lastmillis;
                     float mdagamemul = 1.5; // does more damage to monsters than players
                     monsters[i]->monsterpain((int)((float)weapons[WEAP_FLAMEJET].damage*(mdagamemul*1000.f/max((float)(lastmillis-monsters[i]->burnmillis), 1000.f))), (fpsent*)monsters[i]->fireattacker);
-        }
+                }
             }
             else if(monsters[i]->state==CS_DEAD)
             {
@@ -601,19 +601,19 @@ namespace game
                     monsters[i]->move = monsters[i]->strafe = 0;
                     moveplayer(monsters[i], 1, true);
                 }
-        else
-        {
+                else
+                {
                     if (bestenemy == monsters[i]) bestenemy = NULL;
                     delete monsters.removeunordered(i);
                     continue;
-        }
+                }
             }
             if (monsters[i]->onfire && (lastmillis-monsters[i]->burnmillis > 4000 || monsters[i]->inwater))
             {
                 monsters[i]->onfire = false;
             }
         }
-        
+
         if(monsterwashurt) monsterhurt = false;
     }
 
