@@ -175,6 +175,7 @@ struct dmspservmode : servmode
         {
             makeInfected(ci, monster::getRandomType());
             ci->state.state = CS_ALIVE;
+            copystring(ci->name, monster::getMonsterType(ci->state.getMonsterType()).classInfo.name, MAXNAMELEN+1);
         }
         else DEBUG_ERROR("Could not create client while spawning monster.");
     }
@@ -226,6 +227,7 @@ struct dmspservmode : servmode
                 remain--;
                 sendRoundInfo();
             }
+            else makeInfected(victim, -1);
         }
 
         if(!checkRound(victim) && wantRespawn)
