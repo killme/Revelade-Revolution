@@ -2934,7 +2934,7 @@ namespace server
         }
         else if(p_.packet->flags&ENET_PACKET_FLAG_UNSEQUENCED)
         {
-            printf("<ignord: not sequenced>");
+            printf("<ignored: not sequenced>");
         }
         else if(chan > 2)
         {
