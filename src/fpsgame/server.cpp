@@ -2921,10 +2921,11 @@ namespace server
     }
 
     VAR(dbgnetwork, 0, 0, 1);
-    void dumpReceivedPackage(int sender, int chan, const packetbuf &p_)
+    void dumpReceivedPackage(int realSender, int chan, const packetbuf &p_)
     {
         if(chan == 0) return; //ignore N_POS
         ucharbuf p = p_;
+        int sender = realSender;
         clientinfo *ci = sender>=0 ? getinfo(sender) : NULL, *cq = ci, *cm = ci;
         printf("%i(%i)[%i]->", sender, chan, ci ? ci->connectionState : -1);
         if(sender<0)
@@ -2977,6 +2978,7 @@ namespace server
                         if(p.overread()) break;
                         printf("[%i,%i,%i],", getint(p), getint(p), getint(p));
                     }
+                    printf("]>");
                 }
                 break;
                 case N_EXPLODE:
@@ -3017,6 +3019,9 @@ namespace server
                     break;
                 case N_TAKEFLAG:
                     printf("<N_TAKEFLAG[%i]: (flag:%i version:%i)>", N_TAKEFLAG, getint(p), getint(p));
+                    break;
+                case N_FROMAI:
+                    printf("<N_FROMAI[%i] %i>", N_FROMAI, sender = getint(p));
                     break;
                 default:
                     printf("<unkown packet %i (raw:%i n:%i)>", type, rawtype, curmsg);

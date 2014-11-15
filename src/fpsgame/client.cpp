@@ -2042,8 +2042,88 @@ namespace game
         #undef FINISH_PACKAGE
     }
 
+    VAR(dbgnetworkclient, 0, 0, 1);
+    VAR(dbgnetworkclientignorepos, 0, 1, 1);
+    void dumpReceivedPackage(int realSender, int chan, const packetbuf &p_)
+    {
+        if(dbgnetworkclientignorepos && chan == 0) return; //ignore N_POS
+        ucharbuf p = p_;
+        int sender = realSender;
+        fpsent *ci = sender>=0 ? getclient(sender) : NULL, *cq = ci, *cm = ci;
+        printf("%i(%i)[%i]->", sender, chan, connectionState);
+        if(p_.packet->flags&ENET_PACKET_FLAG_UNSEQUENCED)
+        {
+            printf("<ignord: not sequenced>");
+        }
+        else if(chan > 2)
+        {
+            printf("<ignored: invalid channel>");
+        }
+        else
+        {
+            string str;
+            int curmsg, type;
+            while((curmsg = p.length()) < p.maxlen) switch(type = getint(p))
+            {
+                case N_SERVINFO:
+                    printf("<N_CONNECT[%i], (cn:%i protocolVersion:%i sessionid:%i authmode:%i ", N_CONNECT, getint(p), getint(p), getint(p), getint(p));
+                    getstring(str, p);
+                    printf(" description:%s)>", str);
+                    break;
+                case N_PONG:
+                    printf("<N_PONG[%i], %i>", N_PONG, getint(p));
+                    break;
+                case N_SERVMSG:
+                    getstring(str, p);
+                    filtertext(str, str);
+                    printf("<N_SERVMSG[%i], %s>", N_SERVMSG, str);
+                    break;
+                case N_PAUSEGAME:
+                    printf("<N_PAUSEGAME[%i] %i (by:%i)>", N_PAUSEGAME, getint(p), getint(p));
+                    break;
+                case N_INITAI:
+                    printf("<N_INITAI[%i] %i (owner:%i type:%i skill:%i class:%i model:%i ",
+                             N_INITAI, getint(p), getint(p), getint(p), getint(p), getint(p), getint(p));
+                    getstring(str, p);
+                    printf("name:%s ", str);
+                    getstring(str, p);
+                    printf("team:%s)>", str);
+                    break;
+                case N_INFECT:
+                    printf("<N_INFECT[%i] (cn:%i type:%i)>", N_INFECT, getint(p), getint(p));
+                    break;
+                case N_SPAWNSTATE:
+                    printf("<N_SPAWNSTATE[%i] %i (ls:%i guts:%i health:%i maxhealth:%i armour:%i armourtype:%i playerclass:%i playermodel:%i gunselect:%i weapons[%i]:[",
+                           N_SPAWNSTATE, getint(p), getint(p), getint(p), getint(p), getint(p), getint(p), getint(p), getint(p), getint(p), getint(p), NUMWEAPS);
+                    loopi(NUMWEAPS)
+                    {
+                        printf("%i,", getint(p));
+                    }
+                    printf("]>");
+
+                    break;
+                case N_DAMAGE:
+                    printf("<N_DAMAGE[%i] (target:%i actor:%i damage:%i armour:%i health:%i gun:%i)>", N_DAMAGE, getint(p), getint(p), getint(p), getint(p), getint(p), getint(p));
+                    break;
+                case N_HITPUSH:
+                    printf("<N_HITPUSH[%i] (target:%i gun:%i damage:%i v:(%i %i %i)>", N_HITPUSH, getint(p), getint(p), getint(p), getint(p), getint(p), getint(p));
+                    break;
+                case N_FROMAI:
+                    printf("<N_FROMAI[%i] %i>", N_FROMAI, sender = getint(p));
+                    break;
+                default:
+                    printf("<unkown packet %i (n:%i)>", type, curmsg);
+                    break;
+            }
+        }
+        ucharbuf q = p_;
+        while(q.remaining()) printf("%i|", getint(q));
+        printf("\n");
+    }
+    
     void parsepacketclient(int chan, packetbuf &p)   // processes any updates from the server
     {
+        if(dbgnetworkclient) dumpReceivedPackage(-1, chan, p);
         if(p.packet->flags&ENET_PACKET_FLAG_UNSEQUENCED) return;
         switch(chan)
         {
