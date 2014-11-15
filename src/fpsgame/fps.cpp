@@ -1506,9 +1506,7 @@ namespace game
               y = 1700/a_scale - i_round->ys/a_scale;
         float sw = 200*i_round_scale, sh = 100*i_round_scale;
 
-        // draw meter
-        // TODO
-        //drawometer(min((float)remain/(float)roundtotal, 1.f), 150, vec(x+120, y-80, 0), vec(1, 0, 0));
+        drawometer(min((float)(cmode ? cmode->getRemain() : 0)/(float)(max(1, cmode ? cmode->getTotal() : 1)), 1.f), 150, vec(x+120, y-80, 0), vec(1, 0, 0));
 
         glColor4f(1.f, 1.f, 1.f, 1.f);
 
@@ -1526,7 +1524,7 @@ namespace game
         x += sw+10;
         y -= sh/2.5;
 
-        float rxscale = 1.f;// TODO min(740.f/(dmround*40-(dmround/5)*15), 1.f);
+        float rxscale = min(740.f/max(1, (cmode ? cmode->getRound() : 0)*40-((cmode ? cmode->getRound() : 0)/5)*15), 1.f);
         x /= rxscale;
         glScalef(rxscale, 1, 1);
 

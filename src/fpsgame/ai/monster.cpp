@@ -280,13 +280,14 @@ namespace ai
                     }
                 }
 
+                if(ai->enemy && ai->enemy->state==CS_DEAD)
+                {
+                    ai->enemy = monsterType.loyalty ? (player1->isInfected() ? NULL : player1) : bestenemy;
+                    ai->anger = 0;
+                }
+
                 if(ai->enemy)
                 {
-                    if(ai->enemy->state==CS_DEAD)
-                    {
-                        ai->enemy = monsterType.loyalty ? player1 : bestenemy;
-                        ai->anger = 0;
-                    }
                     normalizeYaw(d->yaw, ai->targetyaw);
                     if(ai->targetyaw > d->yaw)             // slowly turn monster towards his target
                     {

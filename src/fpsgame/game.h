@@ -664,6 +664,7 @@ enum
     N_SWITCHNAME, N_SWITCHTEAM,
     N_ONFIRE, N_SETONFIRE, N_EFFECT,
     N_INFECT, N_INITINF, N_RADIOTEAM, N_RADIOALL,
+    N_ROUNDINFO,
     N_SURVINIT, N_SURVREASSIGN, N_SURVSPAWNSTATE, N_SURVNEWROUND, N_SURVROUNDOVER,
     N_GUTS, N_BUY,
     N_SERVER_COMMAND,
@@ -1152,7 +1153,11 @@ namespace game
         virtual void update(int curtime) {}
         virtual void message(int type, ucharbuf &p) {}
         virtual void printScores() {}
+
         virtual int getRound() { return 0; }
+        virtual int getRemain() { return 0; }
+        virtual int getTotal() { return 0; }
+        
         virtual ai::bot::BotGameMode *getBotGameMode() { return NULL; }
         virtual const vector<dynent *> &getdynents() { static vector<dynent *> emptyvec; return emptyvec; }
     };

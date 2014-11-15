@@ -4,7 +4,7 @@
 #ifndef SERVMODE
 struct dmspclientmode : clientmode, ::ai::bot::BotGameMode
 {
-    int round, level, roundTime;
+    int round, remain, total, level, roundTime;
 
     dmspclientmode() : round(0), level(0), roundTime(0)
     {
@@ -13,6 +13,16 @@ struct dmspclientmode : clientmode, ::ai::bot::BotGameMode
     int getRound()
     {
         return round+1;
+    }
+
+    int getRemain()
+    {
+        return remain;
+    }
+
+    int getTotal()
+    {
+        return total;
     }
 
     void printScores()
@@ -101,16 +111,29 @@ struct dmspservmode : servmode
         reset(true);
     }
 
+    void sendRoundInfo(int to = -1)
+    {
+        sendf(to, 1, "i6", N_ROUNDINFO, round, remain, monsterTotal, level, roundTime);
+    }
+
     void startRound()
     {
         roundTime = 0;
         nextMonster = 0;//lastmillis+10000+ (round * 1000);
         remain = monsterTotal = spawnLeft = ((level)*3) + (((round-1)*(level*2)) + int(round*round));
 
+        sendRoundInfo();
+
+        aiman::resetai();
+
         loopv(clients)
         {
-            if(clients[i]->state.ai.type == ai::AI_TYPE_MONSTER) aiman::deleteai(clients[i]);
-            else if(clients[i]->state.isInfected()) makeInfected(clients[i], -1);
+            // Clear all corpses
+            if(clients[i]->state.ai.type != ai::AI_TYPE_MONSTER)
+            {
+                if(clients[i]->state.isInfected()) makeInfected(clients[i], -1);
+                if(clients[i]->state.state == CS_DEAD) instantRespawn(clients[i]);
+            }
         }
     }
 
@@ -122,15 +145,19 @@ struct dmspservmode : servmode
         startRound();
     }
 
-    bool checkRound()
+    bool checkRound(clientinfo *exclude = NULL)
     {
         if(spawnLeft) return false;
 
         int monstersLeft = 0, humansLeft = 0;
 
-        loopv(clients) if(clients[i]->state.ai.type == ai::AI_TYPE_MONSTER) monstersLeft++; else humansLeft ++;
+        loopv(clients) if(clients[i] != exclude && clients[i]->state.state == CS_ALIVE )
+        {
+            if(clients[i]->state.ai.type == ai::AI_TYPE_MONSTER) monstersLeft++;
+            else humansLeft ++;
+        }
 
-        if(monstersLeft <= 0 || humansLeft <= 0)
+        if(monstersLeft <= 0 /*|| humansLeft <= 0*/)
         {
             nextRound(humansLeft > 0);
             return true;
@@ -144,8 +171,12 @@ struct dmspservmode : servmode
         ASSERT(spawnLeft > 0);
         spawnLeft--;
         clientinfo *ci = aiman::addai(ai::monster::aiLevelToSkill(level), -1, ai::AI_TYPE_MONSTER);
-        makeInfected(ci, monster::getRandomType());
-        ci->state.state = CS_ALIVE;
+        if(ci)
+        {
+            makeInfected(ci, monster::getRandomType());
+            ci->state.state = CS_ALIVE;
+        }
+        else DEBUG_ERROR("Could not create client while spawning monster.");
     }
 
     void update()
@@ -161,7 +192,11 @@ struct dmspservmode : servmode
             spawnMonster();
         }
 
-        if (spawnLeft == 0 && remain <= REMAIN_COUNTDOWN && roundTime == 0) roundTime = lastmillis;
+        if (spawnLeft == 0 && remain <= REMAIN_COUNTDOWN && roundTime == 0)
+        {
+            roundTime = lastmillis;
+            sendRoundInfo();
+        }
         if (roundTime && lastmillis-roundTime > REMAIN_COUNTDOWN_TIME) nextRound();
     }
 
@@ -174,7 +209,7 @@ struct dmspservmode : servmode
 
     bool died(clientinfo *victim, clientinfo *actor)
     {
-        bool wantRespawn = true;
+        bool wantRespawn = false;
 
         if(!victim->state.isInfected())
         {
@@ -189,11 +224,11 @@ struct dmspservmode : servmode
             if(victim->state.ai.type == ai::AI_TYPE_MONSTER)
             {
                 remain--;
-                aiman::deleteai(victim);
+                sendRoundInfo();
             }
         }
 
-        if(!checkRound() && wantRespawn)
+        if(!checkRound(victim) && wantRespawn)
         {
             instantRespawn(victim);
             return true;
@@ -203,6 +238,18 @@ struct dmspservmode : servmode
 };
 #endif
 
+#else // PARSEMESSAGES
+#ifndef SERVMODE
+case N_ROUNDINFO:
+    {
+        dmspmode.round          = getint(p);
+        dmspmode.remain         = getint(p);
+        dmspmode.total          = getint(p);
+        dmspmode.level          = getint(p);
+        dmspmode.roundTime      = getint(p);
+    }
+    break;
 #else
 
+#endif
 #endif

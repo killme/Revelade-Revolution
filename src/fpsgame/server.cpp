@@ -2650,7 +2650,7 @@ namespace server
 
         static bool compare(const crcinfo &x, const crcinfo &y) { return x.matches > y.matches; }
     };
-    VAR(modifiedmapspectator, 0, 1, 2);
+    VAR(modifiedmapspectator, 0, 0, 2);
 
     void checkmaps(int req = -1)
     {
