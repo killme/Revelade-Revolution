@@ -717,7 +717,7 @@ namespace game
     void updateworld()        // main game update loop
     {
         extern int connectionState;
-        if(connectionState != CONNECTION_STATE_CONNECTED) return;
+        if(connectionState != CONNECTION_STATE_CONNECTED) { gets2c(); return; }
         if(!maptime) { maptime = lastmillis; maprealtime = totalmillis; return; }
         if(!curtime) { currentCutscene = 0; updateCutsceneCamera(); gets2c(); if(player1->clientnum>=0) c2sinfo(); return; }
 
