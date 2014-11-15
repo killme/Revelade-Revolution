@@ -24,6 +24,20 @@ void fatal(const char *s, ...)
     exit(EXIT_FAILURE); 
 }
 
+static bool dateValid = false;
+static string date = {0};
+static time_t timeValue = {0};
+static struct tm * timeinfo;
+
+void updateDate()
+{
+    time (&timeValue);
+    timeinfo = localtime (&timeValue);
+
+    strftime(date, sizeof(date) - 1, "%Y-%m-%dT%H:%M:%S", timeinfo);
+    dateValid = true;
+}
+
 void conoutfv(int type, const char *fmt, va_list args)
 {
     while(*fmt == '\n' && fmt++) printf("\n");
@@ -36,17 +50,11 @@ void conoutfv(int type, const char *fmt, va_list args)
         return;
     }
 
-    string date = {0};
-    time_t timeValue = {0};
-    struct tm * timeinfo;
-
-    time (&timeValue);
-    timeinfo = localtime (&timeValue);
-
-    strftime(date, sizeof(date) - 1, "%Y-%m-%dT%H:%M:%S", timeinfo);
+    if(!dateValid) updateDate();
 
     printf("[%s] %s\n", date, sp);
 }
+
 
 void conoutf(const char *fmt, ...)
 {
@@ -394,6 +402,8 @@ void checkserversockets()        // reply all server info requests
         ucharbuf req(pong, len), p(pong, sizeof(pong));
         p.len += len;
         server::serverinforeply(req, p);
+        string hn;
+        conoutf("Extinfo: Received request from %s", enet_address_get_host_ip(&pongaddr, hn, sizeof(hn))==0 ? hn : "unknown");
     }
 }
 
@@ -426,7 +436,7 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
         server::sendpackets();
         return;
     }
-       
+
     // below is network only
 
 #ifndef SERVER
@@ -448,6 +458,7 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
 #endif
 
 #ifdef SERVER
+    dateValid = false;
     uv_run(uv_default_loop(), UV_RUN_NOWAIT);
 #endif
 
