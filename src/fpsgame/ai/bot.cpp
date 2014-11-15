@@ -85,8 +85,6 @@ namespace ai
             }
             return false;
         }
-        
-
 
         void BotAi::destroy(fpsent *d)
         {
@@ -95,11 +93,16 @@ namespace ai
             delete (BotAiInfo *)d->ai.data;
             d->ai.data = NULL;
         }
-        
+
         void BotAi::create(fpsent *d)
         {
             d->ai.local = true;
-            d->ai.data = new BotAiInfo;
+            BotAiInfo *ai = new BotAiInfo;
+            d->ai.data = ai;
+
+            ai->views[0] = viewfieldx(d->ai.skill);
+            ai->views[1] = viewfieldy(d->ai.skill);
+            ai->views[2] = viewdist(d->ai.skill);
         }
         
         bool checkothers(vector<int> &targets, fpsent *d, int state, int targtype, int target, bool teams, int *members)
@@ -870,7 +873,6 @@ namespace ai
                     scaleyawpitch(d->yaw, d->pitch, yaw, pitch, frame, sskew);
                     if(insight || quick)
                     {
-                        printf("WANTSHOOT\n");
                         if(ai::canshoot(d, e) && hastarget(d, b, e, yaw, pitch, dp.squaredist(ep)))
                         {
                             d->attacking = true;

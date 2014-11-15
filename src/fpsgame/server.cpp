@@ -2448,17 +2448,16 @@ namespace server
         return true;
     }
 
-    void clearevent(clientinfo *ci)
-    {
-        delete ci->events.remove(0);
-    }
-
     void flushevents(clientinfo *ci, int millis)
     {
         while(ci->events.length())
         {
             gameevent *ev = ci->events[0];
-            if(ev->flush(ci, millis)) clearevent(ci);
+            if(ev->flush(ci, millis))
+            {
+                ASSERT(ev == ci->events[0]);
+                delete ci->events.remove(0);
+            }
             else break;
         }
     }
