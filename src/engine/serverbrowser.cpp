@@ -1187,6 +1187,6 @@ namespace serverbrowser
             ASSERT(0);
         };
 
-        COMMAND(test, "");
+        //COMMAND(test, "");
     }
 }
