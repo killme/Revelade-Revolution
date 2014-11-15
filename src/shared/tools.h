@@ -14,19 +14,25 @@ typedef unsigned int uint;
 typedef signed long long int llong;
 typedef unsigned long long int ullong;
 
+#define MACRO_BODY(body) do body while(0)
+
 #ifdef _DEBUG
     #if !defined(SET_DEBUG_BREAKPOINT) && defined(__GNUC__)
-        #define SET_DEBUG_BREAKPOINT do { asm("int $3"); } while(0)
+        #define SET_DEBUG_BREAKPOINT MACRO_BODY({ asm("int $3"); })
     #elif !defined(SET_DEBUG_BREAKPOINT)
-        #define SET_DEBUG_BREAKPOINT do { __asm int 3; } while(0)
+        #define SET_DEBUG_BREAKPOINT MACRO_BODY({ __asm int 3; })
     #endif
 
-    #define ASSERT(c) if(!(c)) { printf("Assetion failed in %s on line %i: %s\n", __FILE__, __LINE__, #c); SET_DEBUG_BREAKPOINT; }
+    #define ASSERT(c) MACRO_BODY({ \
+        if(!(c)) { printf("Assetion failed in %s on line %i: %s\n", __FILE__, __LINE__, #c); SET_DEBUG_BREAKPOINT; } \
+    })
 #else
     #ifndef SET_DEBUG_BREAKPOINT
         #define SET_DEBUG_BREAKPOINT
     #endif
-    #define ASSERT(c) if(!(c)) { SET_DEBUG_BREAKPOINT; }
+    #define ASSERT(c) MACRO_BODY({ \
+        if(!(c)) { SET_DEBUG_BREAKPOINT; } \
+    })
 #endif
 
 #ifdef _DEBUG
