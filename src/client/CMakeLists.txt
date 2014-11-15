@@ -60,19 +60,20 @@ set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/jsonNews
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/webRadio
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/bot
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai/ai
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai/bot
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai/monster
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai/waypoint
+
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/campaign
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/client
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/entities
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/fps
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/gamemode
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/monster
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/gamemode.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/movable
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/render
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/scoreboard
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/server
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/waypoint
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/weapon
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/auth
 )

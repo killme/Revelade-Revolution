@@ -406,6 +406,9 @@ namespace server
         extern void changemap();
         extern void addclient(clientinfo *ci);
         extern void changeteam(clientinfo *ci);
+
+        extern clientinfo *addai(int skill, int limit, ai::AiType aiType = ai::AI_TYPE_BOT);
+        extern void deleteai(clientinfo *ci);
     }
 
     #define MM_MODE 0xF
@@ -857,6 +860,22 @@ namespace server
         return cname[cidx];
     }
 
+    void makeInfected(clientinfo *victim, int infectionType = -1, bool forceNetworking = false)
+    {
+        infectionType++;
+        if(!forceNetworking && victim->aireinit == 2) victim->state.infectedType = infectionType;
+        else sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = infectionType);
+    }
+
+    void instantRespawn(clientinfo *victim)
+    {
+        extern void sendspawn(clientinfo *ci);
+        victim->position.setsize(0);
+        victim->state.state = CS_DEAD;
+        victim->state.respawn();
+        sendspawn(victim);
+    }
+
     struct servmode
     {
         virtual ~servmode() {}
@@ -896,15 +915,17 @@ namespace server
     };
 
     #define SERVMODE 1
-    #include "capture.h"
-    #include "ctf.h"
-    #include "infection.h"
-    #include "survival.h"
+    #include "gamemode/capture.h"
+    #include "gamemode/ctf.h"
+    #include "gamemode/infection.h"
+    #include "gamemode/survival.h"
+    #include "gamemode/dmsp.h"
 
     captureservmode capturemode;
     ctfservmode ctfmode;
     infectionservmode infectionmode;
     survivalservmode survivalmode;
+    dmspservmode dmspmode;
     servmode *smode = NULL;
 
     bool canspawnitem(int type) { return !m_noitems && !m_noammo && type>=I_AMMO && type<=I_QUAD; }
@@ -2050,6 +2071,7 @@ namespace server
         else if(m_ctf) smode = &ctfmode;
         else if(m_infection) smode = &infectionmode;
         else if(m_survival) smode = &survivalmode;
+        else if(m_dmsp) smode = &dmspmode;
         else smode = NULL;
 
         if(m_timed && smapname[0]) sendf(-1, 1, "ri2", N_TIMEUP, gamemillis < gamelimit && !interm ? max((gamelimit - gamemillis)/1000, 1) : 0);
@@ -3982,10 +4004,11 @@ namespace server
             }
 
             #define PARSEMESSAGES 1
-            #include "capture.h"
-            #include "ctf.h"
-            #include "infection.h"
-            #include "survival.h"
+            #include "gamemode/capture.h"
+            #include "gamemode/ctf.h"
+            #include "gamemode/infection.h"
+            #include "gamemode/survival.h"
+            #include "gamemode/dmsp.h"
             #undef PARSEMESSAGES
 
             case N_SERVER_COMMAND:
@@ -4108,10 +4131,7 @@ namespace server
         return PROTOCOL_VERSION;
     }
 
-    #include "aiman.h"
-
-    //TODO: Remove
-    int getClientNumber(clientinfo *ci) { return ci->clientnum; }
+    #include "ai/aiman.h"
 }
 
 #ifdef SERVER

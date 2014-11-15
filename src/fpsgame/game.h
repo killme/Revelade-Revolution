@@ -68,7 +68,6 @@ struct fpsentity : extentity
 };
 
 enum { A_BLUE, A_GREEN, A_YELLOW };     // armour types... take 20/40/60 % off
-enum { M_NONE = 0, M_SEARCH, M_HOME, M_ATTACKING, M_PAIN, M_SLEEP, M_AIMING };  // monster states
 
 enum {
     MONSTER_ZOMBIE_1,
@@ -116,7 +115,6 @@ namespace game
 
 namespace monster
 {
-    //const ::monster::MonsterType &monsterType = ::monster::getMonsterType(mtype);
     enum TypeTraitFlags
     {
         MONSTER_TYPE_TRAIT_RAT  = 1 << 0,
@@ -233,7 +231,7 @@ enum
 const static GameMode gameModes[] =
 {
     {-3,    M_LOCAL | M_CLASSICSP,                                  "SP",                   "sp",           NULL },
-    {-2,    M_LOCAL | M_DMSP,                                       "DMSP",                 "dmsp",         NULL },
+    {-2,    M_DMSP,                                                 "DMSP",                 "dmsp",         NULL },
     {-1,    M_DEMO | M_LOCAL,                                       "demo",                 "demo",         NULL },
     {0,     M_LOBBY,                                                "ffa",                  "ffa",          "\fbFFA: \frFrag everyone to score points.\n" },
     {1,     M_EDIT,                                                 "coop edit",            "coop",         NULL },
@@ -793,8 +791,7 @@ static struct itemstat { int add, max, sound; const char *name; int icon, info; 
 };
 
 #include "weapons.h"
-
-#include "ai.h"
+#include "ai/ai.h"
 
 // inherited by fpsent and server clients
 struct fpsstate
@@ -915,7 +912,6 @@ struct fpsstate
 
     void spawnstate(int gamemode)
     {
-        if (!m_infection) infectedType = 0;
         if (!m_survival) guts = 0;
 
         if(m_demo)
@@ -1047,7 +1043,6 @@ struct fpsent : dynent, fpsstate
         dynent::reset();
         fpsstate::respawn();
         initialSpeed = maxspeed = !m_classes ? 100 : game::getplayerclassinfo(this).maxspeed;
-        if(!m_infection) infectedType = 0;
         respawned = suicided = -1;
         lastaction = 0;
         lastattackgun = gunselect;
@@ -1156,6 +1151,8 @@ namespace game
         virtual fpsent *getclient(int cn) { return NULL; }
         virtual void update(int curtime) {}
         virtual void message(int type, ucharbuf &p) {}
+        virtual void printScores() {}
+        virtual int getRound() { return 0; }
         virtual ai::bot::BotGameMode *getBotGameMode() { return NULL; }
         virtual const vector<dynent *> &getdynents() { static vector<dynent *> emptyvec; return emptyvec; }
     };
@@ -1178,6 +1175,7 @@ namespace game
     extern bool inputenabled;
     struct hudevent { int type, millis; hudevent(int _type, int _millis): type(_type), millis(_millis) {} };
     extern vector<hudevent> hudevents;
+    extern void endsp(bool allkilled);
 
     enum hudeventtypes
     {
@@ -1256,26 +1254,6 @@ namespace game
     extern void sendposition(fpsent *d, bool reliable = false);
 
     void sendpositions();
-
-    // monster
-    struct monster;
-    extern vector<monster *> monsters;
-    extern int remain, dmround, roundtotal, spawnremain;
-
-    extern void clearmonsters();
-    extern void preloadmonsters();
-    extern void stackmonster(monster *d, physent *o);
-    extern void updatemonsters(int curtime);
-    extern void spawnmonster();
-    extern void spawnrat(vec);
-    extern void rendermonsters();
-    extern void suicidemonster(monster *m);
-    extern void hitmonster(int damage, monster *m, fpsent *at, const vec &vel, int gun);
-    extern void monsterkilled();
-    extern void endsp(bool allkilled);
-    extern void spsummary(int accuracy);
-    extern void dmspscore();
-    extern void spawnsupport(int num);
 
     // movable
     struct movable;

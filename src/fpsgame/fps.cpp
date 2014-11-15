@@ -477,7 +477,7 @@ namespace game
 
             case BA_SUPPORT:
             case BA_SUPPORTD:
-                if (M_DMSP) spawnsupport((item==BA_SUPPORTD)? 6: 3);
+                //if (M_DMSP) spawnsupport((item==BA_SUPPORTD)? 6: 3); //TODO
                 break;
         }
     }
@@ -504,6 +504,32 @@ namespace game
     }
     COMMAND(buy, "s");
 
+    void endsp(bool allkilled)
+    {
+        conoutf(CON_GAMEINFO, allkilled ? "\f2you have cleared the map!" : "\f2you reached the exit!");
+        addmsg(N_FORCEINTERMISSION, "r");
+    }
+    ICOMMAND(endsp, "", (), endsp(false));
+
+    void spsummary(int accuracy)
+    {
+        //TODO
+//         conoutf(CON_GAMEINFO, "\f2--- single player time score: ---");
+//         int pen, score = 0;
+//         pen = ((lastmillis-maptime)*100)/(1000*gamespeed)); score += pen; if(pen) conoutf(CON_GAMEINFO, "\f2time taken: %d seconds (%d simulated seconds)", pen, (lastmillis-maptime)/1000);
+//         pen = player1->deaths*60; score += pen; if(pen) conoutf(CON_GAMEINFO, "\f2time penalty for %d deaths (1 minute each): %d seconds", player1->deaths, pen);
+//         pen = remain*10;          score += pen; if(pen) conoutf(CON_GAMEINFO, "\f2time penalty for %d monsters remaining (10 seconds each): %d seconds", remain, pen);
+//         pen = (10-skill)*20;      score += pen; if(pen) conoutf(CON_GAMEINFO, "\f2time penalty for lower skill level (20 seconds each): %d seconds", pen);
+//         pen = 100-accuracy;       score += pen; if(pen) conoutf(CON_GAMEINFO, "\f2time penalty for missed shots (1 second each %%): %d seconds", pen);
+//         defformatstring(aname)("bestscore_%s", getclientmap());
+//         const char *bestsc = getalias(aname);
+//         int bestscore = *bestsc ? parseint(bestsc) : score;
+//         if(score<bestscore) bestscore = score;
+//         defformatstring(nscore)("%d", bestscore);
+//         alias(aname, nscore);
+//         conoutf(CON_GAMEINFO, "\f2TOTAL SCORE (time + time penalties): %d seconds (best so far: %d seconds)", score, bestscore);
+    }
+
     const char *getclientmap() { return clientmap; }
 
     void resetgamestate()
@@ -515,7 +541,7 @@ namespace game
         if(m_classicsp)
         {
             clearmovables();
-            clearmonsters();                 // all monsters back at their spawns for editing
+            AI_MULTI_DISPATCH(ai->reset());                 // all monsters back at their spawns for editing
             entities::resettriggers();
         }
         player1->guts = 0;
@@ -707,7 +733,6 @@ namespace game
         moveragdolls();
         gets2c();
         updatemovables(curtime);
-        updatemonsters(curtime);
         if (cmode) cmode->update(curtime);
         if(intermission)
         {
@@ -771,7 +796,6 @@ namespace game
             }
             if(lastmillis < player1->lastpain + spawnwait) return false;
             resetfade();
-            if(m_dmsp) { changemap(clientmap, gamemode); return true; }    // if we die in SP we try the same map again
             respawnself();
             if(m_classicsp)
             {
@@ -943,11 +967,7 @@ namespace game
                 else conoutf(contype, "\f2%s %s %s%s", aname, GUN_FRAG_MESSAGE(gun, actor->isInfected()), dname, special? GUN_SPECIAL_MESSAGE(gun, actor->isInfected()): "");
             }
         }
-        if (m_dmsp)
-        {
-            //intermission = 1;
-            dmspscore();
-        }
+
         deathstate(d);
         ai::killed(d, actor);
         if(d == player1) d->follow = actor->clientnum;
@@ -984,6 +1004,7 @@ namespace game
             else conoutf(CON_GAMEINFO, "\f2player frags: %d, deaths: %d", player1->frags, player1->deaths);
             int accuracy = (player1->totaldamage*100)/max(player1->totalshots, 1);
             conoutf(CON_GAMEINFO, "\f2player total damage dealt: %d, damage wasted: %d, accuracy(%%): %d", player1->totaldamage, player1->totalshots-player1->totaldamage, accuracy);
+            if(cmode) cmode->printScores();
             if(m_sp) spsummary(accuracy);
 
             showscores(true);
@@ -1069,7 +1090,7 @@ namespace game
         if(identexists("map_changed")) execute("map_changed");
 
         clearmovables();
-        clearmonsters();
+        AI_MULTI_DISPATCH(ai->reset());
 
         clearprojectiles();
         clearbouncers();
@@ -1197,24 +1218,14 @@ namespace game
         if     (d->state == CS_DEAD && floorlevel<0) playsound(S_SPLOSH+(rand()%3), &d->o);
     }
 
-    extern void stackzombie(physent *d, physent *o);
-
     void dynentcollide(physent *d, physent *o, const vec &dir)
     {
         switch(d->type)
         {
+            case ENT_PLAYER:
             case ENT_AI:
-                if(dir.z > 0)
-                {
-                    if(m_survival)
-                    {
-                        stackzombie(d, o);
-                    }
-                    else
-                    {
-                        stackmonster((monster *)d, o);
-                    }
-                }
+                //TODO: do this in monster ai -> if(dir.z > 0)
+                ai::getAiType((fpsent *)d)->collide((fpsent *)d, o, dir);
                 break;
             case ENT_INANIMATE: if(dir.z > 0) stackmovable((movable *)d, o); break;
         }
@@ -1235,7 +1246,7 @@ namespace game
         }
     }
 
-    int numdynents() { return players.length()+monsters.length()+movables.length()+(cmode? cmode->getdynents().length(): 0); }
+    int numdynents() { return players.length()+movables.length()+(cmode? cmode->getdynents().length(): 0); }
 
     ICOMMAND(numdynents, "", (), intret(numdynents()));
 
@@ -1244,8 +1255,6 @@ namespace game
         ASSERT(i >= -1 && "Dynent id can not be negative!");
         if(i<players.length()) return players[i];
         i -= players.length();
-        if(i<monsters.length()) return (fpsent *)monsters[i];
-        i -= monsters.length();
         if(i<movables.length()) return (dynent *)movables[i];
         if (!cmode) return NULL;
         i -= movables.length();
@@ -1299,7 +1308,7 @@ namespace game
 
     void suicide(physent *d, int type)
     {
-        if(d==player1 || (d->type==ENT_PLAYER && ((fpsent *)d)->ai.local))
+        if(d==player1 || ((d->type==ENT_PLAYER || d->type==ENT_AI) && ((fpsent *)d)->ai.local))
         {
             if(d->state!=CS_ALIVE) return;
             fpsent *pl = (fpsent *)d;
@@ -1310,7 +1319,6 @@ namespace game
                 pl->suicided = pl->lifesequence;
             }
         }
-        else if(d->type==ENT_AI) suicidemonster((monster *)d);
         else if(d->type==ENT_INANIMATE) suicidemovable((movable *)d);
     }
     ICOMMAND(suicide, "", (), suicide(player1));
@@ -1499,7 +1507,8 @@ namespace game
         float sw = 200*i_round_scale, sh = 100*i_round_scale;
 
         // draw meter
-        drawometer(min((float)remain/(float)roundtotal, 1.f), 150, vec(x+120, y-80, 0), vec(1, 0, 0));
+        // TODO
+        //drawometer(min((float)remain/(float)roundtotal, 1.f), 150, vec(x+120, y-80, 0), vec(1, 0, 0));
 
         glColor4f(1.f, 1.f, 1.f, 1.f);
 
@@ -1517,7 +1526,7 @@ namespace game
         x += sw+10;
         y -= sh/2.5;
 
-        float rxscale = min(740.f/(dmround*40-(dmround/5)*15), 1.f);
+        float rxscale = 1.f;// TODO min(740.f/(dmround*40-(dmround/5)*15), 1.f);
         x /= rxscale;
         glScalef(rxscale, 1, 1);
 
@@ -1525,7 +1534,7 @@ namespace game
         sw = 75*i_round_scale;
         sh = 150*i_round_scale;
 
-        for(int i=0; i<dmround; i++)
+        for(int i=0; i<(cmode ? cmode->getRound() : 0); i++)
         {
             if(i%5 == 4)
             {
@@ -1800,7 +1809,7 @@ namespace game
             // draw ammo
             if(d->quadmillis) drawicon(HICON_QUAD, 80, 1200);
             if(ammohud) drawammohud(d, w, h);
-            if(m_dmsp) drawroundicon(w,h);
+            if(cmode && cmode->getRound() > 0) drawroundicon(w,h);
             if(!d->isInfected()) drawcrosshairhud(d, w, h);
 
             if (!m_insta)

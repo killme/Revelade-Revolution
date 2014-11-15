@@ -20,10 +20,11 @@ set(SERVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/server
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/worldio
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai/monster
+
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/weapon
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/server
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/auth
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/monster
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/entities
 
     ${CMAKE_CURRENT_SOURCE_DIR}/lua.cpp

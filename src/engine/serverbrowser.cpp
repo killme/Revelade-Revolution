@@ -77,9 +77,7 @@ namespace serverbrowser
         //delete req->buf;
         delete req;
     }
-    
-    
-    
+
     struct ServerField
     {
         string key;
@@ -91,7 +89,7 @@ namespace serverbrowser
         const char *uuid;
         bool wasUpdated;
         vector<ServerField> info;
-        
+
         ~ServerInfo()
         {
             DELETEA(uuid);
@@ -765,4 +763,430 @@ namespace serverbrowser
     }
     
     ICOMMAND(islastversion, "", (), intret(get_isLastVersion() ? 1 : 0));
+
+    namespace test
+    {
+        struct CustomProperty
+        {
+            const char *key;
+            const char *value;
+
+            CustomProperty(const char *key, const char *value) : key(key), value(value) {}
+            CustomProperty(const char *key, bool value) : key(key), value(newstring(value ? "true" : "false")) {}
+            CustomProperty(const char *key, long long value_) : key(key) {
+                defformatstring(str)("%lli", value_);
+                value = newstring(str);
+            }
+            CustomProperty(const char *key, long value_) : key(key) {
+                defformatstring(str)("%li", value_);
+                value = newstring(str);
+            }
+            CustomProperty(const char *key, int value_) : key(key) {
+                defformatstring(str)("%i", value_);
+                value = newstring(str);
+            }
+            CustomProperty(const char *key, short value_) : key(key) {
+                defformatstring(str)("%d", value_);
+                value = newstring(str);
+            }
+            CustomProperty(const char *key, float value_) : key(key) {
+                defformatstring(str)("%f", value_);
+                value = newstring(str);
+            }
+            CustomProperty(const char *key, double value_) : key(key) {
+                defformatstring(str)("%lf", value_);
+                value = newstring(str);
+            }
+
+            ~CustomProperty()
+            {
+                DELETEA(key);
+                DELETEA(value);
+            }
+        };
+
+        struct MaintainerInfo
+        {
+            const char *name;
+            bool isAwesome;
+            vector<CustomProperty *> customProperties;
+
+            MaintainerInfo() : name(NULL), isAwesome(false) {}
+        };
+
+        struct PackageInfo
+        {
+            const char *name;
+            vector<MaintainerInfo *> maintainers;
+            int version;
+
+            PackageInfo() : name(NULL), maintainers(), version(-1) {}
+        };
+
+        template<typename T>
+        void *construct() { return new T; }
+        typedef void *(*Constructor)();
+
+        #define memberOffset(struct, member) ((size_t)(&(((struct *)0)->member)))
+        #define offsetMember(type, ptr, offset) ((type)((size_t)ptr+offset))
+
+        struct JsonStructInfo
+        {
+            const char *name;
+            enum {
+                TYPE_NONE,
+
+                TYPE_STRING,
+
+                TYPE_SHORT,
+                TYPE_INT,
+                TYPE_LONG,
+                TYPE_LONG_LONG,
+
+                TYPE_FLOAT,
+                TYPE_DOUBLE,
+
+                TYPE_BOOL,
+
+                TYPE_ARRAY,
+                TYPE_MAP,
+
+                TYPE_CUSTOM,
+            } type;
+            size_t offset;
+            JsonStructInfo *children;
+            size_t size;
+            Constructor constructor;
+        };
+
+        #define _(class, type, name, child) { #name, JsonStructInfo::TYPE_##type, memberOffset(class, name), child, 0, NULL},
+        JsonStructInfo maintainerInfo[] = {
+            _(MaintainerInfo, STRING, name, NULL)
+            _(MaintainerInfo, BOOL, isAwesome, NULL)
+            {NULL, JsonStructInfo::TYPE_CUSTOM, memberOffset(MaintainerInfo, customProperties), NULL, 0, NULL},
+            {NULL, JsonStructInfo::TYPE_NONE}
+        };
+
+        JsonStructInfo maintainerInfoContainer = {
+            NULL, JsonStructInfo::TYPE_MAP, 0, static_cast<JsonStructInfo *>(maintainerInfo), sizeof(MaintainerInfo), construct<MaintainerInfo>
+        };
+
+        JsonStructInfo packageInfoChildren[] = {
+            _(PackageInfo, STRING, name, NULL)
+            _(PackageInfo,ARRAY, maintainers, static_cast<JsonStructInfo *>(&maintainerInfoContainer))
+            _(PackageInfo,INT, version, NULL)
+            {NULL, JsonStructInfo::TYPE_NONE}
+        };
+        #undef _ // Don't be evil
+
+        JsonStructInfo packageInfo = {
+            NULL, JsonStructInfo::TYPE_MAP, 0, static_cast<JsonStructInfo *>(packageInfoChildren), sizeof(PackageInfo), construct<PackageInfo>
+        };
+
+        struct PackageInfoWorld {
+            PackageInfo *info;
+        };
+
+        JsonStructInfo packageInfoWorld = {
+            NULL, JsonStructInfo::TYPE_MAP, memberOffset(PackageInfoWorld, info), static_cast<JsonStructInfo *>(&packageInfo), 0, NULL
+        };
+
+        struct JsonString
+        {
+            const char *begin;
+            size_t length;
+            JsonString() : begin(NULL), length(0) {}
+            void set(const char *begin, size_t length)
+            {
+                this->begin = begin;
+                this->length = length;
+            }
+
+            void clear()
+            {
+                begin = NULL;
+                length = 0;
+            }
+        };
+
+        struct ReadingElement
+        {
+            JsonStructInfo *currentInfo;
+            ReadingElement *parent;
+            void *map;
+
+            ReadingElement(JsonStructInfo *currentInfo, ReadingElement *parent, void *map) : currentInfo(currentInfo), parent(parent), map(map) {}
+        };
+
+        struct ReadingContext
+        {
+            JsonString key;
+            ReadingElement *readingElement;
+            int ignoreStack;
+            char *errorMessage;
+
+            ReadingContext() : key(), readingElement(NULL), ignoreStack(0), errorMessage(NULL) {}
+            ~ReadingContext()
+            {
+                DELETEA(errorMessage);
+            }
+
+            void popElement()
+            {
+                ReadingElement *parent = readingElement->parent;
+                delete readingElement;
+                readingElement = parent;
+            }
+        };
+
+        struct PackageInfoReadingContext : ReadingContext
+        {
+            PackageInfoReadingContext(PackageInfoWorld *world)
+            {
+                readingElement = new ReadingElement(&packageInfoWorld, NULL, world);
+            }
+        };
+
+        // Find a valid value
+        JsonStructInfo *getInfo(JsonStructInfo *info, const JsonString &key, int type)
+        {
+            if(info->children)
+            {
+                for(JsonStructInfo *child = info->children; child->type != JsonStructInfo::TYPE_NONE; child++)
+                {
+                    if((!child->name || 0 == strncmp(child->name, key.begin, key.length)) && (child->type == type || (child->type == JsonStructInfo::TYPE_CUSTOM && type != JsonStructInfo::TYPE_MAP && type != JsonStructInfo::TYPE_ARRAY)))
+                    {
+                        return child;
+                    }
+                }
+            }
+
+            return NULL;
+        }
+
+        template<typename T>
+        void insertInto(ReadingElement *parent, JsonStructInfo *info, T value, const JsonString &key)
+        {
+            if(parent->currentInfo->type == JsonStructInfo::TYPE_MAP)
+            {
+                if(info->type == JsonStructInfo::TYPE_CUSTOM)
+                {
+                    offsetMember(vector<CustomProperty *> *, parent->map, info->offset)->add(new CustomProperty(
+                        key.begin ? newstring(key.begin, key.length) : NULL,
+                        value
+                    ));
+                }
+                else
+                {
+                    *offsetMember(T *, parent->map, info->offset) = value;
+                }
+            }
+            else // Array
+            {
+                ASSERT(info->type != JsonStructInfo::TYPE_CUSTOM);
+                ((vector<T> *)parent->map)->add(value);
+            }
+        }
+
+        #define INIT_CONTEXT ReadingContext *context = (ReadingContext *)context_;
+        #define EXIT_CONTEXT \
+            if(info == NULL && context->ignoreStack < 1) { \
+                ASSERT(context->errorMessage == NULL); \
+                DELETEA(context->errorMessage); \
+                context->errorMessage = newstring("Key/type mismatch."); \
+            } \
+            return info == NULL && context->ignoreStack < 1 ? 0 : 1;
+        int json_start_map(void *context_)
+        {
+            INIT_CONTEXT
+            JsonStructInfo *info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_MAP);
+            if(context->ignoreStack || info == NULL) {
+                context->key.clear();
+                context->ignoreStack++;
+                EXIT_CONTEXT
+            } // Ignore the map if it's invalid
+
+            context->key.clear();
+
+            void *map = NULL;
+            if(info->constructor) map = info->constructor();
+            else
+            {
+                ASSERT(map);
+                memset(map, 0, info->size);
+                map = malloc(info->size);
+            }
+            context->readingElement = new ReadingElement(info, context->readingElement, map);
+            insertInto(context->readingElement->parent, info, map, context->key);
+            EXIT_CONTEXT
+        }
+
+        int json_end_map(void *context_)
+        {
+            INIT_CONTEXT
+            if(context->ignoreStack)
+            {
+                context->ignoreStack--;
+            }
+            else
+            {
+                context->popElement();
+            }
+            return 1;
+        }
+
+        int json_start_array(void *context_)
+        {
+            INIT_CONTEXT
+            JsonStructInfo *info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_ARRAY);
+            if(context->ignoreStack || info == NULL) {
+                context->key.clear();
+                context->ignoreStack++;
+                EXIT_CONTEXT
+            } // Ignore the array if it's invalid
+
+            context->key.clear();
+
+            context->readingElement = new ReadingElement(
+                info,
+                context->readingElement,
+                offsetMember(void *, context->readingElement->map, info->offset)
+            );
+
+            EXIT_CONTEXT
+        }
+
+        int json_end_array(void *context_)
+        {
+            INIT_CONTEXT
+            if(context->ignoreStack)
+            {
+                context->ignoreStack--;
+            }
+            else
+            {
+                context->popElement();
+            }
+            return 1;
+        }
+
+        int json_read_string(void *context_, const unsigned char *value, size_t length)
+        {
+            INIT_CONTEXT
+            JsonStructInfo *info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_STRING);
+            if(info)
+            {
+                const char *v = newstring((const char *)value, length);
+                insertInto(context->readingElement, info, v, context->key);
+            }
+            context->key.clear();
+            EXIT_CONTEXT
+        }
+
+        template <typename T, typename U>
+        bool doesFit(const U value)
+        {
+            return ((value>U(0))==(T(value)>T(0))) && U(T(value))==value;
+        }
+
+        #define TRY(type) if(info || i == 1) { insertInto(context->readingElement, info, (type)value, context->key); break; }
+        int json_read_int(void *context_, long long value)
+        {
+            INIT_CONTEXT
+            JsonStructInfo *info = NULL;
+
+            // Try best match first, then try any
+            loopi(2)
+            {
+                if(doesFit<short>(value)) info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_SHORT);
+                TRY(short)
+                if(doesFit<int>(value)) info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_INT);
+                TRY(int)
+                if(doesFit<long>(value)) info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_LONG);
+                TRY(long)
+                info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_LONG_LONG);
+                TRY(long long)
+            }
+            context->key.clear();
+            EXIT_CONTEXT
+        }
+
+        int json_read_float(void *context_, double value)
+        {
+            INIT_CONTEXT
+
+            JsonStructInfo *info = NULL;
+            loopi(2)
+            {
+                if(i == 1 || (float)value == value) info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_FLOAT);
+                TRY(float)
+                info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_DOUBLE);
+                TRY(double)
+            }
+
+            context->key.clear();
+            EXIT_CONTEXT
+        }
+        #undef TRY
+
+        int json_read_bool(void *context_, int value)
+        {
+            INIT_CONTEXT
+            JsonStructInfo *info = getInfo(context->readingElement->currentInfo, context->key, JsonStructInfo::TYPE_BOOL);
+            if(info)
+            {
+                insertInto(context->readingElement, info, value && true, context->key);
+            }
+            context->key.clear();
+            EXIT_CONTEXT
+        }
+
+        int json_read_key(void *context_, const unsigned char *string, size_t length)
+        {
+            INIT_CONTEXT
+            context->key.set((const char *)string, length);
+            return 1;
+        }
+
+        static yajl_callbacks lyajl_callbacks = {
+            NULL, json_read_bool,
+            json_read_int, json_read_float, NULL,
+            json_read_string,
+            json_start_map, json_read_key, json_end_map,
+            json_start_array, json_end_array
+        };
+
+        void test()
+        {
+            PackageInfoWorld world = {0};
+            PackageInfoReadingContext *context = new PackageInfoReadingContext(&world);
+            yajl_handle a = yajl_alloc(&lyajl_callbacks, NULL, context);
+            const char *buffer = "{\"name\":\"hello-world\",\"maintainers\":[{\"name\":\"killme\",\"isAwesome\":true,\"petName\":\"naga\"},{\"name\":\"Bumi\"}]}";
+            yajl_status status = yajl_parse(a, (const unsigned char*)buffer, strlen(buffer));
+            if(status == yajl_status_ok) status = yajl_complete_parse(a);
+            if (status != yajl_status_ok)
+            {
+                unsigned char * str = yajl_get_error(a, 1, (const unsigned char*)buffer, strlen(buffer));
+                conoutf(CON_ERROR, "Json parser error (%s): %s", context->errorMessage, str);
+
+                yajl_free_error(a, str);
+            }
+            DELETEA(context->errorMessage);
+
+            printf("name=%s\n", world.info->name);
+            loopv(world.info->maintainers){
+                printf("maintainers[%i]={name:%s,isAwesome:%i}\n", i, world.info->maintainers[i]->name, world.info->maintainers[i]->isAwesome);
+                loopvj(world.info->maintainers[i]->customProperties)
+                {
+                    printf("maintainers[%i].customProperties[%i]={name:%s,value:%s}\n", i, j,
+                        world.info->maintainers[i]->customProperties[j]->key,
+                        world.info->maintainers[i]->customProperties[j]->value);
+                }
+            }
+
+            ASSERT(0);
+        };
+
+        COMMAND(test, "");
+    }
 }

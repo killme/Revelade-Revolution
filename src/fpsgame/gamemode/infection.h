@@ -71,17 +71,16 @@ struct infectionclientmode : clientmode, ::ai::bot::BotGameMode
         if(specialComming && zombie && type == 0)
         {
             specialComming = false;
-            sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = zombie ? monster::getRandomTypeWithTrait(monster::MONSTER_TYPE_TRAIT_BOSS)+1 : 0);
+            makeInfected(victim, zombie ? monster::getRandomTypeWithTrait(monster::MONSTER_TYPE_TRAIT_BOSS) : -1);
         }
         else
         {
-            sendf(-1, 1, "ri3", N_INFECT, victim->clientnum, victim->state.infectedType = (type == 0 && zombie ? monster::getRandomType()+1 : type));
+            makeInfected(victim, (type == 0 && zombie ? monster::getRandomType() : type -1));
         }
     }
 
     void makeZombie(clientinfo *victim, bool zombie = true, int type = 0)
     {
-        extern void sendspawn(clientinfo *ci);
         ASSERT(victim != NULL && "Victim cannot be null");
         if(!victim) return;
         copystring(victim->team, zombie ? TEAM_1 : TEAM_0);
@@ -90,10 +89,7 @@ struct infectionclientmode : clientmode, ::ai::bot::BotGameMode
         sendf(-1, 1, "riisi", N_SETTEAM, victim->clientnum, victim->team, -1);
         sendf(-1, 1, "ri6", N_DIED, victim->clientnum, victim->clientnum, victim->state.frags, 0 /* reason */, -1);
 
-        victim->position.setsize(0);
-        victim->state.state = CS_DEAD;
-        victim->state.respawn();
-        sendspawn(victim);
+        instantRespawn(victim);
 
         spawning.add(victim);
     }

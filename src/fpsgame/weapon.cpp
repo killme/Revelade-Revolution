@@ -545,8 +545,7 @@ namespace game
 
         if(f->type==ENT_AI || !m_mp(gamemode) || f==at) f->hitpush(damage, vel, at, gun);
 
-        if(m_sp && f->type==ENT_AI) hitmonster(damage, (monster *)f, at, vel, gun);
-        else if(!m_mp(gamemode)) damaged(damage, f, at, true, gun);
+        if(!m_mp(gamemode)) damaged(damage, f, at, true, gun);
         else
         {
             hitmsg &h = hits.add();

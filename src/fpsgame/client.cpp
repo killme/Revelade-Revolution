@@ -3,16 +3,18 @@
 
 namespace game
 {
-    #include "capture.h"
-    #include "ctf.h"
-    #include "infection.h"
-    #include "survival.h"
+    #include "gamemode/capture.h"
+    #include "gamemode/ctf.h"
+    #include "gamemode/infection.h"
+    #include "gamemode/survival.h"
+    #include "gamemode/dmsp.h"
 
     clientmode *cmode = NULL;
     captureclientmode capturemode;
     ctfclientmode ctfmode;
     infectionclientmode infectionmode;
     survivalclientmode survivalmode;
+    dmspclientmode dmspmode;
 
     void setclientmode()
     {
@@ -20,6 +22,7 @@ namespace game
         else if(m_ctf) cmode = &ctfmode;
         else if(m_infection) cmode = &infectionmode;
         else if(m_survival) cmode = &survivalmode;
+        else if(m_dmsp) cmode = &dmspmode;
         else cmode = NULL;
     }
 
@@ -670,7 +673,7 @@ namespace game
 
     void addmsg(int type, const char *fmt, ...)
     {
-        if(connectionState == CONNECTION_STATE_NONE) { DEBUG_ERROR("premature message: %i(%s)", type, fmt); ASSERT(0); return;}
+        if(connectionState == CONNECTION_STATE_NONE) { DEBUG_ERROR("premature message: %i(%s)", type, fmt); return;}
         static uchar buf[MAXTRANS];
         ucharbuf p(buf, sizeof(buf));
         putint(p, type);
@@ -1775,10 +1778,11 @@ namespace game
             }
 
             #define PARSEMESSAGES 1
-            #include "capture.h"
-            #include "ctf.h"
-            #include "infection.h"
-            #include "survival.h"
+            #include "gamemode/capture.h"
+            #include "gamemode/ctf.h"
+            #include "gamemode/infection.h"
+            #include "gamemode/survival.h"
+            #include "gamemode/dmsp.h"
             #undef PARSEMESSAGES
 
             case N_ANNOUNCE:
