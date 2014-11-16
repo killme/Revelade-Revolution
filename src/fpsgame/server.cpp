@@ -2261,7 +2261,7 @@ namespace server
         if (m_survivalb && actor!=target && isteam(actor->team, target->team)) actor->state.teamshooter = true;
         if(ts.health<=0)
         {
-            if (target->state.isInfected(), monster::providesGuts(&target->state))
+            if (target->state.isInfected() && monster::providesGuts(&target->state))
             {
                 const ::monster::MonsterType &zt = ::monster::getMonsterType(target->state.getMonsterType());
                 actor->state.guts += zt.classInfo.maxhealth/zt.freq*2;
