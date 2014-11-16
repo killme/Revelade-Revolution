@@ -65,7 +65,6 @@ set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai/monster
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/ai/waypoint
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/campaign
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/client
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/entities
     ${CMAKE_CURRENT_SOURCE_DIR}/../fpsgame/fps
