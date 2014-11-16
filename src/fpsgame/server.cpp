@@ -177,6 +177,7 @@ namespace server
         {
             if(state!=CS_SPECTATOR) state = editstate = CS_DEAD;
             maxhealth = 100;
+            guts = 0;
             rockets.reset();
             grenades.reset();
 
@@ -2055,7 +2056,6 @@ namespace server
         {
             clientinfo *ci = clients[i];
             ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
-            ci->state.guts = 0;
         }
 
         if(!m_mp(gamemode)) kicknonlocalclients(DISC_LOCAL);
@@ -2258,7 +2258,7 @@ namespace server
             sendf(ts.health<=0 ? -1 : target->ownernum, 1, "ri7", N_HITPUSH, target->clientnum, gun, damage, v.x, v.y, v.z);
             target->setpushed();
         }
-        if (m_survivalb && actor!=target && isteam(actor->team, target->team)) actor->state.teamshooter = true;
+        if (actor!=target && isteam(actor->team, target->team)) actor->state.teamshooter = true;
         if(ts.health<=0)
         {
             if (target->state.isInfected() && monster::providesGuts(&target->state))
@@ -3946,60 +3946,62 @@ namespace server
 
             case N_BUY:
             {
-                int buyer = getint(p);
                 int item = getint(p);
-                int guts = game::buyablesprices[item];
-                clientinfo *br = getinfo(buyer);
-                if (
-                    m_survival && (ci->clientnum==buyer || ci->ownernum==buyer) &&
-                    br->state.state==CS_ALIVE && br->state.guts>=guts
-                )
+
+                if(ci->state.state == CS_ALIVE && item >= 0 && item < game::BA_NUM)
                 {
-                    gamestate &gs = ci->state;
-                    gs.guts -= guts;
-
-                    switch (item)
+                    int guts = game::buyablesprices[item];
+                    if (ci->state.guts>=guts)
                     {
-                        case game::BA_AMMO:
+                        gamestate &gs = ci->state;
+                        gs.guts -= guts;
+
+                        switch (item)
                         {
-                            const playerclassinfo &pci = game::getplayerclassinfo(&gs);
-                            loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = min(gs.ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
-                            break;
+                            case game::BA_AMMO:
+                            {
+                                const playerclassinfo &pci = game::getplayerclassinfo(&gs);
+                                loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = min(gs.ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
+                                break;
+                            }
+
+                            case game::BA_AMMOD:
+                            {
+                                const playerclassinfo &pci = game::getplayerclassinfo(&gs);
+                                loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
+                                break;
+                            }
+
+                            case game::BA_HEALTH:
+                                gs.health = min(gs.health + gs.maxhealth/2, gs.maxhealth);
+                                break;
+
+                            case game::BA_HEALTHD:
+                                gs.health = gs.maxhealth;
+                                break;
+
+                            case game::BA_ARMOURG:
+                            case game::BA_ARMOURY:
+                                gs.armourtype = (item==game::BA_ARMOURY)? A_YELLOW: A_GREEN;
+                                gs.armour = (item==game::BA_ARMOURY)? 200: 100;
+                                break;
+
+                            case game::BA_QUAD:
+                            case game::BA_QUADD:
+                                gs.quadmillis = (item==game::BA_QUADD)? 60000: 30000;
+                                break;
+
+                            case game::BA_SUPPORT:
+                            case game::BA_SUPPORTD:
+                                //spawnsupport((item==game::BA_SUPPORTD)? 6: 3);
+                                break;
+                            default:
+                                DEBUG_ERROR("Invalid buyable: %i from %i", item, ci->clientnum);
+                                break;
                         }
 
-                        case game::BA_AMMOD:
-                        {
-                            const playerclassinfo &pci = game::getplayerclassinfo(&gs);
-                            loopi(WEAPONS_PER_CLASS) gs.ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
-                            break;
-                        }
-
-                        case game::BA_HEALTH:
-                            gs.health = min(gs.health + gs.maxhealth/2, gs.maxhealth);
-                            break;
-
-                        case game::BA_HEALTHD:
-                            gs.health = gs.maxhealth;
-                            break;
-
-                        case game::BA_ARMOURG:
-                        case game::BA_ARMOURY:
-                            gs.armourtype = (item==game::BA_ARMOURY)? A_YELLOW: A_GREEN;
-                            gs.armour = (item==game::BA_ARMOURY)? 200: 100;
-                            break;
-
-                        case game::BA_QUAD:
-                        case game::BA_QUADD:
-                            gs.quadmillis = (item==game::BA_QUADD)? 60000: 30000;
-                            break;
-
-                        case game::BA_SUPPORT:
-                        case game::BA_SUPPORTD:
-                            //spawnsupport((item==game::BA_SUPPORTD)? 6: 3);
-                            break;
+                        sendf(-1, 1, "ri4", N_BUY, ci->clientnum, item, guts);
                     }
-
-                    sendf(-1, 1, "ri4", N_BUY, ci->clientnum, item, guts);
                 }
                 break;
             }

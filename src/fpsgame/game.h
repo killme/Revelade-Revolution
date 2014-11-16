@@ -913,8 +913,6 @@ struct fpsstate
 
     void spawnstate(int gamemode)
     {
-        if (!m_survival) guts = 0;
-
         if(m_demo)
         {
             gunselect = WEAP_FIST;

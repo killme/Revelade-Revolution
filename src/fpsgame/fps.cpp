@@ -397,24 +397,26 @@ namespace game
     void applyeffect(fpsent *d, int item)
     {
         const char *iname = NULL;
+        const playerclassinfo &pci = game::getplayerclassinfo(d);
 
         switch (item)
         {
             case BA_AMMO:
-            {
+                loopi(WEAPONS_PER_CLASS) d->ammo[pci.weap[i]] = min(d->ammo[pci.weap[i]] + GUN_AMMO_MAX(pci.weap[i])/2, GUN_AMMO_MAX(pci.weap[i]));
                 iname = "$ Ammo $";
                 break;
-            }
+
             case BA_AMMOD:
-            {
+                loopi(WEAPONS_PER_CLASS) d->ammo[pci.weap[i]] = GUN_AMMO_MAX(pci.weap[i]);
                 iname = "$ Double Ammo $";
                 break;
-            }
 
             case BA_HEALTH:
+                d->health = min(d->health + d->maxhealth/2, d->maxhealth);
                 iname = "$ Heatlh $";
                 break;
             case BA_HEALTHD:
+                d->health = d->maxhealth;
                 iname = "$ Double Heatlh $";
                 break;
 
@@ -436,6 +438,8 @@ namespace game
                 iname = (item==BA_SUPPORTD)? "$ Double Support $": "$ Support $";
                 break;
         }
+
+        if(!iname) iname = "$ <INVALID> $";
 
         particle_textcopy(d->abovehead(), iname, PART_TEXT, 3000, 0x007755, 4.0f, -8);
     }
@@ -484,7 +488,7 @@ namespace game
 
     void buy(char *s)
     {
-        if (player1->state != CS_ALIVE || intermission || !m_survivalb) return;
+        if (player1->state != CS_ALIVE || intermission) return;
 
         loopi(BA_NUM) if (!strcmp(buyablesnames[i], s))
         {
@@ -493,12 +497,7 @@ namespace game
                 conoutf(CON_INFO, "\f2not enough gut points to buy item");
                 break;
             }
-            if (m_survival) addmsg(N_BUY, "rci", player1, i);
-            else
-            {
-                applyitem(player1, i); // DMSP
-                player1->guts -= buyablesprices[i];
-            }
+            addmsg(N_BUY, "rci", player1, i);
             break;
         }
     }
@@ -1781,12 +1780,9 @@ namespace game
         if(d->state!=CS_DEAD)
         {
             // draw guts
-            if(m_survivalb)
+            if(true)
             {
-                //int tw, th;
-                //text_bounds(gutss, tw, th);
                 int guts = (d==player1)? d->guts: lastguts;
-                //@todo: consider making the G in "Guts" lowercase
                 defformatstring(gutss)("\f1Guts: \f3%d", guts);
                 draw_text(gutss, w*1800/h - 420, 1350);
 
@@ -1795,11 +1791,13 @@ namespace game
                     lastgutschange = guts-lastguts;
                     lastgutschangemillis = lastmillis;
                 }
+
                 if (lastgutschange && lastmillis-lastgutschangemillis<2550)
                 {
                     formatstring(gutss)(lastgutschange>0? "\fg+%d": "\fe%d", lastgutschange);
                     draw_text(gutss, w*1800/h - 262, 1300, 255, 255, 255, 255-((lastmillis-lastgutschangemillis)/10));
                 }
+
                 lastguts = guts;
             }
 

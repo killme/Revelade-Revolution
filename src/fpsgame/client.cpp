@@ -1080,7 +1080,7 @@ namespace game
             else d->quadmillis = getint(p);
         }
         d->lifesequence = getint(p);
-        d->guts = getint(p);
+        printf("SPAWN %i\n", d->guts = getint(p));
         d->health = getint(p);
         d->maxhealth = getint(p);
         d->armour = getint(p);
@@ -1753,7 +1753,7 @@ namespace game
             {
                 fpsent *cn = getclient(getint(p));
                 int guts = getint(p);
-                if (cn) cn->guts = guts;
+                if (cn) printf("N_GUTS %i\n", cn->guts = guts);
                 break;
             }
 
@@ -1765,12 +1765,9 @@ namespace game
 
                 if (cn)
                 {
-                    if (cn == player1)
-                    {
-                        player1->guts -= guts;
-                        applyitem(player1, item);
-                    }
-                    else applyeffect(cn, item);
+                    printf("BUY %p %i %i\n", cn, item, guts);
+                    cn->guts -= guts;
+                    applyeffect(cn, item);
                 }
                 break;
             }
