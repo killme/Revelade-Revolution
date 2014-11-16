@@ -918,13 +918,11 @@ namespace server
     #include "gamemode/capture.h"
     #include "gamemode/ctf.h"
     #include "gamemode/infection.h"
-    #include "gamemode/survival.h"
     #include "gamemode/dmsp.h"
 
     captureservmode capturemode;
     ctfservmode ctfmode;
     infectionservmode infectionmode;
-    survivalservmode survivalmode;
     dmspservmode dmspmode;
     servmode *smode = NULL;
 
@@ -2070,7 +2068,6 @@ namespace server
         if(m_capture) smode = &capturemode;
         else if(m_ctf) smode = &ctfmode;
         else if(m_infection) smode = &infectionmode;
-        else if(m_survival) smode = &survivalmode;
         else if(m_dmsp) smode = &dmspmode;
         else smode = NULL;
 
@@ -2264,9 +2261,9 @@ namespace server
         if (m_survivalb && actor!=target && isteam(actor->team, target->team)) actor->state.teamshooter = true;
         if(ts.health<=0)
         {
-            if (m_survival && monster::providesGuts(&target->state))
+            if (target->state.isInfected(), monster::providesGuts(&target->state))
             {
-                const ::monster::MonsterType &zt = ::monster::getMonsterType(((zombie*)target)->ztype);
+                const ::monster::MonsterType &zt = ::monster::getMonsterType(target->state.getMonsterType());
                 actor->state.guts += zt.classInfo.maxhealth/zt.freq*2;
                 sendf(actor->ownernum, 1, "ri3", N_GUTS, actor->clientnum, actor->state.guts);
             }
@@ -4011,7 +4008,6 @@ namespace server
             #include "gamemode/capture.h"
             #include "gamemode/ctf.h"
             #include "gamemode/infection.h"
-            #include "gamemode/survival.h"
             #include "gamemode/dmsp.h"
             #undef PARSEMESSAGES
 

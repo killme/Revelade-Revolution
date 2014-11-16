@@ -6,14 +6,12 @@ namespace game
     #include "gamemode/capture.h"
     #include "gamemode/ctf.h"
     #include "gamemode/infection.h"
-    #include "gamemode/survival.h"
     #include "gamemode/dmsp.h"
 
     clientmode *cmode = NULL;
     captureclientmode capturemode;
     ctfclientmode ctfmode;
     infectionclientmode infectionmode;
-    survivalclientmode survivalmode;
     dmspclientmode dmspmode;
 
     void setclientmode()
@@ -21,7 +19,6 @@ namespace game
         if(m_capture) cmode = &capturemode;
         else if(m_ctf) cmode = &ctfmode;
         else if(m_infection) cmode = &infectionmode;
-        else if(m_survival) cmode = &survivalmode;
         else if(m_dmsp) cmode = &dmspmode;
         else cmode = NULL;
     }
@@ -1756,7 +1753,7 @@ namespace game
             {
                 fpsent *cn = getclient(getint(p));
                 int guts = getint(p);
-                if (m_survival) cn->guts = guts;
+                if (cn) cn->guts = guts;
                 break;
             }
 
@@ -1765,7 +1762,8 @@ namespace game
                 fpsent *cn = getclient(getint(p));
                 int item = getint(p);
                 int guts = getint(p);
-                if (m_survival)
+
+                if (cn)
                 {
                     if (cn == player1)
                     {
@@ -1781,7 +1779,6 @@ namespace game
             #include "gamemode/capture.h"
             #include "gamemode/ctf.h"
             #include "gamemode/infection.h"
-            #include "gamemode/survival.h"
             #include "gamemode/dmsp.h"
             #undef PARSEMESSAGES
 
