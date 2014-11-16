@@ -338,7 +338,7 @@ enum Abilities
 };
 
 bool canshootwith(fpsstate *d, int gun, int gamemode, bool checkAmmo = false);
-
+int getRandomWeapon(fpsstate *d);
 
 #define CAN_SHOOT_WITH(d,gun) (canshootwith( d, gun, gamemode))
 #define CAN_SHOOT_WITH2(d,gun) (canshootwith(&d, gun, gamemode))

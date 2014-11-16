@@ -24,6 +24,14 @@ bool canshootwith(fpsstate *d, int gun, int gamemode, bool checkAmmo)
     return false;
 }
 
+int getRandomWeapon(fpsstate *d)
+{
+    const playerclassinfo &pci = game::getplayerclassinfo(d);
+    int n = 0;
+    loopi(WEAPONS_PER_CLASS) n += pci.weap[i] != WEAP_NONE && !WEAP_IS_MELEE(pci.weap[i]) ? 1 : 0;
+    return pci.weap[n > 0 ? rnd(n) : n];
+}
+
 
 namespace game
 {

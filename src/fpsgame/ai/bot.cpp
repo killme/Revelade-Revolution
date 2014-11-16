@@ -461,7 +461,10 @@ namespace ai
                 {
                     if(forcegun >= 0 && forcegun < NUMWEAPS) ai->weappref = forcegun;
                     else if(m_noammo) ai->weappref = -1;
-                    else ai->weappref = rnd(WEAP_GRENADIER-WEAP_SLUGSHOT+1)+WEAP_SLUGSHOT; //TODO: move to weapons.h
+                    else
+                    {
+                        ai->weappref = getRandomWeapon(d);
+                    }
                 }
                 vec dp = d->headpos();
                 findorientation(dp, d->yaw, d->pitch, ai->target);
