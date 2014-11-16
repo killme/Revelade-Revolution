@@ -186,6 +186,16 @@ namespace ai
             d->ai.data = new MonsterAiInfo;
         }
 
+        void MonsterAi::collide(fpsent *d, physent *o, const vec &dir)
+        {
+            if(dir.z > 0)
+            {
+                MonsterAiInfo *ai = getMonsterState(d);
+                ai->stacked = o;
+                ai->stackpos = o->o;
+            }
+        }
+
         void MonsterAi::hit(fpsent *d, fpsent *actor, int damage, const vec &vel, int gun)
         {
             MonsterAiInfo *ai = getMonsterState(d);

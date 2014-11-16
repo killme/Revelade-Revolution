@@ -1224,7 +1224,6 @@ namespace game
         {
             case ENT_PLAYER:
             case ENT_AI:
-                //TODO: do this in monster ai -> if(dir.z > 0)
                 ai::getAiType((fpsent *)d)->collide((fpsent *)d, o, dir);
                 break;
             case ENT_INANIMATE: if(dir.z > 0) stackmovable((movable *)d, o); break;

@@ -50,12 +50,17 @@ namespace ai
             MonsterAi() : bestenemy(NULL), monsterhurt(false), monsterhurtpos(0, 0, 0) {}
             void destroy(fpsent *d);
             void create(fpsent *d);
+
+            void collide(fpsent *d, physent *o, const vec &dir);
+
             void hit(fpsent *d, fpsent *actor, int damage, const vec &vel, int gun);
             void spawned(fpsent *d);
             void killed(fpsent *d, fpsent *e);
+
             void startThink();
             void think(fpsent *d, bool run);
             void endThink();
+
             void clear();
             void render(fpsent *d, float i);
         };
