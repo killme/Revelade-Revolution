@@ -1107,6 +1107,7 @@ namespace game
             d->lifesequence = -1;
             d->respawned = d->suicided = -2;
             d->guts = 0;
+            d->infectedType = 0;
             if (m_oneteam) strcpy(d->team, TEAM_0);
         }
 

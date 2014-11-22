@@ -190,6 +190,8 @@ namespace server
             teamkilled = teamshooter = false;
             burnmillis = 0;
 
+            infectedType = 0;
+
             respawn();
         }
 

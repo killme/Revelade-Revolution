@@ -260,7 +260,13 @@ struct infectionclientmode : clientmode, ::ai::bot::BotGameMode
     {
         newRound();
     }
-    
+
+    void cleanup()
+    {
+        specialComming = false;
+        spawning.shrink(0);
+    }
+
     void leavegame(clientinfo *ci, bool disconnecting)
     {
         if(isZombieAvailable(TEAM_1, ci))
