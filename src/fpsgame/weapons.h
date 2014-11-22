@@ -252,75 +252,86 @@ static const struct weapinfo {
 };
 
 
-#define GUN_FRAG_NORMAL                "killed"
-#define GUN_FRAGBY_NORMAL            "killed"
-#define GUN_FRAG_MELEE                "cut"
-#define GUN_FRAGBY_MELEE            "cut"
-#define GUN_FRAG_INFECTED           "ate"
-#define GUN_FRAGBY_INFECTED            "eaten"
-#define GUN_FRAG_EXPLODE            "blew up"
-#define GUN_FRAGBY_EXPLODE            "blown up"
-#define GUN_FRAG_BURN                "burned up"
-#define GUN_FRAGBY_BURN                "burned up"
-#define GUN_FRAG_INSANITY                "insanatized"
-#define GUN_FRAGBY_INSANITY                "insanatized"
+#define GUN_FRAG_NORMAL                     "killed"
+#define GUN_FRAGBY_NORMAL                   "killed"
+#define GUN_FRAG_MELEE                      "cut"
+#define GUN_FRAGBY_MELEE                    "cut"
+#define GUN_FRAG_INFECTED                   "ate"
+#define GUN_FRAGBY_INFECTED                 "eaten"
+#define GUN_FRAG_EXPLODE                    "blew up"
+#define GUN_FRAGBY_EXPLODE                  "blown up"
+#define GUN_FRAG_BURN                       "burned up"
+#define GUN_FRAGBY_BURN                     "burned up"
+#define GUN_FRAG_INSANITY                   "insanatized"
+#define GUN_FRAGBY_INSANITY                 "insanatized"
 
-#define GUN_SUICIDE_FALL            deathmessage
-#define GUN_SUICIDE_LAVA            "incinirated"
-#define GUN_SUICIDE_MAT             "incinirated"
+#define GUN_SUICIDE_FALL                    deathmessage
+#define GUN_SUICIDE_LAVA                    "incinirated"
+#define GUN_SUICIDE_MAT                     "incinirated"
 
-#define GUN_FRAG_SPECIAL                " with a headshot!"
-#define GUN_FRAG_SPECIAL_INFECTED       " by eating his brain!"
-#define GUN_EXPLODE_SPECIAL             " with a direct hit!"
+#define GUN_FRAG_SPECIAL                    " with a headshot!"
+#define GUN_FRAG_SPECIAL_INFECTED           " by eating his brain!"
+#define GUN_EXPLODE_SPECIAL                 " with a direct hit!"
 
-#define GUN_FRAG_MESSAGE(gun, infected)         ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAG_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAG_BURN: (WEAP_IS_EXPLOSIVE(gun) && WEAPONI(gun) != WEAP_CROSSBOW ?GUN_FRAG_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAG_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAG_INSANITY : GUN_FRAG_NORMAL))))
-#define GUN_FRAGBY_MESSAGE(gun, infected)       ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAGBY_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAGBY_BURN: (WEAP_IS_EXPLOSIVE(gun)?GUN_FRAGBY_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAGBY_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAGBY_INSANITY : GUN_FRAGBY_NORMAL))))
-#define GUN_SPECIAL_MESSAGE(gun, infected)      (WEAP_IS_EXPLOSIVE(gun) ? GUN_EXPLODE_SPECIAL : (WEAP_IS_MELEE(gun) && infected ? GUN_FRAG_SPECIAL_INFECTED : GUN_FRAG_SPECIAL))
+#define GUN_FRAG_MESSAGE(gun, infected)     ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAG_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAG_BURN: (WEAP_IS_EXPLOSIVE(gun) && WEAPONI(gun) != WEAP_CROSSBOW ?GUN_FRAG_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAG_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAG_INSANITY : GUN_FRAG_NORMAL))))
+#define GUN_FRAGBY_MESSAGE(gun, infected)   ((infected && WEAP_IS_MELEE(gun)) ? GUN_FRAGBY_INFECTED : WEAP_IS_FLAME(gun)?GUN_FRAGBY_BURN: (WEAP_IS_EXPLOSIVE(gun)?GUN_FRAGBY_EXPLODE: (WEAP_IS_MELEE(gun)?GUN_FRAGBY_MELEE: (WEAP_IS_INSANITY(gun) ? GUN_FRAGBY_INSANITY : GUN_FRAGBY_NORMAL))))
+#define GUN_SPECIAL_MESSAGE(gun, infected)  (WEAP_IS_EXPLOSIVE(gun) ? GUN_EXPLODE_SPECIAL : (WEAP_IS_MELEE(gun) && infected ? GUN_FRAG_SPECIAL_INFECTED : GUN_FRAG_SPECIAL))
 
-#define GUN_SUICIDE_MESSAGE_INSERT_YOU(gun, msg) (gun == SUICIDE_TYPE_FALL ? "" : msg)
+#define GUN_SUICIDE_MESSAGE_INSERT_YOU(gun, msg) \
+                                            (gun == SUICIDE_TYPE_FALL ? "" : msg)
 
 #define GUN_SUICIDE_MESSAGE(gun)                (\
-    (gun == SUICIDE_TYPE_LAVA ? GUN_SUICIDE_LAVA : (\
-        gun == SUICIDE_TYPE_FALL ? GUN_SUICIDE_FALL : (\
+    (gun == SUICIDE_TYPE_LAVA ? GUN_SUICIDE_LAVA :  (\
+        gun == SUICIDE_TYPE_FALL ? GUN_SUICIDE_FALL :   (\
             gun == SUICIDE_TYPE_MAT ? GUN_SUICIDE_MAT : GUN_FRAG_NORMAL))))
 
-#define GUN_MAX_RAYS                32
-#define GUN_MIN_SPREAD                1
-#define GUN_MAX_SPREAD                4
-#define GUN_HEADSHOT_MUL            1.5f
-#define GUN_EXP_SELFDAMDIV            2
-#define GUN_EXP_DISTSCALE            1.5f
+#define GUN_MAX_RAYS                        32
+#define GUN_MIN_SPREAD                      1
+#define GUN_MAX_SPREAD                      4
+#define GUN_HEADSHOT_MUL                    1.5f
+#define GUN_EXP_SELFDAMDIV                  2
+#define GUN_EXP_DISTSCALE                   1.5f
 
-#define GUN_AMMO_MAX(gun)            ((200-WEAPON(gun).power)/2)
-#define GUN_AMMO_ADD(gun,info)        ((200-WEAPON(gun).power)/(5-(info)))
+#define GUN_AMMO_MAX(gun)                   ((200-WEAPON(gun).power)/2)
+#define GUN_AMMO_ADD(gun,info)              ((200-WEAPON(gun).power)/(5-(info)))
 
-#define WEAPONI(gun)                (gun%1024)
-#define WEAPON(gun)                    (weapons[WEAPONI(gun)])
-#define WEAP(gun,m)                    (gun>=1024?weapons[gun%1024].m##2:weapons[gun].m)
+#define WEAPONI(gun)                        (gun%1024)
+#define WEAPON(gun)                         (weapons[WEAPONI(gun)])
+#define WEAP(gun,m)                         (gun>=1024?weapons[gun%1024].m##2:weapons[gun].m)
 
-#define WEAP_IS_EXPLOSIVE(gun)        (WEAP(gun,projradius)>0)
-#define WEAP_NAME(gun)                (WEAPON(gun).name)
-#define WEAP_PROJTYPE(gun)            (WEAP(gun,projtype)&0xFF)
+#define WEAP_IS_EXPLOSIVE(gun)              (WEAP(gun,projradius)>0)
+#define WEAP_NAME(gun)                      (WEAPON(gun).name)
+#define WEAP_PROJTYPE(gun)                  (WEAP(gun,projtype)&0xFF)
 
-#define WEAP_IS_MELEE(gun)            (WEAPONI(gun)==WEAP_FIST || WEAPONI(gun)==WEAP_BITE || WEAPONI(gun)==WEAP_INFECTED)
-#define WEAP_IS_RAY(gun)            (WEAP_PROJTYPE(gun)==PJ_RAY)
-#define WEAP_IS_BOUNCER(gun)        (WEAP_PROJTYPE(gun)==PJ_BOUNCER)
-#define WEAP_IS_PROJECTILE(gun)        (WEAP_PROJTYPE(gun)==PJ_PROJECTILE)
-#define WEAP_IS_FLAME(gun)            (WEAP_PROJTYPE(gun)==PJ_FLAME)
-#define WEAP_IS_SPECIAL(gun)        (WEAP_PROJTYPE(gun)==PJ_SPECIAL)
-#define WEAP_IS_INSANITY(gun)        (WEAPONI(gun)==WEAP_INSANITY)
-#define WEAP_IS_OBTAINABLE(gun)         (WEAPONI(gun)==WEAP_MORTAR)
+#define WEAP_IS_MELEE(gun)                  (WEAPONI(gun)==WEAP_FIST || WEAPONI(gun)==WEAP_BITE || WEAPONI(gun)==WEAP_INFECTED)
+#define WEAP_IS_RAY(gun)                    (WEAP_PROJTYPE(gun)==PJ_RAY)
+#define WEAP_IS_BOUNCER(gun)                (WEAP_PROJTYPE(gun)==PJ_BOUNCER)
+#define WEAP_IS_PROJECTILE(gun)             (WEAP_PROJTYPE(gun)==PJ_PROJECTILE)
+#define WEAP_IS_FLAME(gun)                  (WEAP_PROJTYPE(gun)==PJ_FLAME)
+#define WEAP_IS_SPECIAL(gun)                (WEAP_PROJTYPE(gun)==PJ_SPECIAL)
+#define WEAP_IS_INSANITY(gun)               (WEAPONI(gun)==WEAP_INSANITY)
+#define WEAP_IS_OBTAINABLE(gun)             (WEAPONI(gun)==WEAP_MORTAR)
 
-#define WEAP_VALID(gun)                (WEAPONI(gun)>=0&&WEAPONI(gun)<NUMWEAPS)
-#define WEAP_USABLE(gun)            (WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_USABLE_LAST)
-#define WEAP_CLAMP(gun)             (WEAP_USABLE(gun) ? gun : WEAP_FIST)
+#define WEAP_VALID(gun)                     (WEAPONI(gun)>=0&&WEAPONI(gun)<NUMWEAPS)
+#define WEAP_USABLE(gun)                    (WEAPONI(gun)>=WEAP_FIST&&WEAPONI(gun)<=WEAP_USABLE_LAST)
+#define WEAP_CLAMP(gun)                     (WEAP_USABLE(gun) ? gun : WEAP_FIST)
 
-#define WEAP_PREF_ORDER WEAP_MG, WEAP_ROCKETL, WEAP_SLUGSHOT, WEAP_SNIPER, WEAP_FLAMEJET, WEAP_CROSSBOW, WEAP_GRENADIER, WEAP_PISTOL, WEAP_FIST, WEAP_INFECTED, WEAP_BITE
-#define WEAP_FALLBACK(ammo) (ammo[WEAP_BITE] ? WEAP_BITE : (ammo[WEAP_INFECTED] ? WEAP_INFECTED : WEAP_FIST))
+#define WEAP_PREF_ORDER                     WEAP_MG, \
+                                            WEAP_ROCKETL, \
+                                            WEAP_SLUGSHOT, \
+                                            WEAP_SNIPER, \
+                                            WEAP_FLAMEJET, \
+                                            WEAP_CROSSBOW, \
+                                            WEAP_GRENADIER, \
+                                            WEAP_PISTOL, \
+                                            WEAP_FIST, \
+                                            WEAP_INFECTED, \
+                                            WEAP_BITE
 
-#define MORTAR_MAX_AMMO                2
+#define WEAP_FALLBACK(ammo)                 (ammo[WEAP_BITE] ? WEAP_BITE : (ammo[WEAP_INFECTED] ? WEAP_INFECTED : WEAP_FIST))
 
-#define WEAP_MAX_IRSM                   3000
+#define MORTAR_MAX_AMMO                     2
+#define WEAP_MAX_IRSM                       3000
 
 enum
 {
@@ -340,7 +351,7 @@ enum Abilities
 bool canshootwith(fpsstate *d, int gun, int gamemode, bool checkAmmo = false);
 int getRandomWeapon(fpsstate *d);
 
-#define CAN_SHOOT_WITH(d,gun) (canshootwith( d, gun, gamemode))
-#define CAN_SHOOT_WITH2(d,gun) (canshootwith(&d, gun, gamemode))
+#define CAN_SHOOT_WITH(d,gun)               (canshootwith( d, gun, gamemode))
+#define CAN_SHOOT_WITH2(d,gun)              (canshootwith(&d, gun, gamemode))
 
 #endif // WEAPONS_H_INCLUDED
