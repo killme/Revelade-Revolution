@@ -3,7 +3,7 @@ cmake_policy(SET CMP0012 NEW)
 project(ReveladeRevolution)
 
 option(RELEASE_BUILD "Creates a release package in release mode" 0)
-option(BUILD_STANDALONE "Create a non-system wide package (when building in release mode)" 0)
+option(BUILD_STANDALONE "Create a non-system wide package (when building in release mode)" 1)
 
 set(RR_VERSION_MAJOR 0)
 set(RR_VERSION_MINOR 1)
