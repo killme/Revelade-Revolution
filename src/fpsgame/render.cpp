@@ -199,7 +199,7 @@ namespace game
     }
 
     VARP(teamskins, 0, 0, 1);
-    VARDBG(dbghitbox, 1);
+    VARDBG(dbghitbox, 0);
 
     void renderhitbox(fpsent *d)
     {
