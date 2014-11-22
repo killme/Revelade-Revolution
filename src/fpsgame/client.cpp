@@ -1080,7 +1080,7 @@ namespace game
             else d->quadmillis = getint(p);
         }
         d->lifesequence = getint(p);
-        printf("SPAWN %i\n", d->guts = getint(p));
+        d->guts = getint(p);
         d->health = getint(p);
         d->maxhealth = getint(p);
         d->armour = getint(p);
