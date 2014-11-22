@@ -490,13 +490,17 @@ namespace game
             else if(testteam > 1)
                 concatstring(gunname, testteam==2 ? "/blue" : "/red");
         }
-        else
+        else if(mdl.zombieHands)
         {
-            copystring(gunname, "hudguns/zombie");
+            copystring(gunname, mdl.zombieHands);
             vecfromyawpitch(yaw, pitch+90.f, 1, 0, dir);
             dir.mul(-0.2f-(1.f-sinf(RAD*((d->pitch+90.f)/2.f)))*0.8f);
             orig.add(dir);
             anim |= ANIM_LOOP;
+        }
+        else
+        {
+            return;
         }
 
         modelattach a[2];

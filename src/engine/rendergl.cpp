@@ -2587,7 +2587,7 @@ void drawscope(int w, int h)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     int x = 0, y = 0, c = 0;
-    if(game::isscopedweap())
+    if(!game::isinfected() && game::isscopedweap())
     {
         Texture *t = textureload("data/hud/scope.png", 3);
         if(w > h)

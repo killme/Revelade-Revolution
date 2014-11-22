@@ -95,7 +95,7 @@ struct playermodelinfo
 {
     const char *ffa, *blueteam, *redteam, *hudguns,
     *vwep, *quad, *armour[3],
-    *ffaicon, *blueicon, *redicon;
+    *ffaicon, *blueicon, *redicon, *zombieHands;
     bool ragdoll, selectable;
     float radius, eyeheight, aboveeye;
     int weight;

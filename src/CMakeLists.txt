@@ -82,6 +82,8 @@ add_subdirectory(libraries/http-parser)
 add_subdirectory(libraries/yajl)
 
 if(${BUILD_SERVER})
+    add_subdirectory(libraries/OpenDBX-uv)
+    add_subdirectory(libraries/OpenDBX-uv-lua)
     add_subdirectory(libraries/luvit)
     add_subdirectory(libraries/luapp)
 endif()

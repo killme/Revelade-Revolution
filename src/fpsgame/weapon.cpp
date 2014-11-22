@@ -66,29 +66,29 @@ namespace game
     static const playermodelinfo playermodels[] =
     {
         {
-            "playermodels/alanharris",  "playermodels/alanharris/blue",         "playermodels/alanharris/red",  "playermodels/alanharris/hudguns",      NULL,   NULL,
+            "playermodels/alanharris",  "playermodels/alanharris/blue",     "playermodels/alanharris/red",  "playermodels/alanharris/hudguns",      NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/alanharris",  "playermodels/alanharrist_blue",        "playermodels/alanharris_red",  true,   true,   0.0f,   0.0f,   0.0f
+            "playermodels/alanharris",  "playermodels/alanharrist_blue",    "playermodels/alanharris_red",  NULL,   true,   true,   0.0f,   0.0f,   0.0f
         },
         {
-            "playermodels/swat",        "playermodels/swat/blue",               "playermodels/swat/red",        "playermodels/swat/hudguns",            NULL,   NULL,
+            "playermodels/swat",        "playermodels/swat/blue",           "playermodels/swat/red",        "playermodels/swat/hudguns",            NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/swat",        "playermodels/swat_blue",               "playermodels/swat_red",        true,   true,   3.0f,   16.0f,   1.2f
+            "playermodels/swat",        "playermodels/swat_blue",           "playermodels/swat_red",        NULL,   true,   true,   3.0f,   16.0f,   1.2f
         },
         {
-            "playermodels/thief",       "playermodels/thief/blue",              "playermodels/thief/red",       "playermodels/thief/hudguns",           NULL,   NULL,
+            "playermodels/thief",       "playermodels/thief/blue",          "playermodels/thief/red",       "playermodels/thief/hudguns",           NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/thief",  "playermodels/thief_blue",        "playermodels/thief_red",                  true,   true,   3.0f,   16.0f,   1.2f
+            "playermodels/thief",       "playermodels/thief_blue",          "playermodels/thief_red",       NULL,   true,   true,   3.0f,   16.0f,   1.2f
         },
         {
-            "playermodels/aneta",       "playermodels/aneta/blue",              "playermodels/aneta/red",       "playermodels/aneta/hudguns",           NULL,   NULL,
+            "playermodels/aneta",       "playermodels/aneta/blue",          "playermodels/aneta/red",       "playermodels/aneta/hudguns",           NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/aneta",  "playermodels/aneta_blue",        "playermodels/aneta_red",                  true,   true,   3.0f,   13.5f,   1.0f
+            "playermodels/aneta",       "playermodels/aneta_blue",          "playermodels/aneta_red",       NULL,   true,   true,   3.0f,   13.5f,   1.0f
         },
         {
-            "playermodels/advent",      "playermodels/advent/blue",             "playermodels/advent/red",      "playermodels/advent/hudguns",          NULL,   NULL,
+            "playermodels/advent",      "playermodels/advent/blue",         "playermodels/advent/red",      "playermodels/advent/hudguns",          NULL,   NULL,
             { NULL, NULL, NULL },
-            "playermodels/advent",  "playermodels/advent_blue",        "playermodels/advent_red",                  true,   true,   3.0f,   15.0f,   1.0f
+            "playermodels/advent",      "playermodels/advent_blue",         "playermodels/advent_red",      NULL,   true,   true,   3.0f,   15.0f,   1.0f
         },
     };
 

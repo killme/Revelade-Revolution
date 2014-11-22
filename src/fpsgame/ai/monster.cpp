@@ -14,48 +14,48 @@ namespace monster
             // freq,    lag,    rate,   pain,   loyalty,    painsound,  diesound, traits, 
                3,       0,      100,    400,    1,          S_PAINB,    S_DEATHB, 0,
             //ModelInfo:
-            // ffa,                             blueteam,   redteam,    hudguns,    vwep,   quad,   armour[3],              ffaicon,        blueicon,   redicon,    ragdoll,    selectable, radius, eyeheight,  aboveeye,   weight
-            { "playermodels/zombies/zombie1",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicb_64",  NULL,       NULL,       false,      true,       3.5f,   16.5f,      1.0f,       0},
+            // ffa,                             blueteam,   redteam,    hudguns,    vwep,   quad,   armour[3],              ffaicon,        blueicon,   redicon,    zombieHands,        ragdoll,    selectable, radius, eyeheight,  aboveeye,   weight
+            { "playermodels/zombies/zombie1",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicb_64",  NULL,       NULL,       "hudguns/zombie",   false,      true,       3.5f,   16.5f,      1.0f,       0},
         },
         {
             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 2", 0},
                3,       0,      100,    400,    1,          S_PAINB,    S_DEATHB, 0,
-            { "playermodels/zombies/zombie2",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zclassic",     NULL,       NULL,       false,      true,       3.8f,   14.0f,      1.0f,       0 },
+            { "playermodels/zombies/zombie2",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zclassic",     NULL,       NULL,       "hudguns/zombie",   false,      true,       3.8f,   14.0f,      1.0f,       0 },
         },
         { 
             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 3", 0},
                3,       0,      100,    400,    1,          S_PAINR,    S_DEATHR, 0,
-            { "playermodels/zombies/zombie3",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicd_64",  NULL,       NULL,       false,      true,       3.8f,   15.8f,      1.0f,       0 },
+            { "playermodels/zombies/zombie3",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicd_64",  NULL,       NULL,       "hudguns/zombie",   false,      true,       3.8f,   15.8f,      1.0f,       0 },
         },
         { 
             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 4", 0},
                3,       0,      100,    400,    1,          S_PAINR,    S_DEATHR, 0,
-            { "playermodels/zombies/zombie4",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zjhon",        NULL,       NULL,       false,      true,       3.8f,   17.0f,      1.0f,       0 },
+            { "playermodels/zombies/zombie4",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "zjhon",        NULL,       NULL,       "hudguns/zombie",   false,      true,       3.8f,   17.0f,      1.0f,       0 },
         },
         { 
             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 5", 0},
                3,       0,      100,    400,    1,          S_PAINH,    S_DEATHH, 0,
-            { "playermodels/zombies/zombie5",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicc",     NULL,       NULL,       false,      true,       3.8f,   15.5f,      1.0f,       0 },
+            { "playermodels/zombies/zombie5",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "classicc",     NULL,       NULL,       "hudguns/zombie",   false,      true,       3.8f,   15.5f,      1.0f,       0 },
         },
         {
             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 6", 0},
                3,       0,      100,    400,    1,          S_PAINH,    S_DEATHH, 0,
-            { "playermodels/zombies/zombie6",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "skeleton_64",  NULL,       NULL,       false,      true,       3.8f,   15.5f,      1.0f,       0 },
+            { "playermodels/zombies/zombie6",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "skeleton_64",  NULL,       NULL,       "hudguns/zombie",   false,      true,       3.8f,   15.5f,      1.0f,       0 },
         },
         {
             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 180,    0,          0,      72,         "zombie 7", 0},
                3,       0,      100,    400,    1,          S_PAIND,    S_DEATHD, 0,
-            { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       false,      true,       4.5f,   17.0f,      1.0f,       0 },
+            { "playermodels/zombies/zombie7",   NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "heavy_64",     NULL,       NULL,       "hudguns/zombie",   false,      true,       4.5f,   17.0f,      1.0f,       0 },
         },
         {
             { {WEAP_BITE, WEAP_NONE, WEAP_NONE, WEAP_NONE}, 40,     0,          0,      130,        "rat",      0},
                0,       0,      100,    400,    1,          S_PAINR,    S_DEATHR,  MONSTER_TYPE_TRAIT_RAT,
-            { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       false,      true,       3.0f,   3.0f,       0.5f,       0 },
+            { "playermodels/zombies/rat",       NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "rat",          NULL,       NULL,       NULL,               false,      true,       3.0f,   3.0f,       0.5f,       0 },
         },
         {
             { {WEAP_SLIME, WEAP_BITE, WEAP_NONE, WEAP_NONE}, 400,    A_YELLOW,   100,    28,         "juggernaut", 0},
                0,       0,      100,    400,    1,          S_PAINH,    S_DEATHH, MONSTER_TYPE_TRAIT_BOSS,
-            { "playermodels/zombies/juggernaut",NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "juggernaut",   NULL,       NULL,       false,      true,       7.0f,   22.0f,      3.0f,       0 },
+            { "playermodels/zombies/juggernaut",NULL,       NULL,       NULL,       NULL,   NULL,   { NULL, NULL, NULL },   "juggernaut",   NULL,       NULL,       "hudguns/zombie",   false,      true,       7.0f,   22.0f,      3.0f,       0 },
         }
         /* TODO
         { 
