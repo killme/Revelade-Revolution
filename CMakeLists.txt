@@ -3,6 +3,7 @@ cmake_policy(SET CMP0012 NEW)
 project(ReveladeRevolution)
 
 option(RELEASE_BUILD "Creates a release package in release mode" 0)
+option(BUILD_STANDALONE "Create a non-system wide package (when building in release mode)" 0)
 
 set(RR_VERSION_MAJOR 0)
 set(RR_VERSION_MINOR 1)
@@ -37,6 +38,8 @@ IF(${RELEASE_BUILD})
 else()
     set(RR_VERSION_TYPE 1)
 endif()
+
+set(RR_VERSION_SHORT "${RR_VERSION_MAJOR}.${RR_VERSION_MINOR}")
 
 if(${RR_VERSION_TYPE})
     set(RR_DEFAULT_BUILD_TYPE  "Debug")
@@ -115,8 +118,8 @@ file(READ ${DATE_FILE} DATE)
 message(STATUS "Build version: ${RR_VERSION} ${DATE} (${CMAKE_BUILD_TYPE})${RR_VERSION_ADDITIONAL_INFO}")
 
 # Cpack
-
-if(${RELEASE_BUILD})
+option(USE_CPACK "Experimental cpack packages." 0)
+if(${RELEASE_BUILD} AND ${USE_CPACK})
     include(InstallRequiredSystemLibraries)
 
     # Make sure this is NOT an absolute path
@@ -158,27 +161,50 @@ endif()
 
 if(NOT BUILD_INSTALL_DIR)
     if(${RELEASE_BUILD})
-        set(BUILD_INSTALL_DIR ${PROJECT_SOURCE_DIR}/release)
+        if(${BUILD_STANDALONE})
+            set(BUILD_INSTALL_DIR ${PROJECT_SOURCE_DIR}/release)
+        else()
+            set(BUILD_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
+        endif()
     else()
         set(BUILD_INSTALL_DIR ${PROJECT_SOURCE_DIR})
     endif()
 endif()
 
 if(NOT BUILD_INSTALL_BIN_DIR)
-    set(BUILD_INSTALL_BIN_DIR "${BUILD_INSTALL_DIR}/bin_${BUILD_PLATFORM_BIN}")
+    if(${BUILD_STANDALONE})
+        set(BUILD_VERSION_POSTFIX "")
+        set(BUILD_INSTALL_BIN_DIR "${BUILD_INSTALL_DIR}/bin_${BUILD_PLATFORM_BIN}")
+    else()
+        set(BUILD_VERSION_POSTFIX "-${RR_VERSION_SHORT}")
+        set(BUILD_INSTALL_BIN_DIR "${BUILD_INSTALL_DIR}/lib")
+    endif()
 
     set(CMAKE_CURRENT_BINARY_DIR ${BUILD_INSTALL_BIN_DIR})
-    set(INSTALL_HEADER_DIR      ${BUILD_TEMP_INCLUDE_DIR})
-    set(INSTALL_LIBRARY_DIR     ${BUILD_INSTALL_BIN_DIR} CACHE INTERNAL "")
-    set(INSTALL_ARCHIVE_DIR     ${BUILD_INSTALL_BIN_DIR} CACHE INTERNAL "")
-    set(INSTALL_RUNTIME_DIR     ${BUILD_INSTALL_BIN_DIR} CACHE INTERNAL "")
+    set(INSTALL_HEADER_DIR      ${BUILD_TEMP_INCLUDE_DIR}   CACHE INTERNAL "")
+    set(INSTALL_LIBRARY_DIR     ${BUILD_INSTALL_BIN_DIR}    CACHE INTERNAL "")
+    set(INSTALL_ARCHIVE_DIR     ${BUILD_INSTALL_BIN_DIR}    CACHE INTERNAL "")
 
-    set(INSTALL_DOC_DIR         ${BUILD_INSTALL_DIR}/docs    CACHE INTERNAL "")
+    if(NOT ${BUILD_STANDALONE})
+        set(BUILD_INSTALL_BIN_DIR "${BUILD_INSTALL_DIR}/bin")
+    endif()
 
-    set(INSTALL_RESOURCES_DIR   ${BUILD_INSTALL_DIR}/resources  CACHE INTERNAL "")
+    set(INSTALL_RUNTIME_DIR     ${BUILD_INSTALL_BIN_DIR}    CACHE INTERNAL "")
+
+    if(${BUILD_STANDALONE})
+        set(BUILD_INSTALL_DATA_DIR ${BUILD_INSTALL_DIR}  CACHE INTERNAL "")
+        set(BUILD_SYSTEM_INSTALL_LOCATIONS "")
+    else()
+        set(BUILD_INSTALL_DATA_DIR "${BUILD_INSTALL_DIR}/share/revelade-revolution${BUILD_VERSION_POSTFIX}" CACHE INTERNAL "")
+        set(BUILD_SYSTEM_INSTALL_LOCATIONS "${BUILD_INSTALL_DATA_DIR}")
+    endif()
+
+    set(INSTALL_DOC_DIR         ${BUILD_INSTALL_DATA_DIR}/docs    CACHE INTERNAL "")
+
+    set(INSTALL_RESOURCES_DIR   ${BUILD_INSTALL_DATA_DIR}/resources  CACHE INTERNAL "")
     set(INSTALL_LUA_DIR         ${INSTALL_RESOURCES_DIR}/lua  CACHE INTERNAL "")
 
-    message(STATUS "Installing to ${BUILD_INSTALL_DIR} (bin: ${CMAKE_CURRENT_BINARY_DIR}, resources: ${INSTALL_RESOURCES_DIR}, header: ${INSTALL_HEADER_DIR})")
+    message(STATUS "Installing to ${BUILD_INSTALL_DIR} (bin: ${CMAKE_CURRENT_BINARY_DIR}, resources: ${INSTALL_RESOURCES_DIR}, header: ${INSTALL_HEADER_DIR} data: ${BUILD_INSTALL_DATA_DIR})")
 endif()
 
 set(PLATFORM_FILE "${CMAKE_SOURCE_DIR}/src/platform_${BUILD_PLATFORM_SRC}")
@@ -192,21 +218,30 @@ else()
 endif()
 
 option(RELEASE_BUILD_BARE "Should we only install the binaries and not all the content too." 0)
-if(${RELEASE_BUILD} AND NOT ${RELEASE_BUILD_BARE})
+if(${RELEASE_BUILD})
     install(
         DIRECTORY
-            packages
-            data
-        DESTINATION ${BUILD_INSTALL_DIR}
+            resources/lua
+            resources/config
+        DESTINATION ${BUILD_INSTALL_DATA_DIR}/resources
         PATTERN ".*" EXCLUDE)
-    
-    install(
-        FILES
-            contentlicenses.txt
-            fullcredits.txt
-            license.txt
-            readme.txt
-        DESTINATION ${BUILD_INSTALL_DIR})
+
+    if(NOT ${RELEASE_BUILD_BARE})
+        install(
+            DIRECTORY
+                packages
+                data
+            DESTINATION ${BUILD_INSTALL_DATA_DIR}
+            PATTERN ".*" EXCLUDE)
+
+        install(
+            FILES
+                contentlicenses.txt
+                fullcredits.txt
+                license.txt
+                readme.txt
+            DESTINATION ${BUILD_INSTALL_DATA_DIR})
+    endif()
 endif()
 
 add_subdirectory(src)

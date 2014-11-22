@@ -1118,15 +1118,7 @@ int main(int argc, char **argv)
 
     initing = INIT_RESET;
 
-    /* make sure the path is correct */
-    if (!fileexists("data", "r"))
-    {
-        int err = uv_chdir("..");
-        if (err < 0)
-        {
-            fatal("unable to change directory! (%i: %s) %s", err, uv_err_name(err), uv_strerror(err));
-        }
-    }
+    findRootDirectory("data");
 
     bool doinit = true;
     const char *homeDirectory = NULL;

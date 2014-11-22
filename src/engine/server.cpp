@@ -773,16 +773,8 @@ int main(int argc, const char **argv)
         }
     }
     #endif
-    
-    /* make sure the path is correct */
-    if (!fileexists("resources", "r"))
-    {
-        int err = uv_chdir("..");
-        if (err < 0)
-        {
-            fatal("unable to change directory! (%i: %s) %s", err, uv_err_name(err), uv_strerror(err));
-        }
-    }
+
+    findRootDirectory("resources");
 
     lua::init(argc, argv); //Lua will start the server
 

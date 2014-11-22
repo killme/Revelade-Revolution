@@ -242,3 +242,48 @@ int ipmask::print(char *buf) const
     return int(buf-start);
 }
 
+// RR -> Auto cd to right directory
+extern "C" {
+    #include "uv.h"
+}
+void findRootDirectory(const char *magic)
+{
+    char *locations = newstring("..:" RR_INSTALL_LOCATIONS);
+    const char *l = locations;
+    
+    /* make sure the path is correct */
+    while (!fileexists(magic, "r"))
+    {
+        if(!locations)
+        {
+            fatal("Could not find installation directory! (magic directory:%s Install path:%s)", magic, l);
+        }
+        const char *start = locations;
+        char *oldEnd = NULL;
+
+        for(;;locations++)
+        {
+            if(*locations == '\0') locations = NULL;
+            else if(*locations == ':')
+            {
+                *locations = '\0';
+                oldEnd = locations;
+                locations++;
+            }
+            else continue;
+            break;
+        }
+
+        conoutf(CON_INIT, "Trying install path %s", start);
+        int err = uv_chdir(start);
+        if (err < 0)
+        {
+            fatal("unable to change directory! (%i: %s) %s", err, uv_err_name(err), uv_strerror(err));
+        }
+
+        if(oldEnd) *oldEnd = ':';
+    }
+
+    DELETEA(l);
+}
+///RR

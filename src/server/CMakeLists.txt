@@ -1,4 +1,4 @@
-add_definitions(-DSERVER -DSTANDALONE)
+add_definitions(-DSERVER -DSTANDALONE -DRR_INSTALL_LOCATIONS="${BUILD_SYSTEM_INSTALL_LOCATIONS}")
 
 if(${BUILD_TARGET_WINDOWS})
     set(EXTRA_LIBS ${EXTRA_LIBS} opengl32 ws2_32 winmm)
@@ -30,7 +30,7 @@ set(SERVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/lua.cpp
 )
 
-set(RR_SERVER_BINARY server_${BUILD_PLATFORM_BIN}_${BUILD_TARGET_ARCH} CACHE INTERNAL "Revelade revolution server binary name.")
+set(RR_SERVER_BINARY "server_${BUILD_PLATFORM_BIN}_${BUILD_TARGET_ARCH}${BUILD_VERSION_POSTFIX}" CACHE INTERNAL "Revelade revolution server binary name.")
 add_executable(${RR_SERVER_BINARY} ${SERVER_SOURCES})
 target_link_libraries(${RR_SERVER_BINARY}
     ${TOMCRYPT_LIBRARIES}

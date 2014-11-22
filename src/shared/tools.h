@@ -1246,6 +1246,10 @@ struct ipmask
     int print(char *buf) const;
     bool check(enet_uint32 host) const { return (host & mask) == ip; }
 };
-    
+
+// RR -> Auto cd to right directory
+void findRootDirectory(const char *magic);
+///RR
+
 #endif
 
