@@ -900,10 +900,9 @@ namespace server
         virtual void initclient(clientinfo *ci, packetbuf &p, bool connecting) {}
         virtual void update() {}
         virtual void updateRaw() {}
-        virtual void reset(bool empty) {}
-        virtual void cleanup() { reset(false); }
-        virtual void newmap() { reset(true); }
-        virtual void setup() { reset(false); }
+        virtual void cleanup() {}
+        virtual void newmap() {}
+        virtual void setup() {}
         virtual void intermission() {}
         virtual bool hidefrags() { return false; }
         virtual int getteamscore(const char *team) { return 0; }

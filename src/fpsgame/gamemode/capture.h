@@ -785,6 +785,33 @@ ICOMMAND(insidebases, "", (),
         notgotbases = !empty;
     }
 
+    void cleanup()
+    {
+        reset(false);
+    }
+
+    void setup()
+    {
+        reset(false);
+        if(notgotitems || ments.empty()) return;
+        loopv(ments)
+        {
+            entity &e = ments[i];
+            if(e.type != BASE) continue;
+            int ammotype = e.attr1;
+            addbase(ammotype, e.o);
+        }
+        notgotbases = false;
+        sendbases();
+        sendservmsgf("Loaded %i bases from mapfile.", bases.length());
+        loopv(clients) if(clients[i]->state.state==CS_ALIVE) entergame(clients[i]);
+    }
+
+    void newmap()
+    {
+        reset(true);
+    }
+
     void stealbase(int n, const char *team)
     {
         baseinfo &b = bases[n];
@@ -1034,6 +1061,7 @@ ICOMMAND(insidebases, "", (),
         }
         if(commit && notgotbases)
         {
+            sendservmsgf("Received %i bases from client.", numbases);
             notgotbases = false;
             sendbases();
             loopv(clients) if(clients[i]->state.state==CS_ALIVE) entergame(clients[i]);

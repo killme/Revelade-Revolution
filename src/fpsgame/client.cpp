@@ -85,9 +85,9 @@ namespace game
 
     void sendmapinfo()
     {
-        if(connectionState != CONNECTION_STATE_CONNECTED) return;
+        if(connectionState != CONNECTION_STATE_CONNECTED) { DEBUG_ERROR("Trying to send map info while not connected."); return; }
         sendcrc = true;
-        if(player1->state!=CS_SPECTATOR || player1->privilege || !remote) senditemstoserver = true;
+        if(player1->state!=CS_SPECTATOR || player1->privilege) senditemstoserver = true;
     }
 
     void writeclientinfo(stream *f)
@@ -883,6 +883,7 @@ namespace game
             putint(p, N_MAPCRC);
             sendstring(mname, p);
             putint(p, mname[0] ? getmapcrc() : 0);
+            conoutf("Server requests map integrity check.");
         }
         if(senditemstoserver)
         {
@@ -890,6 +891,7 @@ namespace game
             if(!m_noitems) entities::putitems(p);
             if(cmode) cmode->senditems(p);
             senditemstoserver = false;
+            conoutf("Server requests our items.");
         }
         if(messages.length())
         {
@@ -1215,7 +1217,11 @@ namespace game
                 changemapserv(text, getint(p));
                 mapchanged = true;
                 if(getint(p)) entities::spawnitems();
-                else senditemstoserver = false;
+                else
+                {
+                    conoutf(CON_DEBUG, "Server has map items.");
+                    senditemstoserver = false;
+                }
                 clearvotes();
                 break;
 
@@ -2104,6 +2110,13 @@ namespace game
                     break;
                 case N_FROMAI:
                     printf("<N_FROMAI[%i] %i>", N_FROMAI, sender = getint(p));
+                    break;
+                case N_WELCOME:
+                    printf("<N_WELCOME[%i] (allowedweaps:%i)>", N_WELCOME, getint(p));
+                    break;
+                case N_MAPCHANGE:
+                    getstring(str, p);
+                    printf("<N_MAPCHANGE[%i] %s (gamemode:%i notgotitems:%i)>", N_MAPCHANGE, str, getint(p), getint(p));
                     break;
                 default:
                     printf("<unkown packet %i (n:%i)>", type, curmsg);
