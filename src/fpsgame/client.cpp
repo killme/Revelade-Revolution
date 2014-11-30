@@ -1838,7 +1838,7 @@ namespace game
                 filtertext(team, text, false, MAXTEAMLEN);
                 fpsent *b = newclient(bn);
                 if(!b) break;
-                ai::init(b, ai::AiType(type), on, sk, bn, pm, pc, name, team);
+                ai::init(b, (ai::AiType)type, on, sk, bn, pm, pc, name, team);
                 break;
             }
 
