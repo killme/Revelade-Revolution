@@ -458,8 +458,9 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
 #endif
 
 #ifdef SERVER
+    uv_loop_t *loop = uv_default_loop();
     dateValid = false;
-    uv_run(uv_default_loop(), UV_RUN_NOWAIT);
+    uv_run(loop, UV_RUN_NOWAIT);
 #endif
 
     server::serverupdate();
@@ -478,10 +479,10 @@ void serverslice(bool dedicated, uint timeout)   // main server update, called f
     while(!serviced)
     {
 #ifdef SERVER
-        uv_run(uv_default_loop(), UV_RUN_NOWAIT);
+        uv_run(loop, UV_RUN_NOWAIT);
         if(enet_host_check_events(serverhost, &event) <= 0)
         {
-            int uvTimeout = uv_backend_timeout(uv_default_loop());
+            int uvTimeout = uv_loop_alive(loop) ? uv_backend_timeout(loop) : -1;
             if(uvTimeout != -1) timeout = min(timeout, (uint)uvTimeout);
             if(enet_host_service(serverhost, &event, timeout) <= 0) break;
             serviced = true;
