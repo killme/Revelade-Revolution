@@ -630,7 +630,7 @@ struct gui : g3d_gui
     }
 
     // RR -> colorizable icons
-    void icon_(Texture *t, bool overlaid, int x, int y, int size, bool hit, int colour = 0xFFFFFF)
+    void icon_(Texture *t, bool overlaid, int x, int y, int size, bool hit, int colour = 0xFFFFFF, const char *name = "")
     {
         float scale = float(size)/max(t->xs, t->ys); //scale and preserve aspect ratio
         float xs = t->xs*scale, ys = t->ys*scale;
@@ -657,8 +657,19 @@ struct gui : g3d_gui
             color.z = min(color.z + 0.03f, 1.0f);;
         }
         ///RR
+
         glColor3fv(color.v);
-        rect_(x, y, xs, ys, 0);
+
+        // RR: Draw sprites
+        if(name[0] == 's' && name[1] == ':')
+        {
+            game::drawSprite(atoi(name+2), x, y, xs, ys);
+        }
+        else
+        {
+        ///RR
+            rect_(x, y, xs, ys, 0);
+        }
 
         if(overlaid)
         {
@@ -823,29 +834,25 @@ struct gui : g3d_gui
             {
                 if(icon[0] != ' ')
                 {
-                    const char *ext = strrchr(icon, '.');
-                    // RR: Try to find icons in the data/icons directory first, fall back to full path
-                    defformatstring(tname)("data/icons/%s%s", icon, ext ? "" : ".png");
-                    Texture *tex = textureload(tname, 3, true, false);
-                    if(tex == notexture)
+                    Texture *tex = notexture;
+                    // RR -> sprites
+                    if(icon[0] != 's' && icon[1] != ':')
                     {
-                        defformatstring(tname2)("%s%s", icon, ext ? "" : ".png");
-                        Texture *tex2 = textureload(tname2, 3);
-                        if(tex2 != notexture) tex = tex2;
+                        const char *ext = strrchr(icon, '.');
+                        // RR: Try to find icons in the data/icons directory first, fall back to full path
+                        defformatstring(tname)("data/icons/%s%s", icon, ext ? "" : ".png");
+                        tex = textureload(tname, 3, true, false);
+                        if(tex == notexture)
+                        {
+                            defformatstring(tname2)("%s%s", icon, ext ? "" : ".png");
+                            Texture *tex2 = textureload(tname2, 3);
+                            if(tex2 != notexture) tex = tex2;
+                        }
+                        ///RR
                     }
-                    icon_(tex, false, x, cury, ICON_SIZE, clickable && hit);
-                    ///RR
+                    icon_(tex, false, x, cury, ICON_SIZE, clickable && hit, 0xFFFFFF, icon);
                 }
-                // RR: Draw sprites
-                if(icon[0] == 's' && icon[1] == ':')
-                {
-                    game::drawSprite(atoi(icon+2), x, cury, ICON_SIZE, ICON_SIZE);
-                }
-                ///RR
-                else
-                {
-                    x += ICON_SIZE;
-                }
+                x += ICON_SIZE;
             }
             if(icon && text) x += padding;
             if(text) text_(text, x, cury, color, center || (hit && clickable && actionon), hit && clickable);

@@ -1339,7 +1339,7 @@ namespace game
 
     void drawSprite(int sprite, int x, int y, int w, int h)
     {
-
+        drawicon(sprite, x, y, w);
     }
 
     void drawquad(float x, float y, float w, float h, float tx1, float ty1, float tx2, float ty2, bool flipx, bool flipy)
