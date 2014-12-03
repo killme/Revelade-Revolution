@@ -836,7 +836,7 @@ struct gui : g3d_gui
                 {
                     Texture *tex = notexture;
                     // RR -> sprites
-                    if(icon[0] != 's' && icon[1] != ':')
+                    if(icon[0] != 's' || icon[1] != ':')
                     {
                         const char *ext = strrchr(icon, '.');
                         // RR: Try to find icons in the data/icons directory first, fall back to full path
