@@ -3823,13 +3823,15 @@ namespace server
 
             case N_REQADDAI:
             {
-                aiman::reqadd(ci, (ai::AiType)getint(p), getint(p));
+                int type = getint(p);
+                aiman::reqadd(ci, (ai::AiType)type, getint(p));
                 break;
             }
 
             case N_REQDELAI:
             {
-                aiman::reqdel(ci, (ai::AiType)getint(p));
+                int type = getint(p);
+                aiman::reqdel(ci, (ai::AiType)type);
                 break;
             }
 
