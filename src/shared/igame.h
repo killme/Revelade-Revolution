@@ -77,6 +77,7 @@ namespace game
     extern void startmap(const char *name);
     extern void preload();
 
+    extern void drawSprite(int sprite, int x, int y, int w, int h); // RR -> Inagme icons
     extern void drawquad(float x, float y, float w, float h, float tx1 = 0, float ty1 = 0, float tx2 = 1, float ty2 = 1, bool flipx = false, bool flipy = false);
     extern void drawtexture(float x, float y, float w, float h, bool flipx = false, bool flipy = false);
     extern void drawsized(float x, float y, float s, bool flipx = false, bool flipy = false);

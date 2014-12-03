@@ -836,7 +836,16 @@ struct gui : g3d_gui
                     icon_(tex, false, x, cury, ICON_SIZE, clickable && hit);
                     ///RR
                 }
-                x += ICON_SIZE;
+                // RR: Draw sprites
+                if(icon[0] == 's' && icon[1] == ':')
+                {
+                    game::drawSprite(atoi(icon+2), x, cury, ICON_SIZE, ICON_SIZE);
+                }
+                ///RR
+                else
+                {
+                    x += ICON_SIZE;
+                }
             }
             if(icon && text) x += padding;
             if(text) text_(text, x, cury, color, center || (hit && clickable && actionon), hit && clickable);

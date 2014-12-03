@@ -1337,6 +1337,11 @@ namespace game
         glEnd();
     }
 
+    void drawSprite(int sprite, int x, int y, int w, int h)
+    {
+
+    }
+
     void drawquad(float x, float y, float w, float h, float tx1, float ty1, float tx2, float ty2, bool flipx, bool flipy)
     {
         glBegin(GL_TRIANGLE_STRIP);
