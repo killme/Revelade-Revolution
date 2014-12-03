@@ -18,8 +18,6 @@ namespace ai
     const float VIEWMIN         = 90.f;    // minimum field of view
     const float VIEWMAX         = 180.f;   // maximum field of view
 
-    extern vector<char *> botnames;
-
     struct waypoint
     {
         vec o;

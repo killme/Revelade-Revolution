@@ -80,53 +80,6 @@ namespace aiman
         return least;
     }
 
-    char randletter(bool vowel, char exclude = 0)
-    {
-        static const int vpos[] = {0, 4, 8, 14, 20, 24};
-        char letter = rnd(26);
-        bool isv = false;
-        exclude = (exclude)? exclude-'a': 40;
-        loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
-        if (isv == vowel) return letter+'a';
-        while (isv != vowel || letter == exclude)
-        {
-            letter = (letter+1)%26;
-            isv = false;
-            loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
-        }
-        return letter+'a';
-    }
-
-    const char *generatename()
-    {
-        static const char *ntemplates[4] = { "cvcvc", "vcvc", "cvcvv", "cvcv" };
-        const char *t = ntemplates[rnd(4)];
-        static char name[6];
-        for (int i=0, l=strlen(t); i <= l; i++) name[i] = (i==l)? '\0': randletter((t[i]=='v')? true: false, (i)? name[i-1]: 0);
-        name[0] = toupper(name[0]);
-        return name;
-    }
-
-    const char *getbotname()
-    {
-        if (ai::botnames.length())
-        {
-            const char *name;
-            name = ai::botnames[rnd(ai::botnames.length())];
-            if (bots.length() > ai::botnames.length()) return name;
-            loopv(bots)
-            {
-                if (bots[i] && !strcmp(bots[i]->name, name))
-                {
-                    name = ai::botnames[rnd(ai::botnames.length())];
-                    i = -1;
-                }
-            }
-            return name;
-        }
-        return generatename();
-    }
-
     int findFreeCn(int limit = -1)
     {
         int numai = 0, cn = -1, maxai = limit >= 0 ? min(limit, MAXBOTS) : MAXBOTS;
@@ -172,7 +125,7 @@ namespace aiman
 
         ci->state.state = CS_DEAD;
         ci->state.lasttimeplayed = lastmillis;
-        copystring(ci->name, getbotname(), MAXNAMELEN+1);
+        copystring(ci->name, "", MAXNAMELEN+1);
         copystring(ci->team, team, MAXTEAMLEN+1);
         ci->state.playermodel = -1;
         ci->state.playerclass = -1;
@@ -302,7 +255,11 @@ namespace aiman
 
     void reqadd(clientinfo *ci, ai::AiType type, int skill)
     {
-        if(type < 0 || type >= ai::AI_TYPE_NUM) return;
+        if(type < 0 || type >= ai::AI_TYPE_NUM)
+        {
+            DEBUG_ERROR("Client %i requests to add an invalid AI type %i (%i < %i)", ci->clientnum, type, 0,ai::AI_TYPE_NUM);
+            return;
+        }
         if(!ci->local && ci->privilege < PRIV_MASTER) return;
         if(!addai(skill, !ci->local && ci->privilege < PRIV_ADMIN ? botlimit : -1)) sendf(ci->clientnum, 1, "ris", N_SERVMSG, "failed to create or assign bot");
     }

@@ -199,6 +199,7 @@ inline char *newstring(const char *s)           { size_t l = strlen(s); char *d 
 #define loopvj(v)   for(int j = 0; j<(v).length(); j++)
 #define loopvk(v)   for(int k = 0; k<(v).length(); k++)
 #define loopvrev(v) for(int i = (v).length()-1; i>=0; i--)
+#define loopvjrandom(v, _start)   for(int start = _start, j = start, flipped = 0; flipped ? j < start : j<(v).length(); ++j >= v.length() ? flipped = 1, j = 0 : 0)
 
 template <class T>
 struct databuf

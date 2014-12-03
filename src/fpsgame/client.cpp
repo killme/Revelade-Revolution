@@ -52,7 +52,7 @@ namespace game
     {
         filtertext(player1->name, name, NAMEALLOWSPACES, MAXNAMELEN);
         if(!player1->name[0]) copystring(player1->name, "unnamed");
-        if (connectionState == CONNECTION_STATE_CONNECTED) addmsg(N_SWITCHNAME, "rs", player1->name);
+        if (connectionState == CONNECTION_STATE_CONNECTED) addmsg(N_SWITCHNAME, "rcs", player1, player1->name);
     }
     void printname()
     {

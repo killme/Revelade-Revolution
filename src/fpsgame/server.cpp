@@ -5,13 +5,6 @@
 #include "server/lua.h"
 #endif
 
-namespace ai
-{
-    vector<char *> botnames;
-
-    ICOMMAND(registerbot, "s", (const char *s), botnames.add(copystring(new string, s)));
-}
-
 namespace game
 {
 #ifdef STANDALONE
@@ -3530,11 +3523,12 @@ namespace server
 
             case N_SWITCHNAME:
             {
+                QUEUE_AI;
                 QUEUE_MSG;
                 getstring(text, p);
-                filtertext(ci->name, text, NAMEALLOWSPACES, MAXNAMELEN);
-                if(!ci->name[0]) copystring(ci->name, "unnamed");
-                QUEUE_STR(ci->name);
+                filtertext(cq->name, text, NAMEALLOWSPACES, MAXNAMELEN);
+                if(!cq->name[0]) copystring(cq->name, "unnamed");
+                QUEUE_STR(cq->name);
                 break;
             }
 

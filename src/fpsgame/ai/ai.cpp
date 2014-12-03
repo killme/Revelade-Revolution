@@ -131,11 +131,117 @@ namespace ai
         }
     }
 
+
+    char randletter(bool vowel, char exclude = 0)
+    {
+        static const int vpos[] = {0, 4, 8, 14, 20, 24};
+        char letter = rnd(26);
+        bool isv = false;
+        exclude = (exclude)? exclude-'a': 40;
+        loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
+        if (isv == vowel) return letter+'a';
+        while (isv != vowel || letter == exclude)
+        {
+            letter = (letter+1)%26;
+            isv = false;
+            loopi(sizeof(vpos)/sizeof(vpos[0])) if (vpos[i] == letter) { isv = true; break; }
+        }
+        return letter+'a';
+    }
+
+    const char *generatename()
+    {
+        static const char *ntemplates[4] = { "cvcvc", "vcvc", "cvcvv", "cvcv" };
+        const char *t = ntemplates[rnd(4)];
+        static char name[6];
+        for (int i=0, l=strlen(t); i <= l; i++) name[i] = (i==l)? '\0': randletter((t[i]=='v')? true: false, (i)? name[i-1]: 0);
+        name[0] = toupper(name[0]);
+        return name;
+    }
+
+    struct BotName
+    {
+        const char *name;
+        int validFor;
+
+        ~BotName()
+        {
+            DELETEA(name);
+        }
+    };
+
+    vector<BotName> botnames;
+
+    ICOMMAND(resetbotnames, "", (), {
+        botnames.shrink(0);
+    });
+
+    ICOMMAND(registerbotname, "si", (const char *s, int *validFor), {
+        BotName &botName = botnames.add();
+        botName.name = newstring(s);
+
+        botName.validFor = *validFor > 0 ? *validFor : ~0;
+    });
+
+    const char *getbotname(fpsent *state)
+    {
+        if (ai::botnames.length())
+        {
+            int seed = rnd(ai::botnames.length());
+
+            int filter = (1 << clamp(state->playermodel, 0, 31));
+
+            ai::BotName *best = NULL;
+            int bestScore = __INT_MAX__;
+
+            loopvjrandom(ai::botnames, seed)
+            {
+                ai::BotName &botName = ai::botnames[j];
+                if(filter & botName.validFor)
+                {
+                    int duplicates = 0;
+                    loopv(players)
+                    {
+                        if (!strcmp(players[i]->name, botName.name))
+                        {
+                            duplicates ++;
+                        }
+                    }
+                    if(duplicates < bestScore)
+                    {
+                        bestScore = duplicates;
+                        best = &botName;
+                    }
+                }
+                if(bestScore == 0) break;
+            }
+
+            if(best) return best->name;
+
+            DEBUG_ERROR("Could not find a name for %i (filter:%i)", state->clientnum, filter);
+        }
+
+
+        return generatename();
+    }
+
     void init(fpsent *d, AiType aiType, int ocn, int sk, int bn, int pm, int pc, const char *name, const char *team)
     {
         loadwaypoints();
 
         fpsent *o = newclient(ocn);
+
+        d->ownernum = ocn;
+        d->plag = 0;
+        d->ai.skill = max(1, sk);
+        d->playermodel = (pm < 0) ? chooserandomplayermodel(rand()) : pm;
+        d->playerclass = (pc < 0) ? rand()%NUMPCS : pc;
+
+        if(!name[0])
+        {
+            name = getbotname(d);
+            addmsg(N_SWITCHNAME, "rcs", d, name);
+        }
 
         bool resetthisguy = false;
         if(!d->name[0])
@@ -156,13 +262,9 @@ namespace ai
 
         copystring(d->name, name, MAXNAMELEN+1);
         copystring(d->team, team, MAXTEAMLEN+1);
-        d->ownernum = ocn;
-        d->plag = 0;
-        d->ai.skill = max(1, sk);
-        d->playermodel = (pm < 0) ? chooserandomplayermodel(rand()) : pm;
-        d->playerclass = (pc < 0) ? rand()%NUMPCS : pc;
 
-        if(aidebug && (pm < 0 || pc < 0)) conoutf("server let us pick bot name/class for: %s (pm:%i pc:%i -> pm:%i pc:%i)", colorname(d, name), pm, pc, d->playermodel, d->playerclass);
+        if(aidebug && (pm < 0 || pc < 0)) conoutf("server let us pick bot model/class for: %s (pm:%i pc:%i -> pm:%i pc:%i)", colorname(d, d->name), pm, pc, d->playermodel, d->playerclass);
+        if(aidebug && *name) conoutf("server let us pick bot name: %s (before:%s)", colorname(d, d->name), colorname(d, name));
 
         if(resetthisguy) removeweapons(d);
         if(d->ownernum >= 0 && player1->clientnum == d->ownernum)
