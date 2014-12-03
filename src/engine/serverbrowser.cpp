@@ -572,9 +572,9 @@ namespace serverbrowser
             loopvj(sortedServers[i]->info)
             {
                 formatstring(value)(" %s", escapestring(sortedServers[i]->info[j].key));
-                loopi(strlen(value)) buf.add(value[i]);
+                loopk(strlen(value)) buf.add(value[k]);
                 formatstring(value)(" %s", escapestring(sortedServers[i]->info[j].value));
-                loopi(strlen(value)) buf.add(value[i]);
+                loopk(strlen(value)) buf.add(value[k]);
             }
             buf.add('\0');
             loopiter(id, stack, buf.buf);
