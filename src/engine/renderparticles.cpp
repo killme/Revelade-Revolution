@@ -958,13 +958,13 @@ void removetrackedparticles(physent *owner)
 
 VARP(particleglare, 0, 2, 100);
 
-VAR(debugparticles, 0, 0, 1);
+VAR(dbgparticles, 0, 0, 1);
 
 void renderparticles(bool mainpass)
 {
     canstep = mainpass;
     //want to debug BEFORE the lastpass render (that would delete particles)
-    if(debugparticles && !glaring && !reflecting && !refracting)
+    if(dbgparticles && !glaring && !reflecting && !refracting)
     {
         int n = sizeof(parts)/sizeof(parts[0]);
         glMatrixMode(GL_PROJECTION);
@@ -1247,7 +1247,7 @@ static inline int colorfromattr(int attr)
     return (((attr&0xF)<<4) | ((attr&0xF0)<<8) | ((attr&0xF00)<<12)) + 0x0F0F0F;
 }
 
-VAR(debugweather, 0, 0, 1);
+VAR(dbgweather, 0, 0, 1);
 
 /* Experiments in shapes...
  * dir: (where dir%3 is similar to offsetvec with 0=up)
@@ -1259,7 +1259,11 @@ VAR(debugweather, 0, 0, 1);
  * 21 sphere
  * +32 to inverse direction
  */
-void regularshape(int type, int radius, int color, int dir, int num, int fade, const vec &p, float size, int gravity, float vel = 0, vec windoffset = vec(0, 0, 0), bool weather = false, bool weather2 = false, bool b = false)
+void regularshape(
+    int type,               int radius,             int color,      int dir,        int num,
+    int fade,               const vec &p,           float size,     int gravity,    float vel = 200,
+    vec windoffset = vec(0, 0, 0), bool weather = false,   bool weather2 = false,   bool b = false
+)
 {
     if(!canemitparticles()) return;
 
@@ -1358,7 +1362,7 @@ void regularshape(int type, int radius, int color, int dir, int num, int fade, c
             float distToFloor = raycube(to, vec(0, 0, -1), 0, RAY_CLIPMAT);
             float floorHeight = (to.z - distToFloor);
 
-            if(debugweather) conoutf("to.z: %f | floorH: %f | dist: %f", to.z, floorHeight, distToFloor);
+            if(dbgweather) conoutf("to.z: %f | floorH: %f | dist: %f", to.z, floorHeight, distToFloor);
 
             if(z<=floorHeight) continue;
 
@@ -1486,47 +1490,39 @@ static void makeparticles(entity &e)
             newparticle(e.o, vec(0, 0, 1), 1, PART_EXPLOSION, colorfromattr(e.attr3), 4.0f)->val = 1+e.attr2;
             break;
         case 4:  //tape - <dir> <length> <rgb>
-        {
-            static const int typemap2[]   = { PART_STREAK, -1, -1, PART_LIGHTNING, -1, PART_STEAM, PART_WATER };
-            static const float sizemap2[] = { 0.28f, 0.0f, 0.0f, 0.28f, 0.0f, 2.4f, 0.60f };
-            static const int gravmap2[] = { 0, 0, 0, 0, 0, -20, 2 };
-            int type = typemap2[e.attr1-4];
-            int size = sizemap2[e.attr1-4];
-            int gravity = gravmap2[e.attr1-4];
-            int dir=e.attr2;
-            dir &= 0x1F;
-            if(dir < 15 && dir > 6 && seweather && e.attr3 >= 32)
-            {
-                regularshape(PART_RAIN,
-                             e.attr3,
-                             colorfromattr(!e.attr4 ? e.attr4=0xFFF : e.attr4),
-                             44,
-                             64,
-                             0,
-                             e.o,
-                             0.1f,
-                             201,
-                             1000,
-                             vec(20, 20, 0),
-                             true);
-            }
-            else if(e.attr2 >= 256) regularshape(type, max(1+e.attr3, 1), colorfromattr(e.attr4), e.attr2-256, 5, 200, e.o, size, gravity);
-            else newparticle(e.o, offsetvec(e.o, e.attr2, max(1+e.attr3, 0)), 1, type, colorfromattr(e.attr4), size, gravity);
-            break;
-        }
         case 7:  //lightning
         case 9:  //steam
         case 10: //water
         case 13: //snow
         {
-            static const int typemap[]   = { PART_STREAK, -1, -1, PART_LIGHTNING, -1, PART_STEAM, PART_WATER, -1, -1, PART_SNOW };
-            static const float sizemap[] = { 0.28f, 0.0f, 0.0f, 1.0f, 0.0f, 2.4f, 0.60f, 0.0f, 0.0f, 0.5f };
-            static const int gravmap[] = { 0, 0, 0, 0, 0, -20, 2, 0, 0, 20 };
-            int type = typemap[e.attr1-4];
-            float size = sizemap[e.attr1-4];
+            static const int typemap[]   = { PART_STREAK, -1, -1,   PART_LIGHTNING, -1, PART_STEAM, PART_WATER, -1, -1, PART_SNOW };
+            static const float sizemap[] = { 0.28f, 0.0f, 0.0f,     0.28f, 0.0f,        2.4f,       0.60f, 0.0f, 0.0f,  0.5f };
+          //static const float sizemap[] = { 0.28f, 0.0f, 0.0f,     1.0f,  0.0f,        2.4f,       0.60f, 0.0f, 0.0f,  0.5f };
+            static const int gravmap[]   = { 0, 0, 0,               0, 0,               -20,        2, 0, 0, 20 };
+            int type    = typemap[e.attr1-4];
+            float size  = sizemap[e.attr1-4];
             int gravity = gravmap[e.attr1-4];
-            if(e.attr2 >= 256) regularshape(type, max(1+e.attr3, 1), colorfromattr(e.attr4), e.attr2-256, 5, e.attr5 > 0 ? min(int(e.attr5), 10000) : 200, e.o, size, gravity);
-            else newparticle(e.o, offsetvec(e.o, e.attr2, max(1+e.attr3, 0)), 1, type, colorfromattr(e.attr4), size, gravity);
+            int dir     = e.attr2 & 0x1F;
+
+            if(dir < 15 && dir > 6 && seweather && e.attr3 >= 32)
+            {
+                regularshape(
+                //  type,   radius, color,  dir,        num,
+                //  fade,   &p,     size,   gravity,    vel,
+                //  windoffset, weather,    weather2,   b
+                    PART_RAIN,  e.attr3,    colorfromattr(!e.attr4 ? e.attr4=0xFFF : e.attr4), 44, 64,
+                    0,      e.o,    0.1f,   201,        1000,
+                    vec(20, 20, 0), true  /*weather2,   b*/
+                );
+            }
+            else if(e.attr2 >= 256)
+            {
+                regularshape(type, max(1+e.attr3, 1), colorfromattr(e.attr4), e.attr2-256, 5, e.attr5 > 0 ? min(int(e.attr5), 10000) : 200, e.o, size, gravity);
+            }
+            else
+            {
+                newparticle(e.o, offsetvec(e.o, e.attr2, max(1+e.attr3, 0)), 1, type, colorfromattr(e.attr4), size, gravity);
+            }
             break;
         }
         case 5: //meter, metervs - <percent> <rgb> <rgb2>
@@ -1551,6 +1547,9 @@ static void makeparticles(entity &e)
         case 34:
         case 35:
             flares.addflare(e.o, e.attr2, e.attr3, e.attr4, (e.attr1&0x02)!=0, (e.attr1&0x01)!=0);
+            break;
+        case 36: // debug line <dir> <length> <color> <size>
+            newparticle(e.o, offsetvec(e.o, e.attr2, max(1+e.attr3, 0)), 1, PART_DEBUG_LINE, colorfromattr(e.attr4), e.attr5 > 0 ? ((float)e.attr5)/255.f : 1.f, 0);
             break;
         default:
             if(editmode)
