@@ -1797,6 +1797,12 @@ void allchanged(bool load)
         seedparticles();
         drawtextures();
     }
+    // RR: Reload physics
+    #if defined(WITH_BULLET) && WITH_BULLET
+        extern void rebuildWorldObjects();
+        rebuildWorldObjects();
+    #endif
+    ///RR
 }
 
 void recalc()

@@ -1,5 +1,9 @@
 #include "game.h"
 
+#if defined(WITH_BULLET) && WITH_BULLET
+extern vec ballPosition;
+#endif
+
 namespace game
 {
     vector<fpsent *> bestplayers;
@@ -267,6 +271,10 @@ namespace game
             }
         }
     }
+
+    #if defined(WITH_BULLET) && WITH_BULLET
+    VAR(renderBall, 0, 1, 1);
+    #endif
     
     void rendergame(bool mainpass)
     {
@@ -311,6 +319,9 @@ namespace game
         renderbouncers();
         renderprojectiles();
         if(cmode) cmode->rendergame();
+        #if defined(WITH_BULLET) && WITH_BULLET
+        if(renderBall) rendermodel(NULL, "mapmodels/cid/ball", ANIM_IDLE, ballPosition);
+        #endif
 
         endmodelbatches();
     }

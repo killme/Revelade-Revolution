@@ -1278,6 +1278,10 @@ int main(int argc, char **argv)
     initdecals();
 
     INIT_LOG("world");
+    #if defined(WITH_BULLET) && WITH_BULLET
+        extern void initBullet();
+        initBullet();
+    #endif
     camera1 = player = game::iterdynents(0);
     emptymap(0, true, NULL, false);
 

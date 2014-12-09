@@ -1,5 +1,15 @@
 add_definitions(-DFPS -DCLIENT -DRR_SERVER_BINARY="server_${BUILD_PLATFORM_BIN}_${BUILD_TARGET_ARCH}" -DRR_SERVER_BINARY_DIR="bin_${BUILD_PLATFORM_BIN}" -DRR_INSTALL_LOCATIONS="${BUILD_SYSTEM_INSTALL_LOCATIONS}")
 
+find_package(Bullet)
+
+option(WITH_BULLET "Build with bullet physics support" ${BULLET_FOUND})
+
+if(${WITH_BULLET})
+    include_directories(${BULLET_INCLUDE_DIRS})
+    add_definitions(-DWITH_BULLET)
+    set(BUILD_EXTRA_LIBS ${BUILD_EXTRA_LIBS} ${BULLET_LIBRARIES})
+endif()
+
 if(${BUILD_TARGET_WINDOWS})
     set(BUILD_EXTRA_LIBS ${BUILD_EXTRA_LIBS} opengl32 ws2_32 winmm)
     add_definitions(-mwindows)
