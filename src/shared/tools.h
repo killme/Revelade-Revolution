@@ -53,10 +53,7 @@ typedef unsigned long long int ullong;
 #define UNUSED
 #endif
 
-inline void *operator new(size_t, void *p) { return p; }
-inline void *operator new[](size_t, void *p) { return p; }
-inline void operator delete(void *, void *) {}
-inline void operator delete[](void *, void *) {}
+#include "new.h"
 
 #ifdef swap
 #undef swap

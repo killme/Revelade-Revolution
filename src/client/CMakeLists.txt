@@ -1,13 +1,12 @@
 add_definitions(-DFPS -DCLIENT -DRR_SERVER_BINARY="server_${BUILD_PLATFORM_BIN}_${BUILD_TARGET_ARCH}" -DRR_SERVER_BINARY_DIR="bin_${BUILD_PLATFORM_BIN}" -DRR_INSTALL_LOCATIONS="${BUILD_SYSTEM_INSTALL_LOCATIONS}")
 
-find_package(Bullet)
-
-option(WITH_BULLET "Build with bullet physics support" ${BULLET_FOUND})
+option(WITH_BULLET "Build with bullet physics support" 1)
 
 if(${WITH_BULLET})
     include_directories(${BULLET_INCLUDE_DIRS})
     add_definitions(-DWITH_BULLET)
-    set(BUILD_EXTRA_LIBS ${BUILD_EXTRA_LIBS} ${BULLET_LIBRARIES})
+    message(STATUS "Bullet enabled (${BULLET_LIBRARIES})")
+    set(BUILD_EXTRA_LIBS "${BUILD_EXTRA_LIBS};${BULLET_LIBRARIES}")
 endif()
 
 if(${BUILD_TARGET_WINDOWS})
@@ -25,7 +24,7 @@ set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/stream
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/tools
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/zip
-    
+
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/version
 
     ${CMAKE_CURRENT_SOURCE_DIR}/../engine/3dgui
@@ -113,6 +112,11 @@ endif()
 
 set(RR_CLIENT_BINARY "client_${BUILD_PLATFORM_BIN}_${BUILD_TARGET_ARCH}${BUILD_VERSION_POSTFIX}" CACHE INTERNAL "Revelade revolution client binary name.")
 add_executable(${RR_CLIENT_BINARY} ${CLIENT_SOURCES})
+
+if(${WITH_BULLET})
+    add_dependencies(${RR_CLIENT_BINARY} Bullet)
+endif()
+
 target_link_libraries(${RR_CLIENT_BINARY}
     ${ENET_LIBRARIES}
     ${SDL_LIBRARIES}

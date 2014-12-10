@@ -166,7 +166,7 @@ static void addStaticObject(vec o, btCollisionShape *shape)
 
     btScalar mass = 0;
     btVector3 fallInertia(0, 0, 0);
-    shape->calculateLocalInertia(mass, fallInertia);
+//     shape->calculateLocalInertia(mass, fallInertia);
 
     btRigidBody::btRigidBodyConstructionInfo cubeConstructInfo (mass, motionState, shape, fallInertia);
     btRigidBody *cube = new btRigidBody(cubeConstructInfo);
