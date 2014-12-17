@@ -98,7 +98,12 @@ if(${BUILD_CLIENT})
     add_custom_target(bullet_dir ${CMAKE_COMMAND} -E make_directory ${INSTALL_BULLET_DIR})
     if(CMAKE_TOOLCHAIN_FILE)
         get_filename_component(CMAKE_TOOLCHAIN_FILE "${CMAKE_TOOLCHAIN_FILE}" ABSOLUTE)
+        set(BUILD_CMAKE_CLIENT_OPTS
+            ${BUILD_CMAKE_CLIENT_OPTS}
+            -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+        )
     endif()
+
     ExternalProject_Add(
         Bullet
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libraries/bullet3
@@ -122,8 +127,8 @@ if(${BUILD_CLIENT})
             -DUSE_PLACEMENT_NEW:BOOL=OFF
             -DUSE_MEMCPY:BOOL=ON
             -DINSTALL_LIBS:BOOL=ON
-            -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
             -DUSE_CUSTOM_NEW:PATH=${CMAKE_CURRENT_SOURCE_DIR}/shared/new.h
+            ${BUILD_CMAKE_CLIENT_OPTS}
     )
 
     link_directories(${INSTALL_BULLET_DIR}/lib)
