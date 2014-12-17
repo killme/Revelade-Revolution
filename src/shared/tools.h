@@ -74,16 +74,17 @@ static inline void swap(T &a, T &b)
 #ifdef clamp
 #undef clamp
 #endif
-template<class T>
-static inline T max(T a, T b)
-{
-    return a > b ? a : b;
-}
-template<class T>
-static inline T min(T a, T b)
-{
-    return a < b ? a : b;
-}
+
+#define MATHCOND(name, op) \
+    template<class T> static inline T name(T a, T b)            { return op; } \
+    template<class T> static inline T name(T a, T b, T c)       { return name(a, name(b, c)); } \
+    template<class T> static inline T name(T a, T b, T c, T d)  { return name(a, name(b, name(c, d))); }
+
+MATHCOND(max, a > b ? a : b)
+MATHCOND(min, a < b ? a : b)
+
+#undef MATHCOND
+
 template<class T, class U>
 static inline T clamp(T a, U b, U c)
 {

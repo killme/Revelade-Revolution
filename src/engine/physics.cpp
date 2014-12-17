@@ -301,47 +301,10 @@ static void processCube(cube* c, int size, ivec o)
 static const int SUBDEVIDE_TRESHOLD = 10 * SAUER_FACTOR;
 
 VARDBG(dbgphysicssubdevidetriangles, 0);
+VARDBG(dbgphysicsdumptriangles, 0);
 
 void addTriangle(vec a, vec b, vec c)
 {
-    bool ai, bi, ci;
-    bool ae, be, ce;
-    bool eab, ebc, eca;
-
-    loopv(worldGeometry.clippings)
-    {
-        #define CHECK_CLIPPING(hit, point, clipping) MACRO_BODY({           \
-            point##i =  point ##i ||                                        \
-                        point.insidebb((clipping).from, (clipping).to);     \
-            if(!point##e)                                                   \
-            {                                                               \
-                loopj(3) if(point[j] == (clipping).from[j]) {               \
-                    point##e = true; break;                                 \
-                }                                                           \
-                loopj(3) if(point[j] == (clipping).to[j]) {                 \
-                    point##e = true; break;                                 \
-                }                                                           \
-            }                                                               \
-        })
-        CHECK_CLIPPING(hit, a, worldGeometry.clippings[i]);
-        CHECK_CLIPPING(hit, b, worldGeometry.clippings[i]);
-        CHECK_CLIPPING(hit, c, worldGeometry.clippings[i]);
-
-        if(ai && bi && ci) return; // Completeley on/inside a clipped area, skip
-    }
-
-    bool aIn = ai && !ae;
-    bool bIn = bi && !be;
-    bool cIn = ci && !ce;
-    int  nIn =  (aIn ? 1 : 0) +
-    (bIn ? 1 : 0) +
-    (cIn ? 1 : 0);
-
-    if(aIn)
-    {
-        //TODO
-    }
-
     if(dbgphysicssubdevidetriangles && (a.dist(b) > SUBDEVIDE_TRESHOLD || b.dist(c) > SUBDEVIDE_TRESHOLD || c.dist(a) > SUBDEVIDE_TRESHOLD))
     {
         /*          b
@@ -362,10 +325,10 @@ void addTriangle(vec a, vec b, vec c)
     }
     else
     {
-        printf("TRIANGLE %f %f %f [%f %f %f] (%f %f %f)\n",
-            a.x, a.y, a.z,
-            b.x, b.y, b.z,
-            c.x, c.y, c.z);
+        if(dbgphysicsdumptriangles) conoutf(CON_DEBUG, "TRIANGLE %f %f %f [%f %f %f] (%f %f %f)\n",
+                                                        a.x, a.y, a.z,
+                                                        b.x, b.y, b.z,
+                                                        c.x, c.y, c.z);
         worldGeometry.currentTriangleMesh->addTriangle(
             cubeToBullet(a, true),
             cubeToBullet(b, true),
