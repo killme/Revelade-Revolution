@@ -2109,7 +2109,7 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
 int physsteps = 0, physframetime = PHYSFRAMETIME, lastphysframe = 0;
 
 #if defined(WITH_BULLET) && WITH_BULLET
-VARDBG(dbgphysics, 1);
+VARDBG(dbgphysics, 0);
 
 vec ballPosition;
 #endif
