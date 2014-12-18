@@ -105,21 +105,7 @@ void initBullet()
     collisionDynamicsWorld.setDebugDrawer(&debugDrawer);
     collisionDynamicsWorld.setGravity(btVector3(0, -10, 0));
 
-    btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0, 1, 0), 1);
     btCollisionShape* fallShape = new btSphereShape(1);
-
-    btDefaultMotionState* groundMotionState = new btDefaultMotionState(
-        btTransform(
-            btQuaternion(0, 0, 0, 1),
-            btVector3(0, -1, 0)
-        )
-    );
-
-    btRigidBody::btRigidBodyConstructionInfo groundRigidBodyCI(0, groundMotionState, groundShape, btVector3(0, 0, 0));
-    btRigidBody* groundRigidBody = new btRigidBody(groundRigidBodyCI);
-
-//     collisionDynamicsWorld.addRigidBody(groundRigidBody);
-
     btDefaultMotionState* fallMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 50, 0)));
 
     btScalar mass = 1;
@@ -141,18 +127,16 @@ struct WorldGeometry
         bool noclip;
         ivec from, to;
     };
-#if 0
-    vector<btCollisionShape *> shapes;
-    hashtable<int, btCollisionShape *> cubeShapes;
-#else
     btTriangleMesh *currentTriangleMesh;
     vector<btBvhTriangleMeshShape *> worldShapes;
+#ifdef RR_PHYS_VA
     vector<Clipping> clippings;
 #endif
     vector<btRigidBody *> bodies;
     vector<btMotionState *> motionStates;
 } worldGeometry;
 
+extern void addTriangle(vec a, vec b, vec c);
 static void addStaticObject(vec o, btCollisionShape *shape)
 {
     btMotionState *motionState = new btDefaultMotionState(
@@ -174,103 +158,67 @@ static void addStaticObject(vec o, btCollisionShape *shape)
     worldGeometry.bodies.add(cube);
 }
 
-#if 0
-
-static void addStaticCube(vec o, int size)
-{
-    btCollisionShape *shape = NULL;
-    btCollisionShape **shape_ = worldGeometry.cubeShapes.access(size);
-    if(shape_) shape = *shape_;
-    if(!shape)
-    {
-        btVector3 dimensions = cubeToBullet(vec(size), true);
-        shape = new btBoxShape(dimensions);
-        worldGeometry.cubeShapes[size] = shape;
-        worldGeometry.shapes.add(shape);
-    }
-    addStaticObject(o, shape);
-}
-
-static void addStaticConvex(const vector<vec> &vecs)
-{
-    vec origin(worldsize, worldsize, worldsize);
-    loopv(vecs)
-    {
-        origin.x = min(origin.x, vecs[i].x);
-        origin.y = min(origin.y, vecs[i].y);
-        origin.z = min(origin.z, vecs[i].z);
-    }
-
-    btConvexHullShape *convex = new btConvexHullShape();
-
-    loopv(vecs)
-    {
-        vec rel = vecs[i];
-        btVector3 btRel = cubeToBullet(vec(rel).sub(origin), true);
-//         printf("POINT %f %f %f (%f %f %f) [%f %f %f]\n", btRel.x(), btRel.y(), btRel.z(), origin.x, origin.y, origin.z, rel.x, rel.y, rel.z);
-        convex->addPoint(btRel);
-    }
-
-    addStaticObject(origin, convex);
-}
-#endif
-
-int calcverts(cube &c, int x, int y, int z, int size, vec *verts, bool *usefaces)
-{
-    int vertused = 0;
-    loopi(6) if((usefaces[i] = visibleface(c, i, x, y, z, size))) vertused |= fvmasks[1<<i];
-    //loopk(4) vertused |= 1<<faceverts(c,i,k);
-    loopi(8) if(vertused&(1<<i)) calcvert(c, x, y, z, size, verts[i], i);
-    return vertused;
-}
+VARDBG(dbgphysicsdumpplanes, 0);
 
 static void processCube(cube* c, int size, ivec o);
 static void processNode(cube* c, int size, ivec o)
 {
     if(c->children && (c->material&MATF_CLIP) != MAT_CLIP && (c->material&MATF_CLIP) != MAT_NOCLIP) return processCube(c->children, size, o);
-#if 0
-    if(isempty(*c)         || (c->material&MATF_CLIP) == MAT_NOCLIP)return;
-    if(isentirelysolid(*c) || (c->material&MATF_CLIP) == MAT_CLIP)  return addStaticCube(vec(o.x+size/2, o.y+size/2, o.z+size/2), size/2);
 
-    vec vv[8];
-    bool usefaces[8];
-    int vertused = calcverts(*c, o.x, o.y, o.z, size, vv, usefaces);
-
-    vector<vec> vecs;
-    loopi(8) if(vertused&(1<<i))
-    {
-        vecs.add(vv[i]);
-    }
-
-    ASSERT(vecs.length() > 0);
-
-    // TODO: detect cubes
-
-    addStaticConvex(vecs);
-#elif 0
-    clipplanes &planes = getclipplanes(*c, o, size);
-    loopi(8)
-    {
-        const vec &v = planes.v[i];
-        if(planes.cube->[i])
-        {
-            worldGeometry.triangleMesh->addTriangle(
-                cubeToBullet(v,                 true),
-                cubeToBullet(planes.v[(i+1)%8], true),
-                cubeToBullet(planes.v[(i+2)%8], true),
-                true
-            );
-        }
-    }
-#else
     bool isClip = (c->material&MATF_CLIP) == MAT_CLIP;
     bool isNoclip = (c->material&MATF_CLIP) == MAT_NOCLIP;
+
+#if RR_PHYS_VA
     if(isClip || isNoclip)
     {
         WorldGeometry::Clipping &clip = worldGeometry.clippings.add();
         clip.noclip = isNoclip;
         clip.from = ivec(o);
         clip.to = ivec(size, size, size).add(o);
+    }
+#else
+    if(isClip)
+    {
+        ivec neighbouro;
+        int neighboursize;
+        loopi(6)
+        {
+            const cube &neighbour = neighbourcube(*c, i, o.x, o.y, o.z, size, neighbouro, neighboursize);
+
+            if(
+                &neighbour==c ||
+                (isentirelysolid(neighbour) && (neighbour.material&MATF_CLIP) != MAT_NOCLIP) ||
+                (neighbour.material&MATF_CLIP) == MAT_CLIP
+            )
+            {
+                // Ignore this size
+            }
+            else // Screw !
+            {
+                #define X(c) ivec(c).mul(size/8).add(o).tovec()
+                addTriangle(X(facecoords[i][1]), X(facecoords[i][0]), X(facecoords[i][2]));
+                addTriangle(X(facecoords[i][3]), X(facecoords[i][2]), X(facecoords[i][0]));
+                #undef X
+            }
+        }
+    }
+    else
+    {
+        const clipplanes & planes = getclipplanes(*c, o, size);
+        loopi(planes.size)
+        {
+            if(dbgphysicsdumpplanes) conoutf(CON_DEBUG, "PLANE [%f %f %f] %f", planes.p[i].x, planes.p[i].y, planes.p[i].z, planes.p[i].offset);
+
+        }
+        int visible = planes.visible;
+        loopi(6)
+        {
+            if(planes.size || (visible & (1 << i))) //TODO: figure out how planes work
+            {
+                addTriangle(planes.v[fv[i][2]], planes.v[fv[i][1]], planes.v[fv[i][0]]);
+                addTriangle(planes.v[fv[i][2]], planes.v[fv[i][0]], planes.v[fv[i][3]]);
+            }
+        }
     }
 #endif
 }
@@ -305,6 +253,13 @@ VARDBG(dbgphysicsdumptriangles, 0);
 
 void addTriangle(vec a, vec b, vec c)
 {
+    // Do not add invalid triangles
+    if(
+        !(a != b && b != c && c != a) ||
+        ((a.x == b.x && b.x == c.x) && ((a.y == b.y && b.y == c.y) || (a.z == b.z && b.z == c.z))) ||
+        ((a.y == b.y && b.y == c.y) && (a.z == b.z && b.z == c.z))
+    ) return;
+
     if(dbgphysicssubdevidetriangles && (a.dist(b) > SUBDEVIDE_TRESHOLD || b.dist(c) > SUBDEVIDE_TRESHOLD || c.dist(a) > SUBDEVIDE_TRESHOLD))
     {
         /*          b
@@ -325,7 +280,7 @@ void addTriangle(vec a, vec b, vec c)
     }
     else
     {
-        if(dbgphysicsdumptriangles) conoutf(CON_DEBUG, "TRIANGLE %f %f %f [%f %f %f] (%f %f %f)\n",
+        if(dbgphysicsdumptriangles) conoutf(CON_DEBUG, "TRIANGLE %f %f %f [%f %f %f] (%f %f %f)",
                                                         a.x, a.y, a.z,
                                                         b.x, b.y, b.z,
                                                         c.x, c.y, c.z);
@@ -349,17 +304,14 @@ void rebuildWorldObjects()
     worldGeometry.bodies.deletecontents();
     worldGeometry.motionStates.deletecontents();
 
-    worldGeometry.clippings.shrink(0);
-
-#if 0
-    worldGeometry.shapes.deletecontents();
-    worldGeometry.cubeShapes.clear();
-#else
     loopv(worldGeometry.worldShapes)
     {
         DELETEP(worldGeometry.worldShapes[i]);
     }
-#endif
+
+#ifdef RR_PHYS_VA
+
+    worldGeometry.clippings.shrink(0);
 
     printf("VA %i - %i\n", valist.length(), varoot.length());
 
@@ -409,39 +361,12 @@ void rebuildWorldObjects()
         delete[] edata;
         delete[] vdata;
     }
+#endif
 
-    vec center(0);
-    //vec center(-(bbmax.x + bbmin.x)/2, -(bbmax.y + bbmin.y)/2, -bbmin.z);
     physicsStartWorldBatch();
-
     processCube(worldroot, worldsize, vec(0));
-#if 0
-    vec a;
-    vec b;
-    vec c;
 
-    loopv(verts)
-    {
-        swap(a, b);
-        swap(b, c);
-        c = vec(verts[i]).add(center);
-
-        if(i > 2)
-        {
-            addTriangle(a, b, c);
-//             printf("TRIANGLE %f %f %f [%f %f %f] (%f %f %f)\n",
-//                 a.x, a.y, a.z,
-//                 b.x, b.y, b.z,
-//                 c.x, c.y, c.z);
-//             worldGeometry.currentTriangleMesh->addTriangle(
-//                 cubeToBullet(a, true),
-//                 cubeToBullet(b, true),
-//                 cubeToBullet(c, true),
-//                 false
-//             );
-        }
-    }
-#else
+#ifdef RR_PHYS_VA
     usedmtl.sort();
     loopv(usedmtl)
     {
@@ -458,6 +383,7 @@ void rebuildWorldObjects()
         }
     }
 #endif
+
     physicsEndWorldBatch();
 }
 #endif
@@ -2196,21 +2122,27 @@ void physicsframe()          // optimally schedule physics frames inside the gra
     {
         collisionDynamicsWorld.debugDrawWorld();
 
-        loopv(worldGeometry.clippings)
-        {
-            WorldGeometry::Clipping &c = worldGeometry.clippings[i];
-            debugDrawer.drawBox(
-                cubeToBullet(c.from.tovec()),
-                cubeToBullet(c.to.tovec()),
-                btVector3(0.f, c.noclip ? 0.5f : 1.f, 1.f));
-        }
+        #ifdef RR_PHYS_VA
+            loopv(worldGeometry.clippings)
+            {
+                WorldGeometry::Clipping &c = worldGeometry.clippings[i];
+                debugDrawer.drawBox(
+                    cubeToBullet(c.from.tovec()),
+                    cubeToBullet(c.to.tovec()),
+                    btVector3(0.f, c.noclip ? 0.5f : 1.f, 1.f));
+            }
+        #endif
+    }
 
-        //TODO: rotation
-        btTransform &ballTransformation = fallRigidBody->getWorldTransform();
-        btVector3 o = ballTransformation.getOrigin();
+    //TODO: rotation
+    btTransform &ballTransformation = fallRigidBody->getWorldTransform();
+    btVector3 o = ballTransformation.getOrigin();
+    ballPosition = bulletToCube(o);
+
+    if(dbgphysics)
+    {
         defformatstring(str)("Ball at %f %f %f", o.x(), o.y(), o.z());
         debugDrawer.draw3dText(btVector3(0.f, 1.f, 0.f), str);
-        ballPosition = bulletToCube(o);
 
         debugDrawer.drawLine(
             btVector3(0.f, 0.f, 0.f),
