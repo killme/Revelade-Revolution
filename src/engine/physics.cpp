@@ -9,382 +9,424 @@
 
 // RR: Bullet physics test
 static inline clipplanes &getclipplanes(const cube &c, const ivec &o, int size, bool collide = true, int offset = 0);
-#if defined(WITH_BULLET) && WITH_BULLET
+#ifdef RR_USE_BULLET
 
 #include "btBulletDynamicsCommon.h"
 #include <bullet/BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
 
 #define SAUER_FACTOR 17.0
 
-inline vec bulletToCube(const btVector3 &from)
-{
-    return vec(
-        from.getX() * SAUER_FACTOR + 0.5f*worldsize,
-        from.getZ() * SAUER_FACTOR + 0.5f*worldsize,
-        from.getY() * SAUER_FACTOR + 0.5f*worldsize
-    );
-}
+#ifdef RR_PHYS_VA
+extern vector<vtxarray *> valist, varoot;
+#endif
 
-inline btVector3 cubeToBullet(const vec &from, bool preTranslated = false)
+namespace physics
 {
-    return btVector3(
-        from.x - (preTranslated ? 0 : 0.5f*worldsize),
-        from.z - (preTranslated ? 0 : 0.5f*worldsize),
-        from.y - (preTranslated ? 0 : 0.5f*worldsize)
-    ) / SAUER_FACTOR;
-}
-
-inline int bulletToColor(const btVector3 &from)
-{
-    return  ((int)from.getX()*0xFF) << 16   |
-            ((int)from.getY()*0xFF) << 8    |
-            ((int)from.getZ()*0xFF);
-}
-
-class RRDebugDrawer : public btIDebugDraw
-{
-public:
-    void drawLine(const btVector3& from_,const btVector3& to_,const btVector3& color)
+    inline vec bulletToCube(const btVector3 &from)
     {
-        vec from = bulletToCube(from_);
-        vec to = bulletToCube(to_);
-//         printf("From %f, %f, %f -> %f %f %f (%f %f %f)\n", from.x, from.y, from.z, to.x, to.y, to.z, player->o.x, player->o.y, player->o.z);
-//         particle_flare(from, to, 100, PART_STREAK, );
-//         printf("partcolor %i\n", bulletToColor(color));
-        particle_flare(from, to, 0, PART_DEBUG_LINE, bulletToColor(color), 1);
+        return vec(
+            from.getX() * SAUER_FACTOR + 0.5f*worldsize,
+            from.getZ() * SAUER_FACTOR + 0.5f*worldsize,
+            from.getY() * SAUER_FACTOR + 0.5f*worldsize
+        );
     }
 
-    void drawContactPoint(const btVector3& PointOnB, const btVector3& normalOnB,btScalar distance, int lifeTime, const btVector3& color)
+    inline btVector3 cubeToBullet(const vec &from, bool preTranslated = false)
     {
-        drawLine(PointOnB, PointOnB+(normalOnB.normalized()*0.5f), color);
+        return btVector3(
+            from.x - (preTranslated ? 0 : 0.5f*worldsize),
+            from.z - (preTranslated ? 0 : 0.5f*worldsize),
+            from.y - (preTranslated ? 0 : 0.5f*worldsize)
+        ) / SAUER_FACTOR;
     }
 
-    void reportErrorWarning(const char* warningString)
+    inline int bulletToColor(const btVector3 &from)
     {
-        conoutf(CON_DEBUG, "Physics warning: %s", warningString);
+        return  ((int)from.getX()*0xFF) << 16   |
+                ((int)from.getY()*0xFF) << 8    |
+                ((int)from.getZ()*0xFF);
     }
 
-    void draw3dText(const btVector3& location,const char* textString)
+    class RRDebugDrawer : public btIDebugDraw
     {
-        particle_textcopy(bulletToCube(location), textString, PART_TEXT);
+    public:
+        void drawLine(const btVector3& from_,const btVector3& to_,const btVector3& color)
+        {
+            vec from = bulletToCube(from_);
+            vec to = bulletToCube(to_);
+            particle_flare(from, to, 0, PART_DEBUG_LINE, bulletToColor(color), 1);
+        }
+
+        void drawContactPoint(const btVector3& PointOnB, const btVector3& normalOnB,btScalar distance, int lifeTime, const btVector3& color)
+        {
+            drawLine(PointOnB, PointOnB+(normalOnB.normalized()*0.5f), color);
+        }
+
+        void reportErrorWarning(const char* warningString)
+        {
+            conoutf(CON_DEBUG, "Physics warning: %s", warningString);
+        }
+
+        void draw3dText(const btVector3& location,const char* textString)
+        {
+            particle_textcopy(bulletToCube(location), textString, PART_TEXT);
+        }
+
+        void setDebugMode(int debugMode)
+        {
+            reportErrorWarning("Attempted to set debug mode");
+        }
+
+        int getDebugMode() const
+        {
+            return  DBG_DrawWireframe | DBG_DrawNormals | DBG_DrawContactPoints | DBG_DrawText;
+        }
+    } debugDrawer;
+
+    btDbvtBroadphase collisionBroadphase;
+    btDefaultCollisionConfiguration collisionConfiguration;
+    btCollisionDispatcher collisionDispatcher (&collisionConfiguration);
+
+    btSequentialImpulseConstraintSolver collisionSolver;
+
+    btDiscreteDynamicsWorld collisionDynamicsWorld (&collisionDispatcher, &collisionBroadphase, &collisionSolver, &collisionConfiguration);
+
+#if 0
+    btRigidBody* fallRigidBody = NULL;
+
+    void resetBall()
+    {
+        fallRigidBody->getWorldTransform().setOrigin(
+            btVector3(0, 50, 0));
     }
 
-    void setDebugMode(int debugMode)
-    {
-        reportErrorWarning("Attempted to set debug mode");
-    }
-
-    int getDebugMode() const
-    {
-        return  DBG_DrawWireframe | DBG_DrawNormals | DBG_DrawContactPoints | DBG_DrawText;
-    }
-} debugDrawer;
-
-btDbvtBroadphase collisionBroadphase;
-btDefaultCollisionConfiguration collisionConfiguration;
-btCollisionDispatcher collisionDispatcher (&collisionConfiguration);
-
-btSequentialImpulseConstraintSolver collisionSolver;
-
-btDiscreteDynamicsWorld collisionDynamicsWorld (&collisionDispatcher, &collisionBroadphase, &collisionSolver, &collisionConfiguration);
-
-btRigidBody* fallRigidBody = NULL;
-
-void resetBall()
-{
-    fallRigidBody->getWorldTransform().setOrigin(
-        btVector3(0, 50, 0));
-}
-
-COMMAND(resetBall, "");
-
-void initBullet()
-{
-    printf("INIT BULLET\n");
-    btGImpactCollisionAlgorithm::registerAlgorithm(&collisionDispatcher);
-    collisionDynamicsWorld.setDebugDrawer(&debugDrawer);
-    collisionDynamicsWorld.setGravity(btVector3(0, -10, 0));
-
-    btCollisionShape* fallShape = new btSphereShape(1);
-    btDefaultMotionState* fallMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 50, 0)));
+    COMMAND(resetBall, "");
 
     btScalar mass = 1;
     btVector3 fallInertia(0, 0, 0);
     fallShape->calculateLocalInertia(mass, fallInertia);
+
+    btCollisionShape* fallShape = new btSphereShape(1);
+    btDefaultMotionState* fallMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 50, 0)));
 
     btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallShape, fallInertia);
     fallRigidBody = new btRigidBody(fallRigidBodyCI);
     fallRigidBody->setActivationState(DISABLE_DEACTIVATION);
     collisionDynamicsWorld.addRigidBody(fallRigidBody);
 
-    ASSERT(cubeToBullet(vec(0, 0, 0)) == cubeToBullet(bulletToCube(cubeToBullet(vec(0, 0, 0)))));
-}
-
-struct WorldGeometry
-{
-    struct Clipping
-    {
-        bool noclip;
-        ivec from, to;
-    };
-    btTriangleMesh *currentTriangleMesh;
-    vector<btBvhTriangleMeshShape *> worldShapes;
-#ifdef RR_PHYS_VA
-    vector<Clipping> clippings;
+    btTransform &ballTransformation = fallRigidBody->getWorldTransform();
+    btVector3 o = ballTransformation.getOrigin();
+    ballPosition = bulletToCube(o);
 #endif
-    vector<btRigidBody *> bodies;
-    vector<btMotionState *> motionStates;
-} worldGeometry;
 
-extern void addTriangle(vec a, vec b, vec c);
-static void addStaticObject(vec o, btCollisionShape *shape)
-{
-    btMotionState *motionState = new btDefaultMotionState(
-        btTransform(
-            btQuaternion(0, 0, 0, 1),
-            cubeToBullet(o)
-        )
-    );
-
-    worldGeometry.motionStates.add(motionState);
-
-    btScalar mass = 0;
-    btVector3 fallInertia(0, 0, 0);
-//     shape->calculateLocalInertia(mass, fallInertia);
-
-    btRigidBody::btRigidBodyConstructionInfo cubeConstructInfo (mass, motionState, shape, fallInertia);
-    btRigidBody *cube = new btRigidBody(cubeConstructInfo);
-    collisionDynamicsWorld.addRigidBody(cube);
-    worldGeometry.bodies.add(cube);
-}
-
-VARDBG(dbgphysicsdumpplanes, 0);
-
-static void processCube(cube* c, int size, ivec o);
-static void processNode(cube* c, int size, ivec o)
-{
-    if(c->children && (c->material&MATF_CLIP) != MAT_CLIP && (c->material&MATF_CLIP) != MAT_NOCLIP) return processCube(c->children, size, o);
-
-    bool isClip = (c->material&MATF_CLIP) == MAT_CLIP;
-    bool isNoclip = (c->material&MATF_CLIP) == MAT_NOCLIP;
-
-#if RR_PHYS_VA
-    if(isClip || isNoclip)
+    void init()
     {
-        WorldGeometry::Clipping &clip = worldGeometry.clippings.add();
-        clip.noclip = isNoclip;
-        clip.from = ivec(o);
-        clip.to = ivec(size, size, size).add(o);
+        btGImpactCollisionAlgorithm::registerAlgorithm(&collisionDispatcher);
+        collisionDynamicsWorld.setDebugDrawer(&debugDrawer);
+        collisionDynamicsWorld.setGravity(btVector3(0, -10, 0));
     }
-#else
-    if(isClip)
-    {
-        ivec neighbouro;
-        int neighboursize;
-        loopi(6)
-        {
-            const cube &neighbour = neighbourcube(*c, i, o.x, o.y, o.z, size, neighbouro, neighboursize);
 
-            if(
-                &neighbour==c ||
-                (isentirelysolid(neighbour) && (neighbour.material&MATF_CLIP) != MAT_NOCLIP) ||
-                (neighbour.material&MATF_CLIP) == MAT_CLIP
+    struct WorldGeometry
+    {
+        struct Clipping
+        {
+            bool noclip;
+            ivec from, to;
+        };
+        btTriangleMesh *currentTriangleMesh;
+        vector<btBvhTriangleMeshShape *> worldShapes;
+    #ifdef RR_PHYS_VA
+        vector<Clipping> clippings;
+    #endif
+        vector<btRigidBody *> bodies;
+        vector<btMotionState *> motionStates;
+    } worldGeometry;
+
+    extern void addTriangle(vec a, vec b, vec c);
+
+    static void addStaticObject(vec o, btCollisionShape *shape)
+    {
+        btMotionState *motionState = new btDefaultMotionState(
+            btTransform(
+                btQuaternion(0, 0, 0, 1),
+                cubeToBullet(o)
             )
-            {
-                // Ignore this size
-            }
-            else // Screw !
-            {
-                #define X(c) ivec(c).mul(size/8).add(o).tovec()
-                addTriangle(X(facecoords[i][1]), X(facecoords[i][0]), X(facecoords[i][2]));
-                addTriangle(X(facecoords[i][3]), X(facecoords[i][2]), X(facecoords[i][0]));
-                #undef X
-            }
-        }
-    }
-    else
-    {
-        const clipplanes & planes = getclipplanes(*c, o, size);
-        loopi(planes.size)
-        {
-            if(dbgphysicsdumpplanes) conoutf(CON_DEBUG, "PLANE [%f %f %f] %f", planes.p[i].x, planes.p[i].y, planes.p[i].z, planes.p[i].offset);
-
-        }
-        int visible = planes.visible;
-        loopi(6)
-        {
-            if(planes.size || (visible & (1 << i))) //TODO: figure out how planes work
-            {
-                addTriangle(planes.v[fv[i][2]], planes.v[fv[i][1]], planes.v[fv[i][0]]);
-                addTriangle(planes.v[fv[i][2]], planes.v[fv[i][0]], planes.v[fv[i][3]]);
-            }
-        }
-    }
-#endif
-}
-
-void physicsStartWorldBatch()
-{
-    worldGeometry.currentTriangleMesh = worldGeometry.currentTriangleMesh ? worldGeometry.currentTriangleMesh : new btTriangleMesh();
-}
-
-void physicsEndWorldBatch()
-{
-    if(worldGeometry.currentTriangleMesh->getNumTriangles() > 0)
-    {
-        addStaticObject(vec(0, 0, 0), worldGeometry.worldShapes.add(
-            new btBvhTriangleMeshShape(
-                worldGeometry.currentTriangleMesh, true)
-            ));
-        worldGeometry.currentTriangleMesh = NULL;
-    }
-}
-
-static void processCube(cube* c, int size, ivec o)
-{
-    loopi(2) loopj(2) loopk(2)
-        processNode(&c[i+j*2+k*4], size/2, ivec(o.x + i*size/2, o.y + j*size/2, o.z + k*size/2));
-}
-
-static const int SUBDEVIDE_TRESHOLD = 10 * SAUER_FACTOR;
-
-VARDBG(dbgphysicssubdevidetriangles, 0);
-VARDBG(dbgphysicsdumptriangles, 0);
-
-void addTriangle(vec a, vec b, vec c)
-{
-    // Do not add invalid triangles
-    if(
-        !(a != b && b != c && c != a) ||
-        ((a.x == b.x && b.x == c.x) && ((a.y == b.y && b.y == c.y) || (a.z == b.z && b.z == c.z))) ||
-        ((a.y == b.y && b.y == c.y) && (a.z == b.z && b.z == c.z))
-    ) return;
-
-    if(dbgphysicssubdevidetriangles && (a.dist(b) > SUBDEVIDE_TRESHOLD || b.dist(c) > SUBDEVIDE_TRESHOLD || c.dist(a) > SUBDEVIDE_TRESHOLD))
-    {
-        /*          b
-         *         / \
-         *      ab/---\bc
-         *      /\    /\
-         *     /  \  /  \
-         *    a====ac====c
-         */
-        vec ab = vec(a).add(vec(b).sub(a).mul(0.5));
-        vec bc = vec(b).add(vec(c).sub(b).mul(0.5));
-        vec ca = vec(c).add(vec(a).sub(c).mul(0.5));
-
-        addTriangle(a, ab, ca);
-        addTriangle(ab, bc, ca);
-        addTriangle(ab, b, bc);
-        addTriangle(bc, c, ca);
-    }
-    else
-    {
-        if(dbgphysicsdumptriangles) conoutf(CON_DEBUG, "TRIANGLE %f %f %f [%f %f %f] (%f %f %f)",
-                                                        a.x, a.y, a.z,
-                                                        b.x, b.y, b.z,
-                                                        c.x, c.y, c.z);
-        worldGeometry.currentTriangleMesh->addTriangle(
-            cubeToBullet(a, true),
-            cubeToBullet(b, true),
-            cubeToBullet(c, true),
-            false
         );
-    }
-}
 
-extern vector<vtxarray *> valist, varoot;
-void rebuildWorldObjects()
-{
-    loopv(worldGeometry.bodies)
-    {
-        collisionDynamicsWorld.removeRigidBody(worldGeometry.bodies[i]);
-    }
+        worldGeometry.motionStates.add(motionState);
 
-    worldGeometry.bodies.deletecontents();
-    worldGeometry.motionStates.deletecontents();
+        btScalar mass = 0;
+        btVector3 fallInertia(0, 0, 0);
 
-    loopv(worldGeometry.worldShapes)
-    {
-        DELETEP(worldGeometry.worldShapes[i]);
+        btRigidBody::btRigidBodyConstructionInfo cubeConstructInfo (mass, motionState, shape, fallInertia);
+        btRigidBody *cube = new btRigidBody(cubeConstructInfo);
+        collisionDynamicsWorld.addRigidBody(cube);
+        worldGeometry.bodies.add(cube);
     }
 
-#ifdef RR_PHYS_VA
+    VARDBG(dbgphysicsdumpplanes, 0);
 
-    worldGeometry.clippings.shrink(0);
+    static void processCube(cube* c, int size, ivec o);
 
-    printf("VA %i - %i\n", valist.length(), varoot.length());
-
-    extern vector<vtxarray *> valist;
-    vector<vec> verts;
-    vector<vec2> texcoords;
-    hashtable<vec, int> shareverts(1<<16);
-    hashtable<vec2, int> sharetc(1<<16);
-    hashtable<int, vector<ivec> > mtls(1<<8);
-    vector<int> usedmtl;
-    vec bbmin(1e16f, 1e16f, 1e16f), bbmax(-1e16f, -1e16f, -1e16f);
-    loopv(valist)
+    static void processNode(cube* c, int size, ivec o)
     {
-        vtxarray &va = *valist[i];
-        ushort *edata = NULL;
-        uchar *vdata = NULL;
-        if(!readva(&va, edata, vdata)) continue;
-        int vtxsize = VTXSIZE;
-        ushort *idx = edata;
-        loopj(va.texs)
+        if(c->children && (c->material&MATF_CLIP) != MAT_CLIP && (c->material&MATF_CLIP) != MAT_NOCLIP) return processCube(c->children, size, o);
+
+        bool isClip = (c->material&MATF_CLIP) == MAT_CLIP;
+        bool isNoclip = (c->material&MATF_CLIP) == MAT_NOCLIP;
+
+    #if RR_PHYS_VA
+        if(isClip || isNoclip)
         {
-            elementset &es = va.eslist[j];
-            if(usedmtl.find(es.texture) < 0) usedmtl.add(es.texture);
-            vector<ivec> &keys = mtls[es.texture];
-            loopk(es.length[1])
-            {
-                int n = idx[k] - va.voffset;
-                const vec &pos = renderpath==R_FIXEDFUNCTION ? ((const vertexff *)&vdata[n*vtxsize])->pos : ((const vertex *)&vdata[n*vtxsize])->pos;
-                vec2 tc(renderpath==R_FIXEDFUNCTION ? ((const vertexff *)&vdata[n*vtxsize])->u : ((const vertex *)&vdata[n*vtxsize])->u,
-                        renderpath==R_FIXEDFUNCTION ? ((const vertexff *)&vdata[n*vtxsize])->v : ((const vertex *)&vdata[n*vtxsize])->v);
-                ivec &key = keys.add();
-                key.x = shareverts.access(pos, verts.length());
-                if(key.x == verts.length())
-                {
-                    verts.add(pos);
-                    loopl(3)
-                    {
-                        bbmin[l] = min(bbmin[l], pos[l]);
-                        bbmax[l] = max(bbmax[l], pos[l]);
-                    }
-                }
-                key.y = sharetc.access(tc, texcoords.length());
-                if(key.y == texcoords.length()) texcoords.add(tc);
-            }
-            idx += es.length[1];
+            WorldGeometry::Clipping &clip = worldGeometry.clippings.add();
+            clip.noclip = isNoclip;
+            clip.from = ivec(o);
+            clip.to = ivec(size, size, size).add(o);
         }
-        delete[] edata;
-        delete[] vdata;
-    }
-#endif
-
-    physicsStartWorldBatch();
-    processCube(worldroot, worldsize, vec(0));
-
-#ifdef RR_PHYS_VA
-    usedmtl.sort();
-    loopv(usedmtl)
-    {
-        vector<ivec> &keys = mtls[usedmtl[i]];
-        for(int i = 0; i < keys.length(); i += 3)
+    #else
+        if(isClip)
         {
-            int vertIdx [3];
-            loopk(3) vertIdx[k] = keys[i+2-k].x;
-            addTriangle(
-                verts[vertIdx[0]],
-                verts[vertIdx[1]],
-                verts[vertIdx[2]]
+            ivec neighbouro;
+            int neighboursize;
+            loopi(6)
+            {
+                const cube &neighbour = neighbourcube(*c, i, o.x, o.y, o.z, size, neighbouro, neighboursize);
+
+                if(
+                    &neighbour==c ||
+                    (isentirelysolid(neighbour) && (neighbour.material&MATF_CLIP) != MAT_NOCLIP) ||
+                    (neighbour.material&MATF_CLIP) == MAT_CLIP
+                )
+                {
+                    // Ignore this size
+                }
+                else // Screw !
+                {
+                    #define X(c) ivec(c).mul(size/8).add(o).tovec()
+                    addTriangle(X(facecoords[i][1]), X(facecoords[i][0]), X(facecoords[i][2]));
+                    addTriangle(X(facecoords[i][3]), X(facecoords[i][2]), X(facecoords[i][0]));
+                    #undef X
+                }
+            }
+        }
+        else
+        {
+            const clipplanes & planes = getclipplanes(*c, o, size);
+            loopi(planes.size)
+            {
+                if(dbgphysicsdumpplanes) conoutf(CON_DEBUG, "PLANE [%f %f %f] %f", planes.p[i].x, planes.p[i].y, planes.p[i].z, planes.p[i].offset);
+
+            }
+            int visible = planes.visible;
+            loopi(6)
+            {
+                if(planes.size || (visible & (1 << i))) //TODO: figure out how planes work
+                {
+                    addTriangle(planes.v[fv[i][2]], planes.v[fv[i][1]], planes.v[fv[i][0]]);
+                    addTriangle(planes.v[fv[i][2]], planes.v[fv[i][0]], planes.v[fv[i][3]]);
+                }
+            }
+        }
+    #endif
+    }
+
+    void physicsStartWorldBatch()
+    {
+        worldGeometry.currentTriangleMesh = worldGeometry.currentTriangleMesh ? worldGeometry.currentTriangleMesh : new btTriangleMesh();
+    }
+
+    void physicsEndWorldBatch()
+    {
+        if(worldGeometry.currentTriangleMesh->getNumTriangles() > 0)
+        {
+            addStaticObject(vec(0, 0, 0), worldGeometry.worldShapes.add(
+                new btBvhTriangleMeshShape(
+                    worldGeometry.currentTriangleMesh, true)
+                ));
+            worldGeometry.currentTriangleMesh = NULL;
+        }
+    }
+
+    static void processCube(cube* c, int size, ivec o)
+    {
+        loopi(2) loopj(2) loopk(2)
+            processNode(&c[i+j*2+k*4], size/2, ivec(o.x + i*size/2, o.y + j*size/2, o.z + k*size/2));
+    }
+
+    static const int SUBDEVIDE_TRESHOLD = 10 * SAUER_FACTOR;
+
+    VARDBG(dbgphysicssubdevidetriangles, 0);
+    VARDBG(dbgphysicsdumptriangles, 0);
+
+    void addTriangle(vec a, vec b, vec c)
+    {
+        // Do not add invalid triangles
+        if(
+            !(a != b && b != c && c != a) ||
+            ((a.x == b.x && b.x == c.x) && ((a.y == b.y && b.y == c.y) || (a.z == b.z && b.z == c.z))) ||
+            ((a.y == b.y && b.y == c.y) && (a.z == b.z && b.z == c.z))
+        ) return;
+
+        if(dbgphysicssubdevidetriangles && (a.dist(b) > SUBDEVIDE_TRESHOLD || b.dist(c) > SUBDEVIDE_TRESHOLD || c.dist(a) > SUBDEVIDE_TRESHOLD))
+        {
+            /*          b
+            *         / \
+            *      ab/---\bc
+            *      /\    /\
+            *     /  \  /  \
+            *    a====ac====c
+            */
+            vec ab = vec(a).add(vec(b).sub(a).mul(0.5));
+            vec bc = vec(b).add(vec(c).sub(b).mul(0.5));
+            vec ca = vec(c).add(vec(a).sub(c).mul(0.5));
+
+            addTriangle(a, ab, ca);
+            addTriangle(ab, bc, ca);
+            addTriangle(ab, b, bc);
+            addTriangle(bc, c, ca);
+        }
+        else
+        {
+            if(dbgphysicsdumptriangles) conoutf(CON_DEBUG, "TRIANGLE %f %f %f [%f %f %f] (%f %f %f)",
+                                                            a.x, a.y, a.z,
+                                                            b.x, b.y, b.z,
+                                                            c.x, c.y, c.z);
+            worldGeometry.currentTriangleMesh->addTriangle(
+                cubeToBullet(a, true),
+                cubeToBullet(b, true),
+                cubeToBullet(c, true),
+                false
             );
         }
     }
-#endif
 
-    physicsEndWorldBatch();
+    void rebuildStaticWorld()
+    {
+        loopv(worldGeometry.bodies)
+        {
+            collisionDynamicsWorld.removeRigidBody(worldGeometry.bodies[i]);
+        }
+
+        worldGeometry.bodies.deletecontents();
+        worldGeometry.motionStates.deletecontents();
+
+        loopv(worldGeometry.worldShapes)
+        {
+            DELETEP(worldGeometry.worldShapes[i]);
+        }
+
+    #ifdef RR_PHYS_VA
+
+        worldGeometry.clippings.shrink(0);
+
+        printf("VA %i - %i\n", valist.length(), varoot.length());
+
+        extern vector<vtxarray *> valist;
+        vector<vec> verts;
+        vector<vec2> texcoords;
+        hashtable<vec, int> shareverts(1<<16);
+        hashtable<vec2, int> sharetc(1<<16);
+        hashtable<int, vector<ivec> > mtls(1<<8);
+        vector<int> usedmtl;
+        vec bbmin(1e16f, 1e16f, 1e16f), bbmax(-1e16f, -1e16f, -1e16f);
+        loopv(valist)
+        {
+            vtxarray &va = *valist[i];
+            ushort *edata = NULL;
+            uchar *vdata = NULL;
+            if(!readva(&va, edata, vdata)) continue;
+            int vtxsize = VTXSIZE;
+            ushort *idx = edata;
+            loopj(va.texs)
+            {
+                elementset &es = va.eslist[j];
+                if(usedmtl.find(es.texture) < 0) usedmtl.add(es.texture);
+                vector<ivec> &keys = mtls[es.texture];
+                loopk(es.length[1])
+                {
+                    int n = idx[k] - va.voffset;
+                    const vec &pos = renderpath==R_FIXEDFUNCTION ? ((const vertexff *)&vdata[n*vtxsize])->pos : ((const vertex *)&vdata[n*vtxsize])->pos;
+                    vec2 tc(renderpath==R_FIXEDFUNCTION ? ((const vertexff *)&vdata[n*vtxsize])->u : ((const vertex *)&vdata[n*vtxsize])->u,
+                            renderpath==R_FIXEDFUNCTION ? ((const vertexff *)&vdata[n*vtxsize])->v : ((const vertex *)&vdata[n*vtxsize])->v);
+                    ivec &key = keys.add();
+                    key.x = shareverts.access(pos, verts.length());
+                    if(key.x == verts.length())
+                    {
+                        verts.add(pos);
+                        loopl(3)
+                        {
+                            bbmin[l] = min(bbmin[l], pos[l]);
+                            bbmax[l] = max(bbmax[l], pos[l]);
+                        }
+                    }
+                    key.y = sharetc.access(tc, texcoords.length());
+                    if(key.y == texcoords.length()) texcoords.add(tc);
+                }
+                idx += es.length[1];
+            }
+            delete[] edata;
+            delete[] vdata;
+        }
+    #endif
+
+        physicsStartWorldBatch();
+        processCube(worldroot, worldsize, vec(0));
+
+    #ifdef RR_PHYS_VA
+        usedmtl.sort();
+        loopv(usedmtl)
+        {
+            vector<ivec> &keys = mtls[usedmtl[i]];
+            for(int i = 0; i < keys.length(); i += 3)
+            {
+                int vertIdx [3];
+                loopk(3) vertIdx[k] = keys[i+2-k].x;
+                addTriangle(
+                    verts[vertIdx[0]],
+                    verts[vertIdx[1]],
+                    verts[vertIdx[2]]
+                );
+            }
+        }
+    #endif
+
+        physicsEndWorldBatch();
+    }
+
+    VARDBG(dbgphysics, 0);
+
+    vec ballPosition;
+
+    void runFrame()
+    {
+        #ifdef RR_USE_BULLET
+        collisionDynamicsWorld.stepSimulation((float)curtime/100.f);
+        if(dbgphysics)
+        {
+            collisionDynamicsWorld.debugDrawWorld();
+
+            #ifdef RR_PHYS_VA
+            loopv(worldGeometry.clippings)
+            {
+                WorldGeometry::Clipping &c = worldGeometry.clippings[i];
+                debugDrawer.drawBox(
+                    cubeToBullet(c.from.tovec()),
+                                             cubeToBullet(c.to.tovec()),
+                                             btVector3(0.f, c.noclip ? 0.5f : 1.f, 1.f));
+            }
+            #endif
+        }
+
+        if(dbgphysics)
+        {
+            debugDrawer.drawLine(
+                btVector3(0.f, 0.f, 0.f),
+                                          btVector3(0.f, 1.f, 0.f),
+                                          btVector3(1.f, 0.f, 0.f)
+            );
+        }
+        #endif
+    }
 }
 #endif
 ///RR
@@ -2108,48 +2150,10 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
 
 int physsteps = 0, physframetime = PHYSFRAMETIME, lastphysframe = 0;
 
-#if defined(WITH_BULLET) && WITH_BULLET
-VARDBG(dbgphysics, 0);
-
-vec ballPosition;
-#endif
-
 void physicsframe()          // optimally schedule physics frames inside the graphics frames
 {
-    #if defined(WITH_BULLET) && WITH_BULLET
-    collisionDynamicsWorld.stepSimulation((float)curtime/100.f);
-    if(dbgphysics)
-    {
-        collisionDynamicsWorld.debugDrawWorld();
-
-        #ifdef RR_PHYS_VA
-            loopv(worldGeometry.clippings)
-            {
-                WorldGeometry::Clipping &c = worldGeometry.clippings[i];
-                debugDrawer.drawBox(
-                    cubeToBullet(c.from.tovec()),
-                    cubeToBullet(c.to.tovec()),
-                    btVector3(0.f, c.noclip ? 0.5f : 1.f, 1.f));
-            }
-        #endif
-    }
-
-    //TODO: rotation
-    btTransform &ballTransformation = fallRigidBody->getWorldTransform();
-    btVector3 o = ballTransformation.getOrigin();
-    ballPosition = bulletToCube(o);
-
-    if(dbgphysics)
-    {
-        defformatstring(str)("Ball at %f %f %f", o.x(), o.y(), o.z());
-        debugDrawer.draw3dText(btVector3(0.f, 1.f, 0.f), str);
-
-        debugDrawer.drawLine(
-            btVector3(0.f, 0.f, 0.f),
-            btVector3(0.f, 1.f, 0.f),
-            btVector3(1.f, 0.f, 0.f)
-        );
-    }
+    #ifdef RR_USE_BULLET
+    physics::runFrame(); //RR -> Run Bullet physics
     #endif
 
     int diff = lastmillis - lastphysframe;

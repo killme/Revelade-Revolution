@@ -9,6 +9,10 @@ if(${WITH_BULLET})
     set(BUILD_EXTRA_LIBS "${BUILD_EXTRA_LIBS};${BULLET_LIBRARIES}")
 endif()
 
+if(${BUILD_CC})
+    add_definitions(-DRR_USE_CV=1)
+endif()
+
 if(${BUILD_TARGET_WINDOWS})
     set(BUILD_EXTRA_LIBS ${BUILD_EXTRA_LIBS} opengl32 ws2_32 winmm)
     add_definitions(-mwindows)

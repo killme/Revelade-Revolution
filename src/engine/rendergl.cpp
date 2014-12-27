@@ -2953,7 +2953,11 @@ void gl_drawhud(int w, int h)
             draw_textf("%s:", conw-maxLength-10, conh-(FONTH*2), jsonNews::newsItems[current]->title);
             draw_textf("%s", conw-maxLength-10, conh-(FONTH), jsonNews::newsItems[current]->content);
         }
-
+    }
+    else
+    {
+        extern void input_debug_draw(int conh);
+        input_debug_draw(conh);
     }
 
     abovehud -= rendercommand(FONTH/2, abovehud - FONTH/2, conw-FONTH);

@@ -1,9 +1,12 @@
 find_package(ZLIB REQUIRED)
 
+set(OpenCV_FOUND 0)
+find_package(OpenCV)
 find_package(OpenGL)
 find_package(PkgConfig)
 
 option(BUILD_CLIENT "Build the client" ${OPENGL_FOUND})
+option(BUILD_CC "Build the camera controller" 0)
 option(BUILD_SERVER "Build the server" 1)
 
 message(STATUS "Detecting LuaJIT...")
@@ -161,6 +164,12 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/engine
     ${CMAKE_CURRENT_SOURCE_DIR}/fpsgame
 )
+
+if(${BUILD_CC})
+    add_subdirectory(controller-camera)
+else()
+    message(STATUS "NOT building the controller camera")
+endif()
 
 if(${BUILD_CLIENT})
     add_subdirectory(client)

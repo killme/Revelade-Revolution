@@ -917,10 +917,10 @@ void checkinput()
                 lastbut = event.button.button;
                 break;
         }
-        joystick::process_event(&event);
+        input::processEvent(event);
     }
     if(mousemoved) resetmousemotion();
-    joystick::move();
+    input::move();
 }
 
 void swapbuffers(bool overlay)
@@ -1236,7 +1236,7 @@ int main(int argc, char **argv)
     initserver(false, false);  // never returns if dedicated
 
     game::initclient();
-    joystick::init();
+    input::init();
 
     INIT_LOG("video: mode");
     const SDL_VideoInfo *video = SDL_GetVideoInfo();
@@ -1278,9 +1278,8 @@ int main(int argc, char **argv)
     initdecals();
 
     INIT_LOG("world");
-    #if defined(WITH_BULLET) && WITH_BULLET
-        extern void initBullet();
-        initBullet();
+    #ifdef RR_USE_BULLET
+        physics::init();
     #endif
     camera1 = player = game::iterdynents(0);
     emptymap(0, true, NULL, false);

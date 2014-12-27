@@ -525,6 +525,20 @@ extern void addchange(const char *desc, int type);
 extern void clearchanges(int type);
 
 // physics
+#if defined(WITH_BULLET) && WITH_BULLET
+#define RR_USE_BULLET
+// RR: Bullet physics
+namespace physics
+{
+    void init();
+
+    /**
+     * Rebuilds the triangle mesh from the static world geometry
+     */
+    void rebuildStaticWorld();
+}
+///RR
+#endif
 extern void mousemove(int dx, int dy);
 extern bool pointincube(const clipplanes &p, const vec &v);
 extern bool overlapsdynent(const vec &o, float radius);

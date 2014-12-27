@@ -1,7 +1,8 @@
 #include "game.h"
 
 #if defined(WITH_BULLET) && WITH_BULLET
-extern vec ballPosition;
+//extern vec ballPosition;
+vec ballPosition (0,0,0);
 #endif
 
 namespace game
