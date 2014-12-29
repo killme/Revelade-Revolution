@@ -390,6 +390,104 @@ namespace physics
         }
     #endif
 
+        const vector<extentity *> &ents = entities::getents();
+
+        // TODO: use bullet meshes that better fit this
+        loopv(ents)
+        {
+            extentity &e = *ents[i];
+            if(e.type == ET_MAPMODEL && (e.flags & extentity::F_NOCOLLIDE) == 0)
+            {
+                model *m = loadmapmodel(e.attr2);
+                if(!m || !m->collide) continue;
+
+                vec center, radius;
+                float rejectradius = m->collisionbox(center, radius);
+
+                center.add(e.o);
+                const vec top     = vec(center).add(vec(0, 0, radius.z));
+                const vec bottom  = vec(center).sub(vec(0, 0, radius.z));
+
+                float yaw = e.attr1;
+                if(m->ellipsecollide)
+                {
+                    int N = 8;
+                    loopj(N)
+                    {
+                        float t1 = ((float)j-.5f)/(float)N * 2 * PI;
+                        float t2 = ((float)j+.5f)/(float)N * 2 * PI;
+
+                        vec from = vec(center).add(vec(
+                            radius.x * cosf(t1),
+                            radius.y * sinf(t1),
+                            0
+                        ));
+
+                        vec to = vec(center).add(vec(
+                            radius.x * cosf(t2),
+                            radius.y * sinf(t2),
+                            0
+                        ));
+
+                        addTriangle(from, top, to);
+                        addTriangle(from, to, bottom);
+                    }
+                }
+                else // BOX
+                {
+                    const vec leftTopFront    = vec(top)      .add(vec(-radius.x, -radius.y, 0).rotate_around_z(yaw * RAD));
+                    const vec leftTopBack     = vec(top)      .add(vec(-radius.x,  radius.y, 0).rotate_around_z(yaw * RAD));
+                    const vec rightTopFront   = vec(top)      .add(vec( radius.x, -radius.y, 0).rotate_around_z(yaw * RAD));
+                    const vec rightTopBack    = vec(top)      .add(vec( radius.x,  radius.y, 0).rotate_around_z(yaw * RAD));
+                    const vec leftBottomFront = vec(bottom)   .add(vec(-radius.x, -radius.y, 0).rotate_around_z(yaw * RAD));
+                    const vec leftBottomBack  = vec(bottom)   .add(vec(-radius.x,  radius.y, 0).rotate_around_z(yaw * RAD));
+                    const vec rightBottomFront= vec(bottom)   .add(vec( radius.x, -radius.y, 0).rotate_around_z(yaw * RAD));
+                    const vec rightBottomBack = vec(bottom)   .add(vec( radius.x,  radius.y, 0).rotate_around_z(yaw * RAD));
+
+
+                    vec tris [][3] = {
+                        // Front
+                        { leftTopFront, rightBottomFront, leftBottomFront},
+                        { leftTopFront, rightTopFront, rightBottomFront },
+
+                        // Top
+                        { leftTopFront, rightTopBack, rightTopFront },
+                        { leftTopFront, leftTopBack, rightTopBack },
+
+                        // Left
+                        { leftTopFront, leftBottomBack, leftTopBack },
+                        { leftTopFront, leftBottomFront, leftBottomBack },
+
+                        // Bottom
+                        { leftBottomFront, rightBottomFront, rightBottomBack },
+                        { leftBottomFront, rightBottomBack, leftBottomBack },
+
+                        // Back
+                        { leftTopBack, leftBottomBack, rightBottomBack },
+                        { leftTopBack, rightBottomBack, rightTopBack },
+
+                        // Right
+                        { rightTopFront, rightTopBack, rightBottomBack },
+                        { rightTopFront, rightBottomBack, rightBottomFront },
+                    };
+
+                    loopj(sizeof(tris)/sizeof(tris[0]))
+                    {
+                        printf("TRI (%f %f %f) (%f %f %f) (%f %f %f)\n",
+                               tris[j][0].x, tris[j][0].y, tris[j][0].z,
+                               tris[j][1].x, tris[j][1].y, tris[j][1].z,
+                               tris[j][2].x, tris[j][2].y, tris[j][2].z);
+                        addTriangle(
+                            tris[j][0],
+                            tris[j][1],
+                            tris[j][2]
+                        );
+                    }
+                }
+                // TODO: custom shape
+            }
+        }
+
         physicsEndWorldBatch();
     }
 
